@@ -27,6 +27,7 @@ MOTIF_EIGHTHS = [1, 2, 1, 1, 2]
 MOTIF_INTERVALS = [0, 9, 7, 4, 7]
 MOTIF_DEGREES = [1, 6, 5, 3, 5]
 XYLO_NOTES = ["D5", "E5", "F#5", "A5", "B5", "D6", "E6", "F#6"]
+GUITAR_NOTES = ["D3", "A3", "D4", "F#4", "A4", "B4"]   # the big guitar's open strings (sfx guitar-1..6)
 
 # --- melody, D major, eighth-note units; bar 0 is the pickup bar (5 eighths rest)
 THEME_A = (
@@ -91,4 +92,6 @@ def manifest_entry():
         "intervalsSemitones": MOTIF_INTERVALS,
         "xyloNotes": XYLO_NOTES,
         "xylo": [XYLO_NOTES.index(n) for n in MOTIF_NOTES],
+        "guitarNotes": GUITAR_NOTES,
+        "guitar": [GUITAR_NOTES.index(n[:-1] + str(int(n[-1]) - 1)) for n in MOTIF_NOTES],
     }

@@ -530,6 +530,121 @@
       "path": "public/models/coral-3.glb",
       "license": "own",
       "source": "Modelled procedurally with tools/blender/coral.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/ambience/projector.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/manifest.json",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/picture-show.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/chest-open.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/coins-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/coins-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/coins-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/guitar-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/guitar-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/guitar-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/guitar-4.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/guitar-5.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/guitar-6.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/kraken-groan.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/mantis-click.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/owl-hoot-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/owl-hoot-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/spider-scurry.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/tentacle-curl.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/water-lap.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/web-stretch-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/web-stretch-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/wings-flutter.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
     }
   ]
 }

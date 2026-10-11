@@ -45,7 +45,9 @@ A rising major sixth (the flame leaps out of its lantern), a sigh down a step,
 a dip to the third and a lift back to the fifth: it ends open, like "this way!".
 All five notes are in D major pentatonic, so it is playable on the eight letter
 pumpkins `xylo-1..8` = **D5 E5 F#5 A5 B5 D6 E6 F#6**: pumpkins **1 5 4 3 4**
-(0-based `[0, 4, 3, 2, 3]`, also in `manifest.json` → `motif.xylo`).
+(0-based `[0, 4, 3, 2, 3]`, also in `manifest.json` → `motif.xylo`). The big
+guitar's six open strings `guitar-1..6` are **D3 A3 D4 F#4 A4 B4**, so the motif
+is strings **3 6 5 4 5** (`motif.guitarNotes`, `motif.guitar = [2, 5, 4, 3, 4]`).
 
 The full theme (`hlaudio/theme.py`) grows from it: A states the motif, answers
 it with the same shape a step lower, restates it and climbs to the high D; B
@@ -66,6 +68,7 @@ music, so the Ember always sounds in tune with what is playing):
 | deep     | Where the Lanterns Swim | F# minor / A | whale-song choir     | F# D C# A C# (minor) |
 | marigold | Remember Me    | G major            | nylon guitar             | G E D B D          |
 | finale   | Hallowed Lanterns | D → E major     | everyone, in turn        | all of the above   |
+| picture show | The Picture Show | F major, 3/4 waltz | upright piano, celesta | F D C A C          |
 
 ## Files
 
@@ -80,8 +83,9 @@ hlaudio/             the library
   nb.py              numba kernels: Karplus-Strong string, time-varying SVF, combs, dynamics
   lines.py           continuous "line" synthesis (glides, delayed vibrato, swells) + wavetable osc
   mallets.py         modal synthesis: music box, celesta, glockenspiel, bells, sleigh bells,
-                     wind chimes, finger cymbal, pumpkin xylophone
-  plucked.py         extended Karplus-Strong: harp, guzheng (bends, vibrato), nylon guitar, pizzicato
+                     wind chimes, finger cymbal, pumpkin xylophone, upright piano
+  plucked.py         extended Karplus-Strong: harp, guzheng (bends, vibrato), nylon guitar,
+                     the big magical guitar, pizzicato
   bowed.py           string sections and solo cello (detuned players, bow noise, body IRs)
   body.py            modal body impulse responses (violin, viola, cello, bass, guitar, harp, zither)
   wind.py            bamboo flute (chiff, pitched breath) and soft horn section
@@ -98,9 +102,10 @@ hlaudio/             the library
                      manifest writing
   qa.py              stats (LUFS, peaks, DC, HF share), spectrogram pictures, pitch check
 pieces/music/        arbor grove garden pasture hollow snow deep marigold   (loops)
+                     picture_show (the shadow-puppet waltz, loop)
                      finale ember_born keeper_rises                           (one-shots)
-pieces/ambience/     arbor grove garden pasture hollow snow deep marigold
-pieces/sfx/          footsteps ember_chimes lanterns creatures sparkles
+pieces/ambience/     arbor grove garden pasture hollow snow deep marigold projector
+pieces/sfx/          footsteps ember_chimes lanterns creatures sparkles extras
 ```
 
 Each piece script documents its form at the top (bars, sections, who plays).
@@ -122,7 +127,13 @@ Each piece script documents its form at the top (bars, sections, who plays).
   softer things (snowflakes, bubbles, squeaks, swings, butterflies) −4…−5;
   footsteps −6 (they repeat constantly); `ui-tap` −9. Mono unless the brief
   said stereo (ember chimes, sprinkle-burst, butterflies, wish-hang, fog-swirl).
-* MP3: music 128 kbps CBR, ambience and sfx 96 kbps CBR, 44.1 kHz.
+* MP3: music 128 kbps CBR, ambience and sfx 96 kbps CBR, 44.1 kHz, no ID3 tag
+  (the LAME/Xing header stays, so decoders trim the encoder delay).
+* `sfx/water-lap.mp3` is rendered circularly and is exactly 4.0 s, so it can
+  be looped directly (`AudioBufferSourceNode.loop`); the PCM is seamless, the
+  MP3 frame boundary leaves at most a tiny step around −40 dBFS.
+* Size: everything in `public/audio/` is about 28.5 MB (budget 30 MB). Music
+  loops are 120 s and ambiences 60 s (the minimum of the brief) to stay small.
 * Nothing is synthesised above ~9.5 kHz and instruments roll off from 6 kHz:
   the soundtrack should feel warm, never glassy.
 

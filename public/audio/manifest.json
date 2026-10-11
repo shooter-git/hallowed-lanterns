@@ -46,6 +46,21 @@
       3,
       2,
       3
+    ],
+    "guitarNotes": [
+      "D3",
+      "A3",
+      "D4",
+      "F#4",
+      "A4",
+      "B4"
+    ],
+    "guitar": [
+      2,
+      5,
+      4,
+      3,
+      4
     ]
   },
   "music": {
@@ -82,11 +97,11 @@
     "finale": {
       "file": "music/finale.mp3",
       "oneShot": true,
-      "seconds": 120.6,
+      "seconds": 124.34,
       "title": "Hallowed Lanterns",
       "key": "D major -> E major",
       "meter": "6/8",
-      "bpm": 48,
+      "bpm": 49,
       "beat": "dotted quarter"
     },
     "garden": {
@@ -152,6 +167,17 @@
       "key": "D (open fifths)",
       "instrument": "cello"
     },
+    "picture-show": {
+      "file": "music/picture-show.mp3",
+      "loopSeconds": 120.0,
+      "tailSeconds": 4,
+      "title": "The Picture Show",
+      "bpm": 132,
+      "meter": "3/4",
+      "beat": "quarter",
+      "key": "F major",
+      "instrument": "upright piano"
+    },
     "snow": {
       "file": "music/snow.mp3",
       "loopSeconds": 120.0,
@@ -200,6 +226,11 @@
       "loopSeconds": 60.0,
       "tailSeconds": 3
     },
+    "projector": {
+      "file": "ambience/projector.mp3",
+      "loopSeconds": 60.0,
+      "tailSeconds": 3
+    },
     "snow": {
       "file": "ambience/snow.mp3",
       "loopSeconds": 60.0,
@@ -218,6 +249,14 @@
     ],
     "candle-light": [
       "sfx/candle-light.mp3"
+    ],
+    "chest-open": [
+      "sfx/chest-open.mp3"
+    ],
+    "coins": [
+      "sfx/coins-1.mp3",
+      "sfx/coins-2.mp3",
+      "sfx/coins-3.mp3"
     ],
     "ember-chime-arbor": [
       "sfx/ember-chime-arbor.mp3"
@@ -251,10 +290,21 @@
       "sfx/giant-low-1.mp3",
       "sfx/giant-low-2.mp3"
     ],
+    "guitar": [
+      "sfx/guitar-1.mp3",
+      "sfx/guitar-2.mp3",
+      "sfx/guitar-3.mp3",
+      "sfx/guitar-4.mp3",
+      "sfx/guitar-5.mp3",
+      "sfx/guitar-6.mp3"
+    ],
     "gummy-squeak": [
       "sfx/gummy-squeak-1.mp3",
       "sfx/gummy-squeak-2.mp3",
       "sfx/gummy-squeak-3.mp3"
+    ],
+    "kraken-groan": [
+      "sfx/kraken-groan.mp3"
     ],
     "lantern-light": [
       "sfx/lantern-light.mp3"
@@ -263,8 +313,15 @@
       "sfx/lantern-swing-1.mp3",
       "sfx/lantern-swing-2.mp3"
     ],
+    "mantis-click": [
+      "sfx/mantis-click.mp3"
+    ],
     "octopus-wave": [
       "sfx/octopus-wave.mp3"
+    ],
+    "owl-hoot": [
+      "sfx/owl-hoot-1.mp3",
+      "sfx/owl-hoot-2.mp3"
     ],
     "puffer-puff": [
       "sfx/puffer-puff.mp3"
@@ -280,6 +337,9 @@
       "sfx/snowflake-3.mp3",
       "sfx/snowflake-4.mp3",
       "sfx/snowflake-5.mp3"
+    ],
+    "spider-scurry": [
+      "sfx/spider-scurry.mp3"
     ],
     "sprinkle-burst": [
       "sfx/sprinkle-burst.mp3"
@@ -307,8 +367,21 @@
       "sfx/step-snow-3.mp3",
       "sfx/step-snow-4.mp3"
     ],
+    "tentacle-curl": [
+      "sfx/tentacle-curl.mp3"
+    ],
     "ui-tap": [
       "sfx/ui-tap.mp3"
+    ],
+    "water-lap": [
+      "sfx/water-lap.mp3"
+    ],
+    "web-stretch": [
+      "sfx/web-stretch-1.mp3",
+      "sfx/web-stretch-2.mp3"
+    ],
+    "wings-flutter": [
+      "sfx/wings-flutter.mp3"
     ],
     "wish-hang": [
       "sfx/wish-hang.mp3"

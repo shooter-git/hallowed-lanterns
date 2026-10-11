@@ -121,10 +121,10 @@ def ui_tap():
 
 def render():
     for i, nm in enumerate(TH.XYLO_NOTES):
-        finish_sfx("xylo", f"xylo-{i + 1}", xylo(m(nm)), -3.0, max_s=0.8)
+        finish_sfx("xylo", f"xylo-{i + 1}", xylo(m(nm)), -3.0, max_s=1.0)
     finish_sfx("sprinkle-burst", "sprinkle-burst", sprinkle_burst(), -3.0, stereo=True, max_s=1.7)
     for i, p in enumerate([93, 97, 100, 102, 105]):  # A6 C#7 E7 F#7 A7 (snow's A major)
-        finish_sfx("snowflake", f"snowflake-{i + 1}", snowflake(p, i), -5.0, max_s=1.0)
+        finish_sfx("snowflake", f"snowflake-{i + 1}", snowflake(p, i), -5.0, max_s=1.4)
     for i in range(4):
         finish_sfx("bubble", f"bubble-{i + 1}", bubble(i), -5.0)
     finish_sfx("wish-hang", "wish-hang", wish_hang(), -3.0, stereo=True, max_s=2.1)

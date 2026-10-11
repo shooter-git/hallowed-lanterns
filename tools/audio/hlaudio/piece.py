@@ -75,15 +75,23 @@ def _load_manifest():
 
 
 def update_manifest(section, key, entry):
-    man = _load_manifest()
-    man.setdefault(section, {})
-    if section == "motif":
-        man["motif"] = entry
-    else:
-        man[section][key] = entry
-        man[section] = dict(sorted(man[section].items()))
+    """Read-modify-write the manifest under a file lock (parallel renders)."""
+    import fcntl
     MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-    MANIFEST.write_text(json.dumps(man, indent=2) + "\n")
+    CACHE.mkdir(parents=True, exist_ok=True)
+    with open(CACHE / "manifest.lock", "w") as lk:
+        fcntl.flock(lk, fcntl.LOCK_EX)
+        man = _load_manifest()
+        man.setdefault(section, {})
+        if section == "motif":
+            man["motif"] = entry
+        else:
+            man[section][key] = entry
+            man[section] = dict(sorted(man[section].items()))
+        tmp = MANIFEST.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(man, indent=2) + "\n")
+        tmp.replace(MANIFEST)
+        fcntl.flock(lk, fcntl.LOCK_UN)
 
 
 def _log(msg):
@@ -202,21 +210,22 @@ def _trim_tail(x, floor_db=-52.0, max_s=None, fade_max=0.35):
     return x
 
 
-def finish_sfx(group, name, x, peak_db=-3.0, stereo=False, kbps=96, floor_db=-52.0, max_s=None):
-    """Peak-normalise (true peak), trim, encode one sfx; record it in its group."""
+def finish_sfx(group, name, x, peak_db=-3.0, stereo=False, kbps=96, floor_db=-52.0, max_s=None, loop=False):
+    """Peak-normalise (true peak), trim, encode one sfx; record it in its group.
+    loop=True keeps the exact length (a seamless, circularly rendered loop)."""
     x = np.atleast_2d(np.asarray(x, dtype=np.float64))
     if not stereo and x.shape[0] == 2:
         x = x.mean(axis=0, keepdims=True)
     if stereo and x.shape[0] == 1:
         x = np.vstack([x, x])
-    x = FX.dc_block(x)
-    x = x - np.mean(x, axis=-1, keepdims=True) * 0
+    x = FX.dc_block(x, circular=loop)
     tp = M.true_peak_db(x)
     x = x * undb(peak_db - tp)
-    x = _trim_tail(x, floor_db, max_s)
-    # tiny fade-in so nothing starts with a click
-    k = min(ns(0.0015), x.shape[1])
-    x[..., :k] *= np.linspace(0, 1, k)
+    if not loop:
+        x = _trim_tail(x, floor_db, max_s)
+        # tiny fade-in so nothing starts with a click
+        k = min(ns(0.0015), x.shape[1])
+        x[..., :k] *= np.linspace(0, 1, k)
     path = OUT / "sfx" / f"{name}.mp3"
     x, I, TP = _encode_verified(x, path, kbps, 0, tp_max=min(-1.6, peak_db + 0.6), mono=not stereo,
                                 measure_lufs=False)

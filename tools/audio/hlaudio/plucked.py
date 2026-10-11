@@ -20,6 +20,7 @@ KINDS = {
     "harp":   dict(t60=6.0, lp=0.28, pos=0.42, harm=5.0, disp=0.0, stages=0, body="harp", t60_exp=0.55),
     "zheng":  dict(t60=6.5, lp=0.16, pos=0.13, harm=9.0, disp=-0.12, stages=2, body="zheng", t60_exp=0.5),
     "guitar": dict(t60=3.8, lp=0.34, pos=0.16, harm=5.0, disp=-0.03, stages=1, body="guitar", t60_exp=0.6),
+    "big_guitar": dict(t60=7.5, lp=0.24, pos=0.17, harm=6.0, disp=-0.04, stages=1, body="guitar", t60_exp=0.45),
     "pizz":   dict(t60=0.9, lp=0.45, pos=0.22, harm=4.0, disp=0.0, stages=0, body="violin", t60_exp=0.35),
     "pizz_low": dict(t60=1.8, lp=0.42, pos=0.22, harm=3.5, disp=0.0, stages=0, body="cello", t60_exp=0.35),
 }
