@@ -176,3 +176,120 @@ branches are higher).
 - `coral-1.glb` (orange staghorn, 0.52 × 0.99), `coral-2.glb` (pink candelabra, 0.69 × 1.23),
   `coral-3.glb` (lime kelp, 0.70 × 1.00): 2 cm painted cut-out boards, 0.4–1.1k tris,
   `glow_uvpaint`.
+
+## Second modeller: the Kraken's Wreck, the Web, the owl, the guitar and the picture show
+
+Same conventions as above (metres, ground at y = 0, front +Z in glTF, `_R` on +X, `glow_*` are
+self-lit). Scripts and their painters:
+
+| Script | Painters | Writes |
+|---|---|---|
+| `kraken.py` | `tex_kraken.py`, `tex_wood.py` | `kraken-tentacle-a/-b/-c.glb`, `kraken-arch.glb`, `inflatable-pumpkin.glb` |
+| `skeletons.py` | `tex_pirates.py` | `skeleton-pirate-sit.glb`, `skeleton-pirate-stand.glb`, `skeleton.glb`, `skeleton-climb.glb` |
+| `treasure.py` | `tex_wood.py`, `tex_pirates.py` | `rowboat.glb`, `treasure-chest.glb`, `pumpkin-palm.glb`, `barrel.glb` |
+| `web.py` | `tex_web.py` | `pumpkin-spider.glb`, `praying-mantis.glb`, `web-pumpkin.glb` |
+| `owl.py` | `tex_owl.py`, `tex_pirates.py` | `pumpkin-owl.glb` |
+| `guitar.py` | `tex_wood.py`, `tex_owl.py` | `pumpkin-guitar.glb` |
+| `picture.py` | `tex_lounge.py` (the shared hay) | `movie-screen.glb`, `bench.glb`, `hay-stage.glb` |
+
+Each script takes `-- only=<keys>` to build some of its models (see its docstring).
+`lib.paint_named()` (added to `lib.py`) gives every texture its own cache stamp when one painter
+is called many times with the same output keys. `tex_wood.py` is a generic tileable plank
+painter (colour + normal; one plank per row band, `row_tones` to keep two woods in one tile).
+
+### The Kraken's Wreck (`kraken.py`, `skeletons.py`, `treasure.py`)
+
+| File | Size (x × y × z) | Tris | Nodes / notes |
+|---|---|---|---|
+| `kraken-tentacle-a.glb` | 2.65 × 6.35 × 1.64 | 9.8k | one mesh `tentacle` (pivot at the footprint centre) |
+| `kraken-tentacle-b.glb` | 1.80 × 4.98 × 1.36 | 8.2k | 〃 |
+| `kraken-tentacle-c.glb` | 1.99 × 3.99 × 1.28 | 8.5k | 〃, the tip curled right over |
+| `kraken-arch.glb` | 5.58 × 4.98 × 4.41 | 19.4k | `wreck` → `hull` (static), `tentacle` (pivot where it leaves the ground, glTF (-1.55, 0, 1.45)) |
+| `inflatable-pumpkin.glb` | 3.12 × 2.98 × 3.24 | 6.6k | `pumpkin` |
+| `rowboat.glb` | 3.29 × 0.80 × 1.36 | 5.4k | `rowboat` → empties `crew_0`, `crew_1` |
+| `skeleton-pirate-sit.glb` | 1.90 × 1.30 × 0.82 | 9.7k | `skeleton` → `head`, `oar` |
+| `skeleton-pirate-stand.glb` | 0.86 × 1.81 × 0.50 | 7.3k | `skeleton` → `head` |
+| `skeleton.glb` | 0.51 × 1.74 × 0.39 | 7.4k | `skeleton` → `head` |
+| `skeleton-climb.glb` | 0.68 × 1.94 × 0.64 | 7.4k | `skeleton` → `head` |
+| `treasure-chest.glb` | 3.50 × 2.39 × 2.11 | 18.4k | `treasure` → `chest` → `lid`, `chains` |
+| `pumpkin-palm.glb` | 2.21 × 2.22 × 2.01 | 5.9k | `palm` |
+| `barrel.glb` | 0.90 × 0.63 × 0.63 | 2.8k | `barrel` (lying on its side, axis along X) |
+
+- **Tentacles** (all four): orange inflatable tubes rising in an S, the tip curling over toward
+  +X. TEXCOORD_1 (`along`): x = 0 at the root → 1 at the tip (suckers and the blower port carry
+  the value of where they sit; y = 0): bend/sway them in a vertex shader by `along`, e.g. an
+  angle growing with `along²` about the axis through the pivot. The inner edge (the concave side,
+  +X at the root, turned a little toward the viewer) is a lemon band with scalloped borders and a
+  zigzag of suckers. Materials `glow_inflatable` (one 1024² texture as base colour and emission:
+  panels brightest low down, seams, tie-down tabs), `glow_suckers` (256²), `blower_port` (black).
+  The arch's hull adds `hull_wood` (+ normal map).
+- **Pumpkin**: 10 gores with seams in the grooves, a curled stem, a dark vent; `glow_inflatable`.
+- **Pirate skeletons**: carved jack-o'-lantern heads whose face cut-outs are `glow_carving`
+  (pink on the seated one, orange on the standing one; plain emissive colour). `head` pivots at
+  the top of the neck (turn it about glTF Y, nod about X). The seated one sits on a 0.36 m seat:
+  its origin is on the floor under the seat point; in the rowboat put its origin on `crew_0` /
+  `crew_1` (they face the stern). Its `oar` pivots at the upper hand. Materials `bone`,
+  `pirate_cloth` (atlas, double-sided), `pumpkin_skin`, `glow_carving`.
+- **Skeletons**: `bone` only. `skeleton-climb` hugs a trunk of radius 0.2 m whose axis is the
+  vertical line through its origin; it faces -Z (glTF) into the trunk and its lowest foot is at
+  y = 0, so lift it up the trunk and turn it about Y as you like.
+- **Treasure chest**: platform 3.5 × 1.4 × 0.45 m (the free strip in front of the chest, glTF z ≈ 0.35 → 0.7, is the seat),
+  chest 2 × 1 × 0.95 m. `lid` pivots on the hinge line along X: its mesh is modelled closed and
+  the node carries the open angle (-110° about X), so rotation 0 closes it; hide `chains` when
+  the lid moves. Materials `chest_wood` (+ normal), `glow_gold` (coins, gems, pearls, crown,
+  chains; emissive factor 0.35), `bone` (the skulls), `pumpkin_skin` (the pale pumpkin).
+- **Palm**: `pumpkin_skin`, `glow_fronds` (alpha MASK, double-sided; also the three green lights
+  in the crown). **Rowboat**: `boat_wood` (+ normal), `iron`. **Barrel**: `barrel_wood`, `iron`.
+
+### The Web (`web.py`)
+
+| File | Size | Tris | Nodes |
+|---|---|---|---|
+| `pumpkin-spider.glb` | 7.00 × 3.03 × 5.51 | 23.2k | `spider` → `leg_0` … `leg_7`, `baby` |
+| `praying-mantis.glb` | 3.71 × 3.39 × 2.97 | 11.0k | `mantis` → `head` |
+| `web-pumpkin.glb` | 0.51 × 0.75 × 0.53 | 3.8k | `web_pumpkin` → empty `hang_point` |
+
+- **Spider**: legs pivot at their roots inside the body: `leg_0`–`leg_3` on +X front to back,
+  `leg_4`–`leg_7` on -X front to back; twitch them by small rotations about their local axes.
+  `baby` (the green spiderling on the abdomen) pivots where it sits. Materials `glow_uvpaint`
+  (2048² base + 1024² emission: the neon lightning patches, polka dots, pale lower legs and the
+  baby glow; the maroon pumpkins stay dark) and `glow_eyes` (the domed pink spirals).
+- **Mantis**: sits on its mid and hind legs, forelegs raised and folded; `head` pivots at the
+  neck (eyes, antennae, palps and collar go with it). Materials `glow_uv` (lime foam tubes and
+  the orange gourd abdomen; emission = base) and `glow_eyes`.
+- **Web pumpkin**: stands on the ground; the five threads meet at `hang_point` 0.42 m above the
+  stem, to hang it in the web instead. `pumpkin_skin`, `glow_web` (strands, double-sided,
+  faint lavender emission), `glow_uv` (the two tiny spiders).
+
+### The owl (`owl.py`)
+
+`pumpkin-owl.glb`, 10.27 × 4.42 × 1.52, 15.2k tris. `owl` (the ivy egg body) → `head` (pivot at
+the neck), `wing_L`, `wing_R` (pivots at the shoulders, glTF (∓0.8, 2.62, -0.14); ruffle them by
+small rotations about their local Z/Y), `body_spots` → `spot_00` … `spot_41`: where the engine
+places glowing carved pumpkins (each spot's local +Z points out of the body, +Y up; its uniform
+scale is the suggested pumpkin diameter in metres, 0.38–0.46). Materials `ivy` (+ normal),
+`pumpkin_skin`, `glow_eyes` (carved sockets and teal pupils), `glow_uv` (beak, ear tufts, curly
+stem) and `glow_feathers` (double-sided): five, because the brief names all of them.
+
+### The guitar (`guitar.py`)
+
+`pumpkin-guitar.glb`, 2.56 × 6.28 × 1.47 (body 3.2 m), 3.4k tris. `guitar` (board, ivy face,
+raised rim, back struts, bridge, the dark rods that carry the strings, tuning pegs) with
+`pumpkin_spots` → `spot_00`–`spot_15` (the big carved pumpkins inside the body, scale 0.42) and
+`spot_16`–`spot_53` (the small ones round the rim, scale 0.26), same orientation convention as
+the owl's (here simply the model's axes); and `string_bottom_0..5` (at the bridge),
+`string_bend_0..5` (where each string leaves the straight neck) and `string_top_0..5` (its
+peg): draw each glowing string as bottom → bend → top. Strings 0–2 go to the left pegs, 3–5 to
+the right. Materials `guitar_wood` (+ normal), `ivy` (+ normal), `rods`.
+
+### The picture show (`picture.py`)
+
+| File | Size | Tris | Nodes / materials |
+|---|---|---|---|
+| `movie-screen.glb` | 7.30 × 4.72 × 2.35 | 6.7k | `movie_screen` (box truss, back props; `truss`) → `screen` |
+| `bench.glb` | 1.83 × 0.43 × 0.28 | 0.9k | `bench`; `plastic_white`, `steel` |
+| `hay-stage.glb` | 5.29 × 0.74 × 1.04 | 7.0k | `hay_stage`; `hay` (same texture as `hay-bale.glb`) |
+
+`screen` is a 6 × 3.6 m grid (bottom edge 0.55 m up, 0.18 m in front of the truss) with UVs
+0..1 across it (u left → right, v bottom → top seen from the front) and a plain white `screen`
+material: put the film on it.

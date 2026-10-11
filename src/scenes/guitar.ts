@@ -38,19 +38,27 @@ export async function guitar(ctx: ChapterContext, at: Vector3, yaw: number): Pro
   const model = await loadModel('pumpkin-guitar', { glowReceive: 1 });
   const bodySpots: Vector3[] = [];
   const rimSpots: Vector3[] = [];
-  const strings: { bottom: Vector3; top: Vector3 }[] = [];
+  /** Pumpkin diameters from the model (each spot's scale), by spot. */
+  const bodySize: number[] = [];
+  const rimSize: number[] = [];
+  const strings: { bottom: Vector3; bend?: Vector3; top: Vector3 }[] = [];
   if (model) {
     group.add(model.root);
     group.updateMatrixWorld(true);
     model.node('pumpkin_spots')?.traverse((o) => {
       if (!o.name.startsWith('spot_')) return;
+      // spot_00..15 are the big pumpkins on the body, the rest the little ones round the rim.
       const p = o.getWorldPosition(new Vector3());
-      (o.scale.x > 0.6 ? bodySpots : rimSpots).push(p);
+      const big = Number(o.name.slice(5)) < 16;
+      (big ? bodySpots : rimSpots).push(p);
+      (big ? bodySize : rimSize).push(o.scale.x);
     });
     for (let k = 0; k < 6; k++) {
       const b = model.node(`string_bottom_${k}`);
       const t = model.node(`string_top_${k}`);
-      if (b && t) strings.push({ bottom: b.getWorldPosition(new Vector3()), top: t.getWorldPosition(new Vector3()) });
+      // Where the string leaves the straight neck and fans out to its peg.
+      const bend = model.node(`string_bend_${k}`)?.getWorldPosition(new Vector3());
+      if (b && t) strings.push({ bottom: b.getWorldPosition(new Vector3()), bend, top: t.getWorldPosition(new Vector3()) });
     }
   }
   if (!bodySpots.length) {
@@ -77,15 +85,17 @@ export async function guitar(ctx: ChapterContext, at: Vector3, yaw: number): Pro
   // Pumpkins: big carved ones on the body (roses, sugar skulls) glowing red; little ones round the rim
   // carved with dots of light in pink and purple.
   const specs: PumpkinSpec[] = [];
-  bodySpots.forEach((p, i) => specs.push({ position: p, size: new Vector3(0.24, 0.3, 0.2), yaw, carve: i % 2 ? CARVE.rose : CARVE.sugarSkull, skin: new Color(0.55, 0.22, 0.05), glow: new Color(1, 0.12, 0.08).multiplyScalar(3.5), phase: i * 0.31 }));
-  rimSpots.forEach((p, i) => specs.push({ position: p, size: new Vector3(0.12, 0.11, 0.12), yaw, carve: CARVE.stars[i % CARVE.stars.length] as number, skin: new Color(0.6, 0.25, 0.06), glow: (i % 2 ? new Color(1, 0.15, 0.7) : new Color(0.6, 0.2, 1)).multiplyScalar(4), phase: i * 0.13 }));
+  const radii = (d: number | undefined, fallback: Vector3) => (d ? new Vector3(d / 2, d * 0.55, d * 0.45) : fallback);
+  bodySpots.forEach((p, i) => specs.push({ position: p, size: radii(bodySize[i], new Vector3(0.24, 0.3, 0.2)), yaw, carve: i % 2 ? CARVE.rose : CARVE.sugarSkull, skin: new Color(0.55, 0.22, 0.05), glow: new Color(1, 0.12, 0.08).multiplyScalar(3.5), phase: i * 0.31 }));
+  rimSpots.forEach((p, i) => specs.push({ position: p, size: radii(rimSize[i], new Vector3(0.12, 0.11, 0.12)), yaw, carve: CARVE.stars[i % CARVE.stars.length] as number, skin: new Color(0.6, 0.25, 0.06), glow: (i % 2 ? new Color(1, 0.15, 0.7) : new Color(0.6, 0.2, 1)).multiplyScalar(4), phase: i * 0.13 }));
   const pumpkins = new PumpkinField(specs, ctx.atlas, { detail: [28, 12], simple: [14, 7] });
   objects.push(pumpkins.group);
 
   // Six neon strings. Each its own little shader so it can shimmer and vibrate when played.
   const amps = strings.map(() => ({ value: 0 }));
-  strings.forEach((s, i) => {
-    const len = s.bottom.distanceTo(s.top);
+  const segments = strings.flatMap((s, i) => (s.bend ? [{ from: s.bottom, to: s.bend, i }, { from: s.bend, to: s.top, i }] : [{ from: s.bottom, to: s.top, i }]));
+  segments.forEach(({ from, to, i }) => {
+    const len = from.distanceTo(to);
     const geo = new CylinderGeometry(0.025, 0.025, len, 6, 24, true);
     geo.translate(0, len / 2, 0);
     const mat = new ShaderMaterial({
@@ -113,8 +123,8 @@ export async function guitar(ctx: ChapterContext, at: Vector3, yaw: number): Pro
       depthWrite: false,
     });
     const mesh = new Mesh(geo, mat);
-    mesh.position.copy(s.bottom);
-    mesh.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), s.top.clone().sub(s.bottom).normalize());
+    mesh.position.copy(from);
+    mesh.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), to.clone().sub(from).normalize());
     mesh.frustumCulled = false;
     mesh.userData.mat = mat;
     objects.push(mesh);
@@ -151,8 +161,9 @@ export async function guitar(ctx: ChapterContext, at: Vector3, yaw: number): Pro
       let bestD = 0.12;
       strings.forEach((s, i) => {
         // Distance from the ray to the string's lower half (within reach).
-        for (let t = 0.05; t < 0.5; t += 0.05) {
-          const p = pointOnGround(s.bottom.clone().lerp(s.top, t));
+        const end = s.bend ?? s.top;
+        for (let t = 0.05; t < (s.bend ? 0.96 : 0.5); t += 0.05) {
+          const p = pointOnGround(s.bottom.clone().lerp(end, t));
           const d = ray.distanceSqToPoint(p);
           if (d < bestD) {
             bestD = d;

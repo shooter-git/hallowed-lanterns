@@ -46,6 +46,8 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
   });
   let wings: Object3D[] = [];
   let head = -1;
+  const headNode = model?.node('head');
+  const eyes = model?.glows.get('glow_eyes');
   if (model) {
     group.add(model.root);
     for (const m of model.glows.values()) m.emissiveIntensity = m.name === 'glow_feathers' ? 1.2 : 2.5;
@@ -55,6 +57,11 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
       if (!o.name.startsWith('spot_')) return;
       const s = feather(specs.length);
       s.position.copy(o.getWorldPosition(new Vector3()));
+      // Each spot's +Z points out of the body, and its scale is the pumpkin's diameter.
+      const out = new Vector3(0, 0, 1).applyQuaternion(o.getWorldQuaternion(new Quaternion()));
+      s.yaw = Math.atan2(out.x, out.z);
+      const r = o.getWorldScale(new Vector3()).x / 2;
+      s.size = new Vector3(r, r * 1.1, r * 0.92);
       specs.push(s);
     });
   } else {
@@ -111,7 +118,9 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
 
   let ruffle = 0;
   let blink = 0;
+  let look = 0;
   const rest = wings.map((w) => w.rotation.z);
+  const headRest = headNode?.rotation.y ?? 0;
   const centre = toWorld(new Vector3(0, 2.2, 0));
 
   return {
@@ -130,7 +139,11 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
       if (blink > 0) {
         blink -= dt;
         if (head >= 0) pumpkins.setCarve(head, blink > 0 ? -1 : 100 + CARVE.owlEyes);
+        if (eyes) eyes.emissiveIntensity = blink > 0 ? 0.15 : 2.5;
       }
+      // When you tap it, the head swivels round to you, the way owls do, and back.
+      look = Math.max(0, look - dt / 2.8);
+      if (headNode) headNode.rotation.y = headRest + Math.sin(look * Math.PI) * 0.55;
       pumpkins.update(ctx.camera, dt);
     },
     pick(ray: Ray) {
@@ -138,6 +151,7 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
       return () => {
         ruffle = 1;
         blink = 0.25;
+        look = 1;
         void ctx.audio.sfx('owl-hoot', { at: pointOnGround(centre), volume: 0.9 });
         void ctx.audio.sfx('wings-flutter', { at: pointOnGround(centre), volume: 0.7 });
       };

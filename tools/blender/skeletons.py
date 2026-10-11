@@ -654,18 +654,18 @@ def bandana(mb, mat, point):
         mb.f(ids, [uvm(0, 0), uvm(0, 1), uvm(1, 1), uvm(1, 0)], None, mat)
 
 
-def oar(mb, top, d, length, mat):
+def oar(mb, top, d, length, mat, uvmap=None):
     side = d.cross(V((0, 0, 1))).normalized()
     if side.length < 1e-6:
         side = V((1, 0, 0))
     shaft_end = top + d * (length - 0.55)
     Loft([top, top + d * 0.2, shaft_end], lambda t: {"rx": 0.019 if t > 0.05 else 0.017, "ry": 0.019}, n=8, seg=0.3,
          frame="up", up=side, cap0="dome", cap1="flat", cap0_len=0.012).build(
-             mb, uvmap=lambda s, a: (s * 4, 0.5 + 0.1 * a), mat=mat)
+             mb, uvmap=uvmap or (lambda s, a: (s * 4, 0.5 + 0.1 * a)), mat=mat)
     blade_n = side.cross(d).normalized()
     Loft([shaft_end - d * 0.05, shaft_end + d * 0.2, top + d * length],
          lambda t: {"rx": 0.03 + 0.055 * min(t * 2.5, 1), "ry": 0.012, "p": 3.0}, n=10, seg=0.08, frame="up", up=blade_n,
-         cap0="flat", cap1="dome", cap1_len=0.03).build(mb, uvmap=lambda s, a: (s * 2, 0.5 + 0.1 * a), mat=mat)
+         cap0="flat", cap1="dome", cap1_len=0.03).build(mb, uvmap=uvmap or (lambda s, a: (s * 2, 0.5 + 0.1 * a)), mat=mat)
 
 
 # --------------------------------------------------------------------------------------------
@@ -715,9 +715,9 @@ def build(name, pose, pirate=None, face=None, carve_color="#ff4f86", extras=()):
     if rig.oar:
         om = MB()
         top, d, ln = rig.oar
-        oar(om, top, d, ln, 0)
-        wood = lib.material("oar_wood", color="#6a5038", roughness=0.8)
-        oobj = om.object("oar", [wood], origin=top + d * POSES[pose]["oar"]["hands"][0])
+        # the oar shares the cloth atlas (its weathered canvas tile reads as grey-brown wood here)
+        oar(om, top, d, ln, 0, uvmap=lambda s, a: cloth_tile(*TILES["canvas"])(s, a))
+        oobj = om.object("oar", [mats[1]], origin=top + d * POSES[pose]["oar"]["hands"][0])
         lib.set_parent(oobj, root)
         total += lib.tri_count(oobj)
     for o in list(bpy_objects()):
