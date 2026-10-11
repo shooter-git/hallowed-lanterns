@@ -1,0 +1,433 @@
+import {
+  BoxGeometry,
+  Color,
+  DirectionalLight,
+  HemisphereLight,
+  InstancedMesh,
+  Matrix4,
+  MeshBasicMaterial,
+  MeshStandardMaterial,
+  type Ray,
+  Scene,
+  SphereGeometry,
+  Vector2,
+  Vector3,
+} from 'three';
+import { CARVE } from '../engine/carvings.ts';
+import { FogBank } from '../engine/fogbank.ts';
+import type { GlowLight } from '../engine/glowfield.ts';
+import { type Bounds, ground, GroundMask } from '../engine/ground.ts';
+import type { LightSource } from '../engine/lights.ts';
+import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
+import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
+import { Path } from '../engine/rig.ts';
+import { hallow, shared } from '../engine/shared.ts';
+import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
+import type { Chapter, ChapterContext, TapAction } from './types.ts';
+
+/**
+ * I. The Arbor of Faces — sunset. A gravel lane under a long pergola hung with hundreds of
+ * carved jack-o'-lanterns. They wake in a wave as the sun goes; near the end, one of them loses
+ * its flame — and the flame looks back at you.
+ */
+
+const LANE_START = 2;
+const LANE_END = -50;
+const BAY = 4;
+const HALF = 2.75;
+
+function rng(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export async function build(ctx: ChapterContext): Promise<Chapter> {
+  const { tier } = ctx;
+  const rnd = rng(20261011);
+  const scene = new Scene();
+  const bounds: Bounds = [-40, -80, 80, 100];
+
+  // --- The walk: in under the pergola, down the lane, then off left into the trees. ---
+  const path = new Path(
+    [
+      [0, 9],
+      [0, 0],
+      [0, -20],
+      [0, -40],
+      [0, -50],
+      [-1.5, -56],
+      [-5, -61],
+      [-9, -64],
+    ],
+    (s) => (s < 58 ? 3.4 : 2.4),
+  );
+
+  // --- Ground: gravel lane, dry grass all around. ---
+  const mask = new GroundMask(bounds, 4);
+  const lane: [number, number][] = path.points.filter((_, i) => i % 4 === 0).map((p) => [p.x, p.y]);
+  mask.stroke(lane, 4.6, 'r');
+  mask.stroke(lane.slice(0, Math.floor(lane.length * 0.85)), 6, 'g', 0.75);
+  for (let i = 0; i < 14; i++) mask.blob((rnd() - 0.5) * 6, LANE_START - rnd() * 52, 2 + rnd() * 3, 'g', 0.5);
+  mask.soften(4);
+  const floor = ground({
+    mask,
+    a: ctx.surface('gravel'),
+    aScale: 1.6,
+    b: ctx.surface('dryGrass'),
+    bScale: 2.2,
+    tone: 0.75,
+  });
+  scene.add(floor);
+
+  // --- The pergola: dark timber posts, beams along the lane, cross beams each bay. ---
+  const timber = hallow(new MeshStandardMaterial({ color: 0x2a1d14, roughness: 0.92 }), { key: 'timber' });
+  const bays = Math.round((LANE_START - LANE_END) / BAY);
+  const posts = new InstancedMesh(new BoxGeometry(0.16, 3.5, 0.16), timber, (bays + 1) * 2);
+  const beams = new InstancedMesh(new BoxGeometry(0.12, 0.2, BAY + 0.1), timber, bays * 2);
+  const cross = new InstancedMesh(new BoxGeometry(HALF * 2 + 0.4, 0.14, 0.1), timber, bays + 1);
+  const m = new Matrix4();
+  for (let i = 0; i <= bays; i++) {
+    const z = LANE_START - i * BAY;
+    for (const side of [-1, 1]) {
+      m.makeRotationY((rnd() - 0.5) * 0.04).setPosition(side * HALF, 1.75, z);
+      posts.setMatrixAt(i * 2 + (side > 0 ? 1 : 0), m);
+    }
+    m.identity().setPosition(0, 3.48, z);
+    cross.setMatrixAt(i, m);
+    if (i < bays) {
+      for (const side of [-1, 1]) {
+        m.identity().setPosition(side * HALF, 3.42, z - BAY / 2);
+        beams.setMatrixAt(i * 2 + (side > 0 ? 1 : 0), m);
+      }
+    }
+  }
+  for (const mesh of [posts, beams, cross]) {
+    mesh.computeBoundingSphere();
+    scene.add(mesh);
+  }
+
+  // --- Fence posts and barbed wire out in the field on the right. ---
+  const fence = new InstancedMesh(new BoxGeometry(0.12, 1.5, 0.12), timber, 26);
+  for (let i = 0; i < 26; i++) {
+    m.makeRotationZ((rnd() - 0.5) * 0.08).setPosition(7.5 + (rnd() - 0.5) * 0.2, 0.75, 6 - i * 3.2);
+    fence.setMatrixAt(i, m);
+  }
+  fence.computeBoundingSphere();
+  scene.add(fence);
+
+  // --- The lanterns. ---
+  const specs: PumpkinSpec[] = [];
+  const overheadRows = tier === 'low' ? [-1.6, -0.5, 0.5, 1.6] : [-2.05, -1.25, -0.45, 0.45, 1.25, 2.05];
+  const sideRows = tier === 'low' ? [1.45] : [1.45, 2.45];
+  const spacing = tier === 'low' ? 0.62 : 0.5;
+  const lanternColour = (r: number) => {
+    if (r < 0.025) return new Color(1, 0.08, 0.1).multiplyScalar(4);
+    if (r < 0.045) return new Color(1, 0.1, 0.55).multiplyScalar(3.5);
+    if (r < 0.06) return new Color(0.6, 0.18, 1).multiplyScalar(3.5);
+    return new Color(1, 0.5 + rnd() * 0.14, 0.12 + rnd() * 0.06).multiplyScalar(3 + rnd() * 1.4);
+  };
+  const face = () => {
+    const r = rnd();
+    if (r < 0.04) return CARVE.creatures[Math.floor(rnd() * CARVE.creatures.length)] as number;
+    if (r < 0.05) return CARVE.heartSkull;
+    return CARVE.faces[Math.floor(rnd() * CARVE.faces.length)] as number;
+  };
+  const add = (x: number, y: number, z: number, yaw: number, hang: number) => {
+    const w = 0.15 + rnd() * 0.035;
+    const h = w * (1.12 + rnd() * 0.22);
+    const bay = Math.floor((LANE_START - z) / BAY);
+    specs.push({
+      position: new Vector3(x + (rnd() - 0.5) * 0.04, y + (rnd() - 0.5) * 0.08, z),
+      size: new Vector3(w, h, w * (0.95 + rnd() * 0.1)),
+      yaw: yaw + (rnd() - 0.5) * 0.35,
+      tilt: (rnd() - 0.5) * 0.12,
+      carve: face(),
+      skin: (PUMPKIN_ORANGE[Math.floor(rnd() * PUMPKIN_ORANGE.length)] as Color).clone().multiplyScalar(0.9 + rnd() * 0.2),
+      glow: lanternColour(rnd()),
+      phase: rnd(),
+      seq: LANE_START - z + rnd() * 1.2,
+      hang,
+      chunk: `bay${bay}`,
+    });
+  };
+  for (let z = LANE_START - 0.3; z > LANE_END + 0.2; z -= spacing) {
+    for (const x of overheadRows) add(x, 3.02 - Math.abs(x) * 0.05, z + (rnd() - 0.5) * 0.1, 0, 0.3);
+    for (const y of sideRows) {
+      add(-HALF - 0.05, y, z + (rnd() - 0.5) * 0.1, Math.PI / 2, 0.22);
+      add(HALF + 0.05, y, z + (rnd() - 0.5) * 0.1, -Math.PI / 2, 0.22);
+    }
+  }
+  // The one that holds the Ember: low over the middle of the lane, near the end.
+  const emberZ = -43.2;
+  let emberIndex = 0;
+  let bestD = 1e9;
+  specs.forEach((s, i) => {
+    const d = Math.abs(s.position.z - emberZ) + Math.abs(s.position.x - 0.45) * 2;
+    if (d < bestD && s.position.y > 2.5) {
+      bestD = d;
+      emberIndex = i;
+    }
+  });
+  const emberSpec = specs[emberIndex] as PumpkinSpec;
+  emberSpec.carve = CARVE.happy[0] as number;
+  emberSpec.glow = new Color(1, 0.55, 0.16).multiplyScalar(5);
+
+  const pumpkins = new PumpkinField(specs, ctx.atlas, {
+    detail: tier === 'low' ? [24, 12] : [36, 16],
+    simple: [14, 7],
+  });
+  pumpkins.detailDistance = tier === 'low' ? 8 : 13;
+  pumpkins.wave = -10;
+  scene.add(pumpkins.group);
+
+  // --- Path lights: purple and orange LED strings along both edges of the gravel. ---
+  const ledGeo = new SphereGeometry(0.022, 6, 4);
+  const ledMat = hallow(new MeshBasicMaterial({ color: 0xffffff }), { key: 'led' });
+  const ledPositions: { p: Vector3; c: Color }[] = [];
+  const purple = new Color(0.55, 0.12, 1.0);
+  const orange = new Color(1.0, 0.35, 0.05);
+  for (let z = LANE_START + 3; z > LANE_END; z -= 0.28) {
+    for (const side of [-1, 1]) {
+      const c = rnd() < 0.72 ? purple : orange;
+      ledPositions.push({ p: new Vector3(side * 2.05 + (rnd() - 0.5) * 0.05, 0.03, z), c });
+    }
+  }
+  const leds = new InstancedMesh(ledGeo, ledMat, ledPositions.length);
+  ledPositions.forEach((l, i) => {
+    m.makeTranslation(l.p.x, l.p.y, l.p.z);
+    leds.setMatrixAt(i, m);
+    leds.setColorAt(i, l.c.clone().multiplyScalar(14));
+  });
+  leds.computeBoundingSphere();
+  scene.add(leds);
+
+  // --- Glow field: every lantern and LED pools light on the gravel, the posts and the fog. ---
+  const glowLights: GlowLight[] = pumpkins.glowLights(2.4, tier === 'low' ? 0.14 : 0.09);
+  for (const l of ledPositions) {
+    glowLights.push({ x: l.p.x, z: l.p.z, radius: 0.6, color: l.c, intensity: 0.35, flicker: 0 });
+  }
+
+  // --- Light, sky, fog. ---
+  const hemi = new HemisphereLight(0xffc9a0, 0x1a1210, 0.5);
+  const sun = new DirectionalLight(0xffa860, 1.0);
+  scene.add(hemi, sun, sun.target);
+  const far = treeLine({ radius: 150, height: 16, color: new Color(0.012, 0.012, 0.02), under: new Color(0.05, 0.03, 0.03) });
+  scene.add(far);
+  const near = treeLine({ radius: 46, height: 11, color: new Color(0.008, 0.009, 0.012), under: new Color(0.06, 0.035, 0.02), seed: 4 });
+  near.position.set(-30, 0, -20);
+  near.scale.set(0.55, 1, 1.2);
+  scene.add(near);
+
+  const fog = new FogBank({
+    bounds: mask.bounds,
+    mask: mask.texture(),
+    slices: tier === 'low' ? 4 : 9,
+    height: 1.3,
+    tint: new Color(0.045, 0.03, 0.04),
+    density: 0.16,
+    glow: 0.9,
+    wind: new Vector2(0.18, -0.12),
+  });
+  scene.add(fog.mesh);
+
+  // Sunset at the entrance, dusk by the time you reach the trees.
+  const sunset = skyState({
+    zenith: new Color(0.06, 0.09, 0.22),
+    horizon: new Color(0.95, 0.55, 0.32),
+    sunColor: new Color(1.0, 0.55, 0.25),
+    sunDir: new Vector3(0.35, 0.03, -1).normalize(),
+    sunGlow: 1.1,
+    stars: 0,
+    lightPollution: new Color(0.05, 0.03, 0.02),
+  });
+  const dusk = skyState({
+    zenith: new Color(0.012, 0.02, 0.07),
+    horizon: new Color(0.2, 0.11, 0.14),
+    sunColor: new Color(0.8, 0.3, 0.15),
+    sunDir: new Vector3(0.35, -0.08, -1).normalize(),
+    sunGlow: 0.35,
+    stars: 0.35,
+    lightPollution: new Color(0.03, 0.018, 0.012),
+  });
+  const gradeSunset: Grade = {
+    ...defaultGrade(),
+    exposure: 0.95,
+    bloom: 0.085,
+    saturation: 1.18,
+    power: 1.1,
+    tint: new Color(1.04, 0.98, 0.94),
+    lift: new Color(0.012, 0.008, 0.02),
+  };
+  const gradeDusk: Grade = {
+    ...defaultGrade(),
+    exposure: 1.25,
+    bloom: 0.09,
+    saturation: 1.15,
+    power: 1.12,
+    tint: new Color(0.96, 0.97, 1.06),
+    lift: new Color(0.008, 0.008, 0.022),
+  };
+  const fogSunset = new Color(0.2, 0.13, 0.13);
+  const fogDusk = new Color(0.035, 0.035, 0.06);
+
+  // The lights that follow you.
+  const sources: LightSource[] = specs.map((s) => ({
+    position: s.position.clone().add(new Vector3(0, -0.05, 0.12)),
+    color: s.glow.clone().multiplyScalar(1 / Math.max(1, s.glow.r)),
+    intensity: 0.9,
+    distance: 4.5,
+    phase: s.phase as number,
+  }));
+
+  // --- Story state. ---
+  let time = 0;
+  let waveStarted = -1;
+  let emberStage = 0; // 0 waiting, 1 sputtering, 2 out and born, 3 leading
+  let emberClock = 0;
+  const happyUntil = new Map<number, { until: number; carve: number }>();
+  const tmp = new Vector3();
+  const tmp2 = new Vector2();
+
+  const chapter: Chapter = {
+    scene,
+    path,
+    music: 'arbor',
+    ambience: 'arbor',
+    steps: 'step-gravel',
+
+    enter() {
+      ctx.glow.setBounds(...bounds);
+      ctx.glow.setLights(glowLights);
+      ctx.glow.wave = -10;
+      ctx.glow.waveSoftness = 1.5;
+      ctx.lights.sources = sources;
+      ctx.ember.presence = 0;
+      shared.uFogDensity.value = 0.012;
+      shared.uFogHeight.value = 5;
+      shared.uFogGlow.value = 0.55;
+      ctx.audio.preload('arbor', ['pumpkin-flare', 'ember-chime-arbor', 'step-gravel']);
+      ctx.audio.preload('grove');
+      waveStarted = 1.2;
+    },
+
+    update(dt) {
+      time += dt;
+      const w = ctx.walker;
+      const progress = Math.min(1, Math.max(0, w.s / (path.length - 6)));
+
+      // The wave: the lanterns wake from the entrance to the far end.
+      if (waveStarted >= 0 && time > waveStarted) {
+        const front = (time - waveStarted) * 6.5 - 4;
+        pumpkins.wave = front;
+        ctx.glow.wave = front;
+        if (time - waveStarted > 0.4 && time - waveStarted < 0.5) ctx.ui.say('The sun is going down. The lanterns are waking up.', 6);
+      }
+
+      // Sky and light: sunset to dusk as you walk.
+      const t = progress ** 1.2;
+      lerpSky(ctx.sky.state, sunset, dusk, t);
+      lerpGrade(ctx.post.grade, gradeSunset, gradeDusk, t);
+      shared.uFogColor.value.copy(fogSunset).lerp(fogDusk, t);
+      ctx.sky.mesh.material.uniforms.uSunColor!.value = ctx.sky.state.sunColor;
+      hemi.intensity = 0.5 * (1 - t) + 0.1 * t;
+      hemi.color.setRGB(1, 0.78 - 0.3 * t, 0.62 - 0.1 * t);
+      sun.intensity = 1.0 * (1 - t) ** 2;
+      sun.position.copy(ctx.sky.state.sunDir).multiplyScalar(50).add(ctx.camera.position);
+      sun.target.position.copy(ctx.camera.position);
+
+      // Faces that were tapped smile for a while, then go back.
+      for (const [i, h] of happyUntil) {
+        if (time > h.until) {
+          pumpkins.setCarve(i, h.carve);
+          happyUntil.delete(i);
+        }
+      }
+
+      // The Ember.
+      const e = ctx.ember;
+      const ep = emberSpec.position;
+      if (emberStage === 0 && w.position.z < emberZ + 9) {
+        emberStage = 1;
+        emberClock = 0;
+      }
+      if (emberStage === 1) {
+        emberClock += dt;
+        // Sputters: bright, dim, bright, out.
+        const k = emberClock;
+        const lvl = k < 1.6 ? 1 + Math.sin(k * 22) * 0.6 * Math.min(1, k) : Math.max(0, 1 - (k - 1.6) * 3);
+        pumpkins.setLevel(emberIndex, lvl);
+        if (k > 1.6 && emberStage === 1) {
+          emberStage = 2;
+          emberClock = 0;
+          e.place(tmp.copy(ep).add(new Vector3(0, -0.02, 0.1)));
+          e.agility = 1.6;
+          void ctx.audio.cue('ember-born', 0.9);
+          void ctx.audio.sfx('ember-chime-arbor', { at: ep, volume: 0.9 });
+        }
+      }
+      if (emberStage === 2) {
+        emberClock += dt;
+        e.presence = Math.min(1, emberClock * 1.5);
+        e.excitement = Math.max(0, 1 - emberClock * 0.5);
+        // Hops out and comes to look at you, just above eye height, a little way ahead.
+        const look = tmp.set(w.position.x, 0, w.position.z).add(new Vector3(0.4, 1.85, -2.2));
+        if (emberClock > 0.6) e.target.copy(look);
+        if (emberClock > 1.4 && emberClock < 1.5) ctx.ui.say('One little flame has other plans.', 5);
+        if (emberClock > 4.5) {
+          emberStage = 3;
+          e.agility = 2.0;
+          void ctx.audio.sfx('ember-chime-arbor', { at: e.position, volume: 0.7 });
+        }
+      }
+      if (emberStage === 3) {
+        // Leads the way, a few metres ahead; waits if you stop.
+        path.at(Math.min(path.length, w.s + 4.5), tmp2);
+        e.target.set(tmp2.x, 1.5 + Math.sin(time * 0.7) * 0.25, tmp2.y);
+        e.presence = 1;
+        if (w.auto) w.autoTarget = null;
+      }
+
+      ctx.glow.moving.length = 0;
+      if (e.presence > 0) ctx.glow.moving.push(e.glow);
+      fog.walkers[0]?.set(w.position.x, w.position.z);
+      fog.update();
+      pumpkins.update(ctx.camera, dt);
+    },
+
+    pick(ray: Ray): TapAction | null {
+      const i = pumpkins.pick(ray, 25);
+      if (i < 0 || i === emberIndex) return null;
+      return () => {
+        pumpkins.flare(i);
+        const s = specs[i] as PumpkinSpec;
+        if (!happyUntil.has(i) && s.carve !== CARVE.heartSkull) {
+          happyUntil.set(i, { until: time + 4, carve: s.carve });
+          pumpkins.setCarve(i, CARVE.happy[Math.floor(Math.random() * CARVE.happy.length)] as number);
+        }
+        void ctx.audio.sfx('pumpkin-flare', { at: s.position, volume: 0.8, rate: 0.9 + Math.random() * 0.2 });
+      };
+    },
+
+    finished() {
+      return emberStage === 3 && ctx.walker.s > path.length - 1.2;
+    },
+
+    dispose() {
+      pumpkins.dispose();
+      fog.dispose();
+      floor.geometry.dispose();
+      for (const mesh of [posts, beams, cross, fence, leds]) mesh.geometry.dispose();
+      timber.dispose();
+      ledMat.dispose();
+    },
+  };
+  if (import.meta.env.DEV)
+    (window as unknown as { arbor: unknown }).arbor = { pumpkins, specs, glowLights, skip: (s: number) => (time += s) };
+  return chapter;
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+qa-output/
+.DS_Store
+*.blend1
+tools/**/__pycache__/
+tools/**/.cache/
+reference/
+tools/audio/.venv/
+tools/blender/preview/
