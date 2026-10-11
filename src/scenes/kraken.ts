@@ -19,6 +19,10 @@ interface Placed {
   at: Vector3;
   yaw: number;
   scale?: number;
+  /** Raise off the ground (m). */
+  lift?: number;
+  /** Shift along the model's own +Z (m). */
+  out?: number;
 }
 
 export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: number, treasureAt: Vector3, treasureYaw: number): Promise<SetPiece & { seat: Vector3 }> {
@@ -41,13 +45,18 @@ export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: nu
     { name: 'treasure-chest', at: T(0, 0), yaw: treasureYaw },
     { name: 'skeleton', at: T(1.6, -0.2), yaw: treasureYaw - 0.5 },
     { name: 'skeleton', at: T(-2.6, -2.2), yaw: treasureYaw + 0.3 },
-    { name: 'skeleton-climb', at: T(-3.8, -3.6), yaw: treasureYaw + 0.6 },
     { name: 'pumpkin-palm', at: T(-2.1, 0.1), yaw: treasureYaw },
     { name: 'pumpkin-palm', at: T(2.8, -1.4), yaw: treasureYaw + 1 },
+    // A taller palm with a skeleton halfway up it (its arms hug a trunk this thick).
+    { name: 'pumpkin-palm', at: T(-3.8, -3.6), yaw: treasureYaw + 0.6, scale: 1.5 },
+    { name: 'skeleton-climb', at: T(-3.8, -3.6), yaw: treasureYaw + 0.6, lift: 0.55, out: 0.12 },
   ];
   const tentacles: { wave: { value: number } }[] = [];
   let chestLid: Object3D | undefined;
+  let chestChains: Object3D | undefined;
   let chestBox: Box3 | null = null;
+  // The rowboat marks where its crew sit.
+  const crew: Object3D[] = [];
   for (const p of placements) {
     // Each load is its own copy (shared geometry, own materials), so tentacles bend independently.
     const model = await loadModel(p.name, { glowReceive: 0.5 });
@@ -56,12 +65,27 @@ export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: nu
     root.position.copy(p.at);
     root.rotation.y = p.yaw;
     if (p.scale) root.scale.setScalar(p.scale);
+    if (p.lift) root.position.y += p.lift;
+    if (p.out) root.position.add(new Vector3(Math.sin(p.yaw), 0, Math.cos(p.yaw)).multiplyScalar(p.out));
+    const seat = p.name === 'skeleton-pirate-sit' ? crew.shift() : undefined;
+    if (seat) {
+      seat.updateWorldMatrix(true, false);
+      seat.matrixWorld.decompose(root.position, root.quaternion, new Vector3());
+    }
     objects.push(root);
-    for (const m of model.glows.values()) m.emissiveIntensity = m.name.includes('inflatable') ? 0.9 : 1.1;
+    if (p.name === 'rowboat') {
+      root.updateMatrixWorld(true);
+      for (const k of [0, 1]) {
+        const c = model.node(`crew_${k}`);
+        if (c) crew.push(c);
+      }
+    }
+    for (const m of model.glows.values()) m.emissiveIntensity = m.name.includes('inflatable') ? 0.9 : m.name.includes('gold') ? 2.6 : 1.4;
     // Whatever carries a bend map (the `along` UV) sways: the tentacles.
     if (p.name.startsWith('kraken')) tentacles.push(...bendable(model, '*', { sway: 0.18, key: `kraken-${p.name}` }));
     if (p.name === 'treasure-chest') {
       chestLid = model.node('lid');
+      chestChains = model.node('chains');
       chestBox = new Box3().setFromObject(root);
     }
   }
@@ -75,7 +99,9 @@ export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: nu
   const sources = [
     { position: W(-0.5, 0.5).setY(2.5), color: new Color(1, 0.5, 0.15), intensity: 7, distance: 12 },
     { position: W(4, 0.5).setY(2.5), color: new Color(1, 0.5, 0.15), intensity: 6, distance: 10 },
-    { position: T(0, 2).setY(2.2), color: new Color(1, 0.95, 0.85), intensity: 6, distance: 9 },
+    { position: T(0, 2).setY(2.2), color: new Color(1, 0.85, 0.6), intensity: 9, distance: 9 },
+    // A lantern over the rowboat, so you can see its crew.
+    { position: W(-2.2, 2.6).setY(2.2), color: new Color(1, 0.6, 0.3), intensity: 5, distance: 6 },
   ];
   // The purple LED edge of the path past the treasure, as in the video.
   const edge = stringLights([{ from: T(-4, 3), to: T(4, 3.6), sag: 0 }, { from: T(4, 3.6), to: T(7, 1.5), sag: 0 }], { spacing: 0.2, color: new Color(0.6, 0.2, 1), brightness: 12, glowEvery: 2, glowRadius: 1.2, glowIntensity: 0.25 });
@@ -86,7 +112,7 @@ export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: nu
   objects.push(gold.mesh);
   let lidOpen = 0;
   let curl = 0;
-  const seat = T(0, 1.2);
+  const seat = T(0, 0.95);
 
   return {
     objects,
@@ -97,7 +123,9 @@ export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: nu
       curl = Math.max(0, curl - dt / 3);
       const k = Math.sin(Math.min(1, curl) * Math.PI);
       tentacles.forEach((t, i) => (t.wave.value = i % 2 === 0 ? k : k * 0.5));
-      if (chestLid) chestLid.rotation.x = lidRest - Math.sin(lidOpen * Math.PI) * 0.25;
+      // The lid rests open; a tap lets it drop a little and creak back (the chains can't follow).
+      if (chestLid) chestLid.rotation.x = lidRest + Math.sin(lidOpen * Math.PI) * 0.45;
+      if (chestChains) chestChains.visible = lidOpen <= 0;
       lidOpen = Math.max(0, lidOpen - dt * 0.5);
       gold.update(dt, heightAt(treasureAt.x, treasureAt.z));
     },

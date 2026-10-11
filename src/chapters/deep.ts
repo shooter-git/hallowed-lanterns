@@ -59,7 +59,7 @@ function rng(seed: number) {
 
 const KEEPER = new Vector3(0, 0, -60);
 const WRECK = new Vector3(-8.5, 0, -14);
-const TREASURE = new Vector3(8.5, 0, -32);
+const TREASURE = new Vector3(5.6, 0, -32.5);
 
 /** Ribbons of light along both sides of the path: beds of tiny blue LEDs, twinkling. */
 function ledBeds(path: Path, inner: number, outer: number): Mesh {

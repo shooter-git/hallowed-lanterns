@@ -110,7 +110,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   // The old oak behind the display, and dark woods all round.
   const oak = forest([{ species: 'oak', at: [{ x: STAGE.x + 0.4, z: STAGE.z - 2.2, scale: 1.5, yaw: 2 }] }], { leafTint: new Color(0.4, 0.45, 0.42) });
   scene.add(oak.group);
-  const ring = lineThePath(path.points, 6.5, { spacing: 5, depth: 2, seed: 15 }).filter((t) => Math.hypot(t.x - STAGE.x, t.z - STAGE.z) > 6);
+  const ring = lineThePath(path.points, 6.5, { spacing: 5, depth: 2, seed: 15 }).filter(
+    (t) => Math.hypot(t.x - STAGE.x, t.z - STAGE.z) > 6 && !(Math.abs(t.x - WEB.x) < 9 && Math.abs(t.z - WEB.z) < 9.5),
+  );
   const woods = forest([
     { species: 'tall', at: ring.filter((_, i) => i % 2 === 0) },
     { species: 'oak', at: ring.filter((_, i) => i % 2 === 1) },
@@ -119,7 +121,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const canopy = woodland(path, {
     canopy: [5.5, 10], reach: 12, skyGap: 0.4, density: tier === 'low' ? 1.4 : 2.4, wallFrom: 4.5, wallTo: 14, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
     tint: new Color(0.38, 0.42, 0.5), seed: 31,
-    clear: (x, z, y) => (Math.hypot(x - STAGE.x, z - STAGE.z) < 7.5 && y < 5.5) || (Math.abs(x - WEB.x) < 4.6 && Math.abs(z - WEB.z) < 7.5 && y < 4.8),
+    clear: (x, z, y) => (Math.hypot(x - STAGE.x, z - STAGE.z) < 7.5 && y < 5.5) || (Math.abs(x - WEB.x) < 8.2 && Math.abs(z - WEB.z) < 8.5 && y < 4.8),
   });
   scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 100, height: 16, color: new Color(0.004, 0.006, 0.02), under: new Color(0.02, 0.02, 0.06) }));
