@@ -1,0 +1,18 @@
+{
+  "$comment": "A first walk: begin, walk into the arbor, look around, touch a lantern, walk on. Positions are fractions of the screen.",
+  "steps": [
+    { "wait": 2 },
+    { "tap": [0.5, 0.68] },
+    { "wait": 3 },
+    { "screenshot": "the-entrance" },
+    { "hold": "KeyW", "seconds": 3 },
+    { "drag": [[0.5, 0.5], [0.62, 0.42]], "seconds": 0.6 },
+    { "wait": 1 },
+    { "tap": [0.5, 0.35] },
+    { "screenshot": "the-arbor" },
+    { "hold": "KeyW", "seconds": 2 },
+    { "press": "KeyE" },
+    { "wait": 1 },
+    { "screenshot": "walking" }
+  ]
+}

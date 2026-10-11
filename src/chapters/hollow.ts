@@ -130,28 +130,42 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     handle.position.copy(STAGE).add(new Vector3(0, 1.7, 0));
     scene.add(handle);
   }
-  // Rainbow skewers: stacks of beach-ball pumpkins on poles.
+  // The candy: Blender models where we have them (skewers, lollipops, cake pops), pumpkins
+  // painted to match where we don't.
   const poleMat = hallow(new MeshStandardMaterial({ color: 0xdddddd, roughness: 0.5 }), { key: 'pole' });
   const poles = new InstancedMesh(new CylinderGeometry(0.025, 0.025, 1, 6), poleMat, 8);
   const m = new Matrix4();
-  [-2.9, -1.75, 1.75, 2.9].forEach((x, k) => {
+  const [skewerM, lollipopM, cakePopM] = await Promise.all([loadModel('skewer'), loadModel('lollipop'), loadModel('cake-pop')]);
+  const placeModel = (model: { root: Object3D } | null, x: number, z: number, yaw: number) => {
+    if (!model) return false;
+    const o = model.root.clone(true);
+    o.position.set(STAGE.x + x, 0, STAGE.z + z);
+    o.rotation.y = yaw;
+    scene.add(o);
+    return true;
+  };
+  let poleCount = 0;
+  [-2.9, -1.75, 1.75, 2.9].forEach((x) => {
+    if (placeModel(skewerM, x, -0.4, rnd() * 6)) return;
     for (let i = 0; i < 8; i++) {
       add({ position: STAGE.clone().add(new Vector3(x, 0.55 + i * 0.3, -0.4)), size: new Vector3(0.15, 0.13, 0.15), carve: -4, skin: new Color(rnd(), 0.5, 0.5), yaw: rnd() * 6 });
     }
     m.makeScale(1, 2.8, 1).setPosition(STAGE.x + x, 1.4, STAGE.z - 0.4);
-    poles.setMatrixAt(k, m);
+    poles.setMatrixAt(poleCount++, m);
   });
-  // Lollipop pumpkins on sticks, cake pops, and painted pumpkins along the front.
   for (const [x, z] of [
     [-3.8, 0.4],
     [2.2, 0.6],
     [4.4, 0.2],
     [-5.2, -0.2],
+    [5.4, 0.9],
   ] as [number, number][]) {
+    if (placeModel(lollipopM, x, z, (rnd() - 0.5) * 0.5)) continue;
     add({ position: STAGE.clone().add(new Vector3(x, 1.4, z)), size: new Vector3(0.28, 0.26, 0.2), carve: -5 });
     m.makeScale(1, 1.3, 1).setPosition(STAGE.x + x, 0.65, STAGE.z + z);
-    poles.setMatrixAt(poles.count - 1 - [-3.8, 2.2, 4.4, -5.2].indexOf(x), m);
+    if (poleCount < 8) poles.setMatrixAt(poleCount++, m);
   }
+  poles.count = poleCount;
   poles.computeBoundingSphere();
   scene.add(poles);
   for (const [x, z] of [
@@ -159,6 +173,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     [3.4, -1.2],
     [5.6, -0.8],
   ] as [number, number][]) {
+    if (placeModel(cakePopM, x, z, rnd() * 6)) continue;
     add({ position: STAGE.clone().add(new Vector3(x, 1.25, z)), size: new Vector3(0.32, 0.36, 0.32), skin: new Color(0.55, 0.03, 0.05) });
   }
   // Gummy-bear pumpkins (models if we have them).
@@ -249,12 +264,21 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   // Candy corn towers.
   const corns: Mesh[] = [];
+  const cornM = await loadModel('candy-corn');
   for (const [x, z, h, yaw] of [
     [-6.4, -0.6, 2.4, 0.2],
     [-4.6, -1.6, 2.9, 0.05],
     [4.8, -1.5, 3.0, -0.1],
     [6.6, -0.4, 2.5, -0.25],
   ] as [number, number, number, number][]) {
+    if (cornM) {
+      const o = cornM.root.clone(true);
+      o.position.set(STAGE.x + x, 0, STAGE.z + z);
+      o.rotation.y = yaw;
+      o.scale.setScalar(h / 2.5);
+      scene.add(o);
+      continue;
+    }
     const corn = candyCorn(h);
     corn.position.set(STAGE.x + x, 0, STAGE.z + z);
     corn.rotation.y = yaw;
@@ -270,7 +294,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     spiral.push({ from: p0, to: p1, sag: 0 });
   }
   const handleLights = stringLights(spiral, { spacing: 0.05, color: new Color(1, 0.75, 0.9), brightness: 8, size: 0.02, glowEvery: 6, glowRadius: 1.4, glowIntensity: 0.2 });
-  scene.add(handleLights.mesh);
+  // The model has its own glowing spiral handle; the string is only for the stand-in.
+  if (!bucketModel) scene.add(handleLights.mesh);
+  for (const g of bucketModel?.glows.values() ?? []) g.emissiveIntensity = 3;
 
   // Coloured uplights: violet on the oak, magenta and amber on the candy, blue in the woods.
   const glowLights: GlowLight[] = [...pumpkins.glowLights(1.6, 0.35), ...handleLights.lights];

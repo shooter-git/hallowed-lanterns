@@ -51,6 +51,8 @@ body {
 }
 .hl-title.hl-show {
   opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
 }
 .hl-title.hl-gone {
   opacity: 0;

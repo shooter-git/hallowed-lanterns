@@ -84,7 +84,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const mask = new GroundMask(bounds, 4);
   const lane: [number, number][] = path.points.filter((_, i) => i % 4 === 0).map((p) => [p.x, p.y]);
   mask.stroke(lane, 4.6, 'r');
-  mask.stroke(lane.slice(0, Math.floor(lane.length * 0.85)), 6, 'g', 0.75);
+  mask.stroke(lane.slice(Math.floor(lane.length * 0.25), Math.floor(lane.length * 0.85)), 5, 'g', 0.55);
   for (let i = 0; i < 14; i++) mask.blob((rnd() - 0.5) * 6, LANE_START - rnd() * 52, 2 + rnd() * 3, 'g', 0.5);
   mask.soften(4);
   const floor = ground({
@@ -243,8 +243,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     mask: mask.texture(),
     slices: tier === 'low' ? 4 : 9,
     height: 1.3,
-    tint: new Color(0.045, 0.03, 0.04),
-    density: 0.16,
+    tint: new Color(0.04, 0.026, 0.038),
+    density: 0.11,
     glow: 0.9,
     wind: new Vector2(0.18, -0.12),
   });
@@ -324,7 +324,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       ctx.glow.waveSoftness = 1.5;
       ctx.lights.sources = sources;
       ctx.ember.presence = 0;
-      shared.uFogDensity.value = 0.012;
+      shared.uFogDensity.value = 0.008;
       shared.uFogHeight.value = 5;
       shared.uFogGlow.value = 0.55;
       ctx.audio.preload('arbor', ['pumpkin-flare', 'ember-chime-arbor', 'step-gravel']);

@@ -64,7 +64,15 @@ export class UI {
         setTimeout(() => this.title.remove(), 1600);
         resolve();
       };
-      button.addEventListener('click', go, { once: true });
+      // A tap anywhere on the title begins (the button is there to be found by keyboard too).
+      let begun = false;
+      const once = () => {
+        if (begun) return;
+        begun = true;
+        go();
+      };
+      button.addEventListener('click', once);
+      this.title.addEventListener('click', once);
     });
   }
 
