@@ -12,7 +12,7 @@ interface LoopInfo {
 }
 
 export interface Manifest {
-  motif?: { key: string; notes: string[]; rhythm?: string };
+  motif?: { key: string; notes: string[]; rhythm?: string; xyloNotes?: string[]; xylo?: number[] };
   music: Record<string, LoopInfo>;
   ambience: Record<string, LoopInfo>;
   sfx: Record<string, string[]>;

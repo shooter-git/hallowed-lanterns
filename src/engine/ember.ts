@@ -58,7 +58,7 @@ export class Ember {
             vUv = uv;
             // Billboard: keep the quad facing the camera, upright.
             vec3 centre = (modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-            float s = 0.3 * uPresence * (1.0 + 0.25 * uExcite);
+            float s = 0.17 * uPresence * (1.0 + 0.3 * uExcite);
             vec3 p = centre + vec3(position.x * s, (position.y + 0.18) * s * 1.5, 0.0);
             gl_Position = projectionMatrix * vec4(p, 1.0);
           }`,
@@ -141,6 +141,11 @@ export class Ember {
   /** The sparks live in world space; add them to the scene alongside `group`. */
   get trail() {
     return this.sparks;
+  }
+
+  /** A sudden push (popping out of something). */
+  kick(v: Vector3) {
+    this.velocity.copy(v);
   }
 
   /** Jump straight to a place (no flight). */

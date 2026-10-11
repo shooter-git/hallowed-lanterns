@@ -30,4 +30,11 @@ export const CHAPTERS: ChapterInfo[] = [
     subtitle: 'Deep night, and something enormous is breathing',
     load: () => import('./pasture.ts'),
   },
+  {
+    id: 'hollow',
+    numeral: 'V',
+    name: 'Sweet Hollow',
+    subtitle: 'Where the candy grows',
+    load: () => import('./hollow.ts'),
+  },
 ];

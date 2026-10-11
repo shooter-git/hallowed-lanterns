@@ -16,6 +16,8 @@ export const CARVE = {
   stars: [] as number[],
   creatures: [] as number[],
   heartSkull: -1,
+  /** Painted letters: m, s (the candy pumpkins). */
+  letters: [] as number[],
 };
 
 type Ctx = CanvasRenderingContext2D;
@@ -496,6 +498,21 @@ export function buildCarvingAtlas(): CanvasTexture {
   for (let i = 0; i < creatures.length; i++)
     designs.push({ draw: creatures[i] as Draw, list: CARVE.creatures });
   designs.push({ draw: skull, list: 'skull' });
+  for (const ch of ['m', 's']) {
+    designs.push({
+      draw: (c) => {
+        c.save();
+        // Text at real pixel size (tiny fonts under a big scale don't render everywhere).
+        c.scale(1 / CELL, 1 / CELL);
+        c.font = 'bold 170px "Arial Rounded MT Bold", "Nunito", "Helvetica Neue", Arial, sans-serif';
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText(ch, CELL / 2, CELL * 0.47);
+        c.restore();
+      },
+      list: CARVE.letters,
+    });
+  }
 
   designs.forEach((d, i) => {
     const cx = i % CELLS;

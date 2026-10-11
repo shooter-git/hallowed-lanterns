@@ -31,7 +31,11 @@ export interface PumpkinSpec {
   yaw: number;
   /** Small lean (radians), for life. */
   tilt?: number;
-  /** Carving atlas cell, or -1 for an uncarved pumpkin. */
+  /**
+   * Carving atlas cell; or 100 + a cell for a design painted on (in the `glow` colour, no candle);
+   * -1 plain, -2 a green-striped carnival squash, -3 a glowing translucent shell, -4 beach-ball
+   * paint, -5 a lollipop swirl.
+   */
   carve: number;
   skin: Color;
   /** Candle colour × brightness (linear). Black for an unlit pumpkin. */
@@ -142,6 +146,7 @@ varying float vRib;
 varying float vCarve;
 varying vec3 vSkin;
 varying vec3 vCandle;
+varying vec3 vPaint;
 `;
 
 const PUMPKIN_VERTEX = /* glsl */ `
@@ -151,7 +156,9 @@ vRib = aRib;
 vCarve = aCarve;
 vSkin = aSkin;
 float hlOn = clamp((uWave - aWave.x) / uWaveSoft, 0.0, 1.0) * aWave.y;
-vCandle = aGlow.rgb * hlOn * hlFlicker(uHlTime, aGlow.w);
+// Painted pumpkins use their "glow" colour as the paint, and have no candle.
+vPaint = aGlow.rgb;
+vCandle = aCarve >= 100.0 ? vec3(0.0) : aGlow.rgb * hlOn * hlFlicker(uHlTime, aGlow.w);
 `;
 
 const PUMPKIN_FRAGMENT_PARS = /* glsl */ `
@@ -161,7 +168,9 @@ varying float vRib;
 varying float vCarve;
 varying vec3 vSkin;
 varying vec3 vCandle;
+varying vec3 vPaint;
 float hlHole;
+float hlPaint;
 float hlBand;
 float hlHalo;
 vec2 hlCuv;
@@ -178,20 +187,47 @@ const PUMPKIN_COLOR = /* glsl */ `
   skin = mix(skin, skin * vec3(0.42, 0.3, 0.16), clamp(vRib * 1.5, 0.0, 1.0));
   // Scarred, pale patch underneath where it sat on the ground.
   skin = mix(skin, vec3(0.55, 0.45, 0.25) * vSkin.r, smoothstep(-0.45, -0.62, vLocal.y) * 0.5);
-  hlHole = 0.0; hlBand = 0.0; hlHalo = 0.0; hlCuv = vec2(0.5);
-  if (vCarve >= 0.0) {
+  if (vCarve < -1.5 && vCarve > -2.5) {
+    // Carnival squash: creamy skin, dark green stripes down the grooves, green flecks.
+    vec3 cream = vSkin * (0.9 + 0.15 * mott);
+    float stripe = smoothstep(0.08, 0.3, vRib + (streak - 0.5) * 0.15);
+    float fleck = step(0.8, hlNoise(vLocal.xy * 40.0 + vLocal.z * 31.0)) * 0.6;
+    skin = mix(cream, vec3(0.03, 0.12, 0.05), max(stripe, fleck));
+  }
+  if (vCarve < -3.5 && vCarve > -4.5) {
+    // Beach-ball paint: bright segments around the ribs.
+    float seg = floor((ang / 6.2831853 + 0.5) * 5.0);
+    float h = fract(seg * 0.2 + vSkin.r * 3.7);
+    skin = clamp(abs(fract(h + vec3(0.0, 0.667, 0.333)) * 6.0 - 3.0) - 1.0, 0.0, 1.0) * 0.8 + 0.03;
+    skin *= 0.85 + 0.2 * mott;
+  }
+  if (vCarve < -4.5 && vCarve > -5.5) {
+    // Lollipop swirl on the face.
+    float sw = fract(atan(vLocal.y, vLocal.x) / 6.2831853 + length(vLocal.xy) * 1.6);
+    vec3 rainbow = clamp(abs(fract(sw + vec3(0.0, 0.667, 0.333)) * 6.0 - 3.0) - 1.0, 0.0, 1.0) * 0.85 + 0.05;
+    skin = mix(vec3(0.9), rainbow, smoothstep(0.05, 0.3, vLocal.z));
+  }
+  hlHole = 0.0; hlBand = 0.0; hlHalo = 0.0; hlCuv = vec2(0.5); hlPaint = 0.0;
+  float cellIndex = vCarve >= 100.0 ? vCarve - 100.0 : vCarve;
+  if (cellIndex >= 0.0) {
     hlCuv = vec2(vLocal.x * 0.62 + 0.5, vLocal.y * 0.62 + 0.5);
-    vec2 cell = vec2(mod(vCarve, 8.0), floor(vCarve / 8.0 + 0.001));
+    vec2 cell = vec2(mod(cellIndex, 8.0), floor(cellIndex / 8.0 + 0.001));
     vec2 auv = (cell + clamp(vec2(hlCuv.x, 1.0 - hlCuv.y), 0.01, 0.99)) / 8.0;
     vec4 m = texture2D(uAtlas, vec2(auv.x, 1.0 - auv.y));
     float facing = smoothstep(0.12, 0.4, vLocal.z);
-    hlHole = smoothstep(0.42, 0.58, m.r) * facing;
-    hlBand = smoothstep(0.28, 0.55, m.g) * (1.0 - hlHole) * facing;
-    hlHalo = m.b * facing;
+    if (vCarve >= 100.0) {
+      // Painted on, not carved.
+      hlPaint = smoothstep(0.42, 0.58, m.r) * facing;
+    } else {
+      hlHole = smoothstep(0.42, 0.58, m.r) * facing;
+      hlBand = smoothstep(0.28, 0.55, m.g) * (1.0 - hlHole) * facing;
+      hlHalo = m.b * facing;
+    }
   }
   vec3 flesh = vec3(0.95, 0.78, 0.42);
   diffuseColor.rgb = mix(skin, flesh, hlBand * 0.85);
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.035, 0.02, 0.01), hlHole);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vPaint, hlPaint);
 }
 `;
 
@@ -205,6 +241,8 @@ const PUMPKIN_EMISSIVE = /* glsl */ `
   totalEmissiveRadiance += vCandle * vec3(1.0, 0.72, 0.4) * 0.3 * hlBand;
   // Light through the thin skin near the cuts, and faintly through the whole shell.
   totalEmissiveRadiance += vCandle * vSkin * (0.07 * hlHalo + 0.012);
+  // A glowing shell (jellyfish bells): lit through, brightest underneath.
+  if (vCarve < -2.5) totalEmissiveRadiance += vCandle * vSkin * (0.25 + 0.5 * smoothstep(0.3, -0.6, vLocal.y));
 }
 `;
 
@@ -389,6 +427,22 @@ export class PumpkinField {
     if (!w) return;
     w.chunk.carve.setX(w.local, cell);
     w.chunk.carve.needsUpdate = true;
+  }
+
+  /** Squash, stretch or lift one pumpkin (1, 0 = as placed). For wobbles and bounces. */
+  pose(index: number, scale: number, lift = 0, squash = 1) {
+    const w = this.where[index];
+    const s = this.specs[index];
+    if (!w || !s) return;
+    const q = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), s.yaw);
+    if (s.tilt) q.multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), s.tilt));
+    const m = new Matrix4().compose(
+      s.position.clone().add(new Vector3(0, lift, 0)),
+      q,
+      new Vector3(s.size.x * scale / Math.sqrt(squash), s.size.y * scale * squash, s.size.z * scale / Math.sqrt(squash)),
+    );
+    w.chunk.hi.setMatrixAt(w.local, m);
+    w.chunk.hi.instanceMatrix.needsUpdate = true;
   }
 
   /** A quick bright flare, as if the candle caught a breath of air. */
