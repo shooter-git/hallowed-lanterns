@@ -1161,3 +1161,14 @@ def extrude_loops(mb, loops, thickness, uv_face, uv_edge=None, mat=0, edge_mat=N
                 mb.f((fi, fj, bj, bi), [ui, uj, uj, ui], None, edge_mat)
         k += n
     return mb
+
+
+def paint_named(painter, params, outputs):
+    """lib.paint() for painters that are called many times with the same output keys ("tex",
+    "color"/"normal"...): each key is suffixed with its file's name, so every texture gets its own
+    cache stamp (the painter then looks its outputs up by prefix). Returns {key: path}."""
+    def tag(path):
+        return os.path.splitext(path)[0].replace("-", "_").replace(".", "_")
+    named = {f"{k}_{tag(v)}": v for k, v in outputs.items()}
+    out = paint(painter, params, named)
+    return {k: out[f"{k}_{tag(v)}"] for k, v in outputs.items()}

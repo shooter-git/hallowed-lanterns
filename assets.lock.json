@@ -645,6 +645,111 @@
       "path": "public/audio/sfx/wings-flutter.mp3",
       "license": "own",
       "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/kraken-tentacle-a.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/kraken.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/kraken-tentacle-b.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/kraken.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/kraken-tentacle-c.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/kraken.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/kraken-arch.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/kraken.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/inflatable-pumpkin.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/kraken.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/skeleton-pirate-sit.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/skeletons.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/skeleton-pirate-stand.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/skeletons.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/skeleton.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/skeletons.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/skeleton-climb.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/skeletons.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/rowboat.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/treasure.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/treasure-chest.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/treasure.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/pumpkin-palm.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/treasure.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/barrel.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/treasure.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/pumpkin-spider.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/web.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/praying-mantis.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/web.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/web-pumpkin.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/web.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/pumpkin-owl.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/owl.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/pumpkin-guitar.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/guitar.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/movie-screen.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/picture.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/bench.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/picture.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/hay-stage.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/picture.py (Hallowed Lanterns)"
     }
   ]
 }
