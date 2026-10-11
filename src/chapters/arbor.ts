@@ -26,6 +26,7 @@ import { Path } from '../engine/rig.ts';
 import { aroundPath, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
+import { forest } from '../engine/trees.ts';
 import { buildEntrance } from './entrance.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
 
@@ -247,10 +248,24 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(hemi, sun, sun.target);
   const far = treeLine({ radius: 150, height: 16, color: new Color(0.012, 0.012, 0.02), under: new Color(0.05, 0.03, 0.03) });
   scene.add(far);
-  const near = treeLine({ radius: 46, height: 11, color: new Color(0.008, 0.009, 0.012), under: new Color(0.06, 0.035, 0.02), seed: 4 });
-  near.position.set(-30, 0, -20);
-  near.scale.set(0.55, 1, 1.2);
-  scene.add(near);
+  // Real woods along the left of the lane (behind the pumpkins, as in the photo) and behind the
+  // hay-bale wall; the field stays open on the right.
+  const woodAt: { x: number; z: number; scale: number; yaw: number }[] = [];
+  for (let z = 30; z > -66; z -= tier === 'low' ? 4.5 : 3.2) {
+    for (let row = 0; row < (tier === 'low' ? 2 : 3); row++) {
+      const x = -6.5 - row * 4.5 - rnd() * 2.5 + (z > 12 ? -6 : 0);
+      woodAt.push({ x, z: z + (rnd() - 0.5) * 2.5, scale: 0.85 + rnd() * 0.5, yaw: rnd() * 6.28 });
+    }
+  }
+  const woods = forest(
+    [
+      { species: 'oak', at: woodAt.filter((_, i) => i % 3 === 0) },
+      { species: 'tall', at: woodAt.filter((_, i) => i % 3 === 1) },
+      { species: 'young', at: woodAt.filter((_, i) => i % 3 === 2) },
+    ],
+    { leafTint: new Color(0.4, 0.42, 0.36) },
+  );
+  scene.add(woods.group);
 
   const fog = new FogBank({
     bounds: mask.bounds,
@@ -451,6 +466,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
     dispose() {
       terrain.dispose();
+      woods.dispose();
       entrance.dispose();
       pumpkins.dispose();
       fog.dispose();
