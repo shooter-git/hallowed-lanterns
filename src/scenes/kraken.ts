@@ -57,7 +57,7 @@ export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: nu
     root.rotation.y = p.yaw;
     if (p.scale) root.scale.setScalar(p.scale);
     objects.push(root);
-    for (const m of model.glows.values()) m.emissiveIntensity = m.name.includes('inflatable') ? 2.4 : 2;
+    for (const m of model.glows.values()) m.emissiveIntensity = m.name.includes('inflatable') ? 0.9 : 1.1;
     // Whatever carries a bend map (the `along` UV) sways: the tentacles.
     if (p.name.startsWith('kraken')) tentacles.push(...bendable(model, '*', { sway: 0.18, key: `kraken-${p.name}` }));
     if (p.name === 'treasure-chest') {

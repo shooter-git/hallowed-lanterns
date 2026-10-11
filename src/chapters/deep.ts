@@ -268,7 +268,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(caustics(bounds));
 
   // Dark trees (seaweed-dark against the blue), hung with jellyfish.
-  const treeAt = lineThePath(path.points, 5, { spacing: 4.5, depth: 2, seed: 31 });
+  // Clearings for the Kraken's Wreck and the treasure, so nothing stands between them and the path.
+  const treeAt = lineThePath(path.points, 5, { spacing: 4.5, depth: 2, seed: 31 }).filter(
+    (t) => Math.hypot(t.x - WRECK.x, t.z - WRECK.z) > 8 && Math.hypot(t.x - TREASURE.x, t.z - TREASURE.z) > 6.5,
+  );
   const woods = forest(
     [
       { species: 'tall', at: treeAt.filter((_, i) => i % 2 === 0) },
