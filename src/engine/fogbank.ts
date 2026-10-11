@@ -9,7 +9,7 @@ import {
   Vector2,
   type Vector4,
 } from 'three';
-import { SHADER_PARS, shared } from './shared.ts';
+import { SHADER_PARS, shared, VERTEX_TERRAIN } from './shared.ts';
 
 /**
  * Ground fog that rolls along the paths, as from the fog machines in the photos: stacked
@@ -38,13 +38,26 @@ export class FogBank {
     const pos: number[] = [];
     const slice: number[] = [];
     const idx: number[] = [];
+    // Each slice is a grid (about 2.5 m cells) so it can follow the rise and fall of the ground.
+    const nx = Math.max(1, Math.ceil(sx / 2.5));
+    const nz = Math.max(1, Math.ceil(sz / 2.5));
     for (let i = 0; i < options.slices; i++) {
       const t = (i + 0.5) / options.slices;
       const y = 0.04 + t * t * options.height;
-      const base = i * 4;
-      pos.push(minX, y, minZ, minX + sx, y, minZ, minX + sx, y, minZ + sz, minX, y, minZ + sz);
-      slice.push(t, t, t, t);
-      idx.push(base, base + 2, base + 1, base, base + 3, base + 2);
+      const base = pos.length / 3;
+      for (let j = 0; j <= nz; j++) {
+        for (let k = 0; k <= nx; k++) {
+          pos.push(minX + (k / nx) * sx, y, minZ + (j / nz) * sz);
+          slice.push(t);
+        }
+      }
+      for (let j = 0; j < nz; j++) {
+        for (let k = 0; k < nx; k++) {
+          const a = base + j * (nx + 1) + k;
+          const b = a + nx + 1;
+          idx.push(a, b, a + 1, a + 1, b, b + 1);
+        }
+      }
     }
     const geo = new BufferGeometry();
     geo.setAttribute('position', new Float32BufferAttribute(pos, 3));
@@ -65,8 +78,10 @@ export class FogBank {
         attribute float aSlice;
         varying vec3 vHlWorld;
         varying float vSlice;
+        ${VERTEX_TERRAIN}
         void main() {
           vHlWorld = (modelMatrix * vec4(position, 1.0)).xyz;
+          vHlWorld.y += hlTerrain(vHlWorld.xz);
           vSlice = aSlice;
           gl_Position = projectionMatrix * viewMatrix * vec4(vHlWorld, 1.0);
         }`,

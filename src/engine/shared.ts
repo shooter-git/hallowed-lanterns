@@ -4,14 +4,17 @@ import {
   HalfFloatType,
   type Material,
   RGBAFormat,
+  RedFormat,
   type Texture,
   Vector4,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
-import { GLOW_FOG_PARS, NOISE, WORLD_POS_VERTEX } from './glsl.ts';
+import { GLOW_FOG_PARS, NOISE, TERRAIN_PARS, WORLD_POS_VERTEX } from './glsl.ts';
 
 const black = new DataTexture(new Uint16Array(4), 1, 1, RGBAFormat, HalfFloatType);
 black.needsUpdate = true;
+const flat = new DataTexture(new Uint16Array(1), 1, 1, RedFormat, HalfFloatType);
+flat.needsUpdate = true;
 
 /**
  * Uniforms every material shares (the same objects, so setting one updates them all): the glow
@@ -29,6 +32,9 @@ export const shared = {
   /** How much the lanterns light the fog. */
   uFogGlow: { value: 0.6 },
   uHlTime: { value: 0 },
+  /** Ground height over the chapter (see Terrain). */
+  uTerrain: { value: flat as Texture },
+  uTerrainBounds: { value: new Vector4(-1, -1, 2, 2) },
 };
 
 export interface HallowOptions {
@@ -59,7 +65,7 @@ export function hallow<T extends Material>(material: T, options: HallowOptions):
     let vs = shader.vertexShader
       .replace(
         '#include <common>',
-        `#include <common>\nvarying vec3 vHlWorld;\nuniform float uHlTime;\n${NOISE}\n${options.vertexPars ?? ''}`,
+        `#include <common>\nvarying vec3 vHlWorld;\nuniform float uHlTime;\n${NOISE}\n${TERRAIN_PARS}\n${options.vertexPars ?? ''}`,
       )
       .replace('#include <fog_vertex>', `#include <fog_vertex>\n${WORLD_POS_VERTEX}`);
     for (const [a, b] of options.vertex ?? []) vs = vs.replace(a, b);
@@ -83,3 +89,6 @@ export function hallow<T extends Material>(material: T, options: HallowOptions):
 
 /** Declarations a hand-written ShaderMaterial needs to use the glow and fog. */
 export const SHADER_PARS = `${NOISE}\n${GLOW_FOG_PARS}`;
+
+/** Declarations a hand-written vertex shader needs to stand things on the terrain (`hlTerrain`). */
+export const VERTEX_TERRAIN = TERRAIN_PARS;

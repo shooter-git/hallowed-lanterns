@@ -8,6 +8,7 @@ import type { Post } from '../engine/post.ts';
 import type { Path, Walker } from '../engine/rig.ts';
 import type { Sky } from '../engine/sky.ts';
 import type { SurfaceMaps } from '../engine/texgen.ts';
+import type { Terrain } from '../engine/terrain.ts';
 import type { UI } from '../engine/ui.ts';
 
 export type Tier = 'low' | 'mid' | 'high';
@@ -39,6 +40,8 @@ export type TapAction = () => void;
 export interface Chapter {
   readonly scene: Scene;
   readonly path: Path;
+  /** The lie of the land (gentle rises and dips); flat if left out. */
+  readonly terrain?: Terrain;
   /** Music and ambience keys in the audio manifest. */
   readonly music: string;
   readonly ambience: string;

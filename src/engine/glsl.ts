@@ -44,8 +44,19 @@ float hlFlicker(float t, float phase) {
 }
 `;
 
+/** The chapter's terrain: ground height at a world x/z. */
+export const TERRAIN_PARS = /* glsl */ `
+uniform sampler2D uTerrain;
+uniform vec4 uTerrainBounds;
+float hlTerrain(vec2 xz) {
+  vec2 uv = clamp((xz - uTerrainBounds.xy) / uTerrainBounds.zw, 0.0, 1.0);
+  return texture2D(uTerrain, uv).r;
+}
+`;
+
 /** Glow field + fog. Needs `vHlWorld` (the fragment's world position) and three's `cameraPosition`. */
 export const GLOW_FOG_PARS = /* glsl */ `
+${TERRAIN_PARS}
 uniform sampler2D uGlowMap;
 uniform vec4 uGlowBounds;
 uniform float uGlowGain;
@@ -59,7 +70,7 @@ vec3 hlGlow(vec3 wp) {
   vec2 uv = (wp.xz - uGlowBounds.xy) / uGlowBounds.zw;
   vec2 inside = step(vec2(0.0), uv) * step(uv, vec2(1.0));
   // Lanterns hang overhead: surfaces nearer their height catch more of their light.
-  float lift = 1.0 + 0.6 * clamp(wp.y / 3.0, 0.0, 1.0);
+  float lift = 1.0 + 0.6 * clamp((wp.y - hlTerrain(wp.xz)) / 3.0, 0.0, 1.0);
   return texture2D(uGlowMap, uv).rgb * (inside.x * inside.y) * uGlowGain * lift;
 }
 
@@ -79,7 +90,10 @@ vec3 hlApplyFog(vec3 col, vec3 wp) {
 }
 `;
 
-/** Puts the world position in `vHlWorld` (after `#include <project_vertex>`). Handles instancing. */
+/**
+ * Puts the world position in `vHlWorld` (after `#include <project_vertex>`), handling instancing,
+ * and lifts the vertex onto the terrain: everything stands on the slopes without knowing it.
+ */
 export const WORLD_POS_VERTEX = /* glsl */ `
 {
   vec4 hlWp = vec4(transformed, 1.0);
@@ -90,6 +104,12 @@ export const WORLD_POS_VERTEX = /* glsl */ `
     hlWp = instanceMatrix * hlWp;
   #endif
   vHlWorld = (modelMatrix * hlWp).xyz;
+  vHlWorld.y += hlTerrain(vHlWorld.xz);
+  vec4 hlView = viewMatrix * vec4(vHlWorld, 1.0);
+  gl_Position = projectionMatrix * hlView;
+  #if defined(STANDARD) || defined(LAMBERT) || defined(PHONG) || defined(TOON)
+    vViewPosition = -hlView.xyz;
+  #endif
 }
 `;
 

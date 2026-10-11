@@ -18,6 +18,7 @@ import type { LightSource } from '../engine/lights.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
+import { aroundPath, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
@@ -59,6 +60,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     ],
     3.2,
   );
+  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => 0.9 * Math.sin(s / 13) + 0.45 * Math.sin(s / 6.2 + 1.2) - 0.012 * s, bank: 0.07, rough: 0.7, seed: 19 }));
 
   // Ground: a packed gravel-and-dirt path through leaf litter.
   const mask = new GroundMask(bounds, 4);
@@ -96,7 +98,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   // The lanterns: hanging high in the branches on long strings, thickest over the path.
   const specs: PumpkinSpec[] = [];
-  const count = tier === 'low' ? 160 : tier === 'mid' ? 300 : 380;
+  const count = tier === 'low' ? 300 : tier === 'mid' ? 680 : 860;
   const pick = () => {
     const r = rnd();
     if (r < 0.62) return CARVE.candles[Math.floor(rnd() * CARVE.candles.length)] as number;
@@ -108,12 +110,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   for (let i = 0; i < count; i++) {
     const s = rnd() * path.length;
     path.at(s, tmp, tan);
-    const side = (rnd() - 0.5) * 2;
-    const off = side * (rnd() < 0.55 ? 2.4 : 7) ;
+    // Most over and beside the path, the rest deeper in the trees, at every height up to the canopy.
+    const off = (rnd() - 0.5) * 2 * (rnd() < 0.6 ? 3.6 : 9.5);
     const x = tmp.x - tan.y * off;
     const z = tmp.y + tan.x * off;
-    const y = 2.1 + rnd() * 3.0 + Math.abs(off) * 0.1;
-    const w = 0.15 + rnd() * 0.06;
+    const y = 2.0 + rnd() * rnd() * 5.5 + Math.abs(off) * 0.08;
+    const w = 0.13 + rnd() * rnd() * 0.13;
     // Face back down the path, toward the people coming along it.
     const from = path.at(Math.max(0, s - 7 - rnd() * 4));
     const yaw = Math.atan2(from.x - x, from.y - z) + (rnd() - 0.5) * 0.6;
@@ -129,8 +131,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       hang: 9 - y + rnd() * 2,
     });
   }
-  const pumpkins = new PumpkinField(specs, ctx.atlas, { detail: tier === 'low' ? [24, 12] : [32, 14], simple: [14, 7], chunkSize: 9 });
-  pumpkins.detailDistance = tier === 'low' ? 8 : 12;
+  const pumpkins = new PumpkinField(specs, ctx.atlas, { detail: tier === 'low' ? [22, 10] : [28, 12], simple: [12, 6], chunkSize: 8 });
+  pumpkins.detailDistance = tier === 'low' ? 7 : 11;
   scene.add(pumpkins.group);
 
   // Red LED strings in the grass along both sides of the path: they light the fog from below.
@@ -150,7 +152,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   leds.computeBoundingSphere();
   scene.add(leds);
 
-  const glowLights: GlowLight[] = pumpkins.glowLights(3.4, tier === 'low' ? 0.16 : 0.11);
+  const glowLights: GlowLight[] = pumpkins.glowLights(3.4, tier === 'low' ? 0.09 : 0.055);
   ledSpots.forEach((p, i) => {
     if (i % 2 === 0) glowLights.push({ x: p.x, z: p.z, radius: 1.3, color: red, intensity: 0.6, flicker: 0 });
   });
@@ -199,7 +201,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const fogA = new Color(0.05, 0.07, 0.15);
   const fogB = new Color(0.025, 0.035, 0.08);
 
-  const sources: LightSource[] = specs.map((s) => ({
+  const sources: LightSource[] = specs.filter((_, i) => i % 2 === 0).map((s) => ({
     position: s.position.clone().add(new Vector3(0, -0.1, 0)),
     color: new Color(1, 0.6, 0.22),
     intensity: 0.45,
@@ -237,6 +239,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const chapter: Chapter = {
     scene,
     path,
+    terrain,
     music: 'grove',
     ambience: 'grove',
     steps: 'step-gravel',
@@ -333,6 +336,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      terrain.dispose();
       pumpkins.dispose();
       woods.dispose();
       fog.dispose();

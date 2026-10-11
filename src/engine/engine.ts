@@ -12,6 +12,7 @@ import { Post } from './post.ts';
 import { Walker } from './rig.ts';
 import { shared } from './shared.ts';
 import { Sky } from './sky.ts';
+import { setCurrentTerrain } from './terrain.ts';
 import { bakeSurface, DRY_GRASS, GRAVEL, LAWN, LEAF_LITTER, SNOW, type SurfaceMaps } from './texgen.ts';
 import { UI } from './ui.ts';
 
@@ -201,7 +202,15 @@ export class Engine {
 
   /** Puts the shared things (sky, Ember, lights) into a chapter's scene and starts there. */
   private enter(chapter: Chapter, run: boolean) {
-    const { sky, ember, lights, walker } = this.ctx;
+    const { sky, ember, lights, walker, audio } = this.ctx;
+    setCurrentTerrain(chapter.terrain ?? null);
+    if (chapter.terrain) {
+      shared.uTerrain.value = chapter.terrain.texture;
+      shared.uTerrainBounds.value.copy(chapter.terrain.bounds);
+    } else {
+      shared.uTerrainBounds.value.set(-1e5, -1e5, 2e5, 2e5);
+    }
+    audio.setUnderwater(0);
     chapter.scene.add(sky.mesh, ember.group, ember.trail);
     lights.attach(chapter.scene);
     walker.setPath(chapter.path, 0);

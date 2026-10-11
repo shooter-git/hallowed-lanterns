@@ -130,9 +130,14 @@ export function ground(options: {
 }): Mesh {
   const [minX, minZ, sx, sz] = options.mask.area;
   const extent = options.extent ?? 220;
-  const geo = new PlaneGeometry(sx + extent * 2, sz + extent * 2, 1, 1);
+  // Detailed over the chapter so it can follow the rises and dips; a coarse skirt out to the
+  // horizon, a little lower so the detailed ground always wins where they overlap.
+  const geo = new PlaneGeometry(sx, sz, Math.ceil(sx / 1.2), Math.ceil(sz / 1.2));
   geo.rotateX(-Math.PI / 2);
   geo.translate(minX + sx / 2, 0, minZ + sz / 2);
+  const skirtGeo = new PlaneGeometry(sx + extent * 2, sz + extent * 2, 48, 48);
+  skirtGeo.rotateX(-Math.PI / 2);
+  skirtGeo.translate(minX + sx / 2, -0.12, minZ + sz / 2);
   const material = hallow(new MeshStandardMaterial({ roughness: 1, metalness: 0 }), {
     key: 'ground',
     glow: 1,
@@ -205,5 +210,8 @@ export function ground(options: {
   const mesh = new Mesh(geo, material);
   mesh.receiveShadow = true;
   mesh.name = 'ground';
+  const skirt = new Mesh(skirtGeo, material);
+  skirt.name = 'ground-skirt';
+  mesh.add(skirt);
   return mesh;
 }

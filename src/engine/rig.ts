@@ -1,5 +1,6 @@
 import type { Portal } from '@allthespaces/portal';
 import { CatmullRomCurve3, Euler, type PerspectiveCamera, Vector2, Vector3 } from 'three';
+import { heightAt } from './terrain.ts';
 
 /**
  * A walkable path: a smooth centre line with a width. People walk freely, but stay within the
@@ -186,6 +187,7 @@ export class Walker {
     const t = new Vector2();
     path.at(s, p, t);
     this.position.set(p.x + -t.y * lateral, 0, p.y + t.x * lateral);
+    this.position.y = heightAt(this.position.x, this.position.z);
     this.index = -1;
     this.s = s;
     this.yaw = Math.atan2(-t.x, -t.y);
@@ -312,6 +314,9 @@ export class Walker {
     const sway = reduced ? 0 : Math.sin(this.bob * 0.5) * 0.004 * walking;
     const targetEye = this.seated ? 1.05 : this.eyeHeight;
     this.eye += (targetEye - this.eye) * (1 - Math.exp(-dt * 3));
+    // Stand on the ground: up the rises and down the dips, smoothly.
+    const ground = heightAt(this.position.x, this.position.z);
+    this.position.y += (ground - this.position.y) * (dt > 0 ? 1 - Math.exp(-dt * 10) : 1);
     this.camera.position.set(this.position.x, this.position.y + this.eye + bobY, this.position.z);
     this.euler.set(this.pitch, this.yaw, sway);
     this.camera.quaternion.setFromEuler(this.euler);

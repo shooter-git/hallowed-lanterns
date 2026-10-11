@@ -71,7 +71,18 @@ function reedTexture() {
 }
 
 /** Reed screening fences along polylines (x, z), `height` tall. One draw call. */
-export function reedFence(lines: [number, number][][], height: number): Mesh {
+export function reedFence(input: [number, number][][], height: number): Mesh {
+  // Split long runs into short panels so each one sits on the ground beneath it.
+  const lines = input.map((line) => {
+    const out: [number, number][] = [line[0] as [number, number]];
+    for (let i = 0; i < line.length - 1; i++) {
+      const [x0, z0] = line[i] as [number, number];
+      const [x1, z1] = line[i + 1] as [number, number];
+      const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 1.5));
+      for (let k = 1; k <= n; k++) out.push([x0 + ((x1 - x0) * k) / n, z0 + ((z1 - z0) * k) / n]);
+    }
+    return out;
+  });
   const pos: number[] = [];
   const uv: number[] = [];
   const nor: number[] = [];

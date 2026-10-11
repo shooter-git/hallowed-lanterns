@@ -19,6 +19,7 @@ import {
 } from 'three';
 import type { GlowLight } from './glowfield.ts';
 import { hallow } from './shared.ts';
+import { heightAt } from './terrain.ts';
 
 /** One red paper lantern. */
 export interface LanternSpec {
@@ -195,6 +196,7 @@ export class LanternField {
     this.specs.forEach((s, i) => {
       const r = s.radius * 1.4;
       v.subVectors(s.position, ray.origin);
+      v.y += heightAt(s.position.x, s.position.z);
       const t = v.dot(ray.direction);
       if (t < 0 || t > bestT) return;
       if (v.lengthSq() - t * t < r * r) {

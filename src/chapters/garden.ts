@@ -8,6 +8,7 @@ import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { archway, reedFence, standIn, walkwayFrame } from '../engine/props.ts';
 import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
+import { aroundPath, heightAt, onGround, Terrain } from '../engine/terrain.ts';
 import { shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
@@ -55,6 +56,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     ],
     (s) => (s < 34 ? 2.6 : 6),
   );
+  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => (s < 25 ? 0 : 0.028 * (s - 25)) + 0.12 * Math.sin(s / 7), bank: 0.03, rough: 0.25, seed: 58 }));
 
   // Ground: trodden grass path through a lawn.
   const mask = new GroundMask(bounds, 4);
@@ -117,20 +119,22 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const specs: LanternSpec[] = [];
   const tunnelLanterns: number[] = [];
   const red = (k: number) => new Color(1, 0.06 + rnd() * 0.06, 0.035).multiplyScalar(k * 0.65);
-  for (let z = 0.2; z > TUNNEL_END + 0.5; z -= tier === 'low' ? 0.9 : 0.62) {
-    for (const x of [-1.55, -0.55, 0.5, 1.5]) {
-      const y = 2.7 + rnd() * 0.65;
+  const columns = tier === 'low' ? [-1.5, -0.5, 0.5, 1.5] : [-1.75, -1.05, -0.35, 0.35, 1.05, 1.75];
+  for (let z = 0.2; z > TUNNEL_END + 0.5; z -= tier === 'low' ? 0.75 : 0.5) {
+    for (const x of columns) {
+      const y = 2.35 + rnd() * 1.05;
       tunnelLanterns.push(specs.length);
       specs.push({ position: new Vector3(x + (rnd() - 0.5) * 0.3, y, z + (rnd() - 0.5) * 0.3), radius: 0.15 + rnd() * 0.04, glow: red(2.4 + rnd()), phase: rnd(), hang: 3.6 - y - 0.15, tassel: 0.36 });
     }
   }
-  const skyCount = tier === 'low' ? 160 : tier === 'mid' ? 300 : 420;
+  const skyCount = tier === 'low' ? 320 : tier === 'mid' ? 760 : 1000;
+  const skyStart = specs.length;
   for (let i = 0; i < skyCount; i++) {
     const a = rnd() * Math.PI * 2;
-    const r = Math.sqrt(rnd()) * 15;
+    const r = Math.sqrt(rnd()) * 19;
     const x = SKY_TREE.x + Math.cos(a) * r;
     const z = SKY_TREE.z + Math.sin(a) * r * 0.85;
-    const y = 4 + rnd() * 10 * (1 - (r / 15) * 0.45);
+    const y = 3.2 + rnd() * 13 * (1 - (r / 19) * 0.5);
     const kind = rnd();
     const glow = kind < 0.62 ? red(2.6) : kind < 0.82 ? new Color(1, 0.08, 0.3).multiplyScalar(1.6) : new Color(1, 0.55, 0.22).multiplyScalar(1.5);
     specs.push({ position: new Vector3(x, y, z), radius: 0.16 + rnd() * 0.07, glow, phase: rnd(), hang: 1 + rnd() * 2, tassel: 0.32 });
@@ -149,8 +153,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     hookLanterns.push(specs.length);
     specs.push({ position: new Vector3(x as number, 1.55 + rnd() * 0.35, z as number), radius: 0.17, glow: red(2.8), phase: rnd(), tassel: 0.3 });
   }
-  const lanterns = new LanternField(specs);
+  const lanterns = new LanternField(specs, { segments: tier === 'low' ? [10, 7] : [14, 9] });
   scene.add(lanterns.group);
+  void skyStart;
   for (const i of tunnelLanterns) lanterns.setLevel(i, 0.04);
 
   // The Lantern Sky's great tree, and woods around the clearing.
@@ -219,9 +224,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(pumpkins.group);
 
   // Light.
-  const glowLights: GlowLight[] = [...lanterns.glowLights(2.6, 0.12), ...fairy.lights];
+  const glowLights: GlowLight[] = [...lanterns.glowLights(2.6, tier === 'low' ? 0.09 : 0.06), ...fairy.lights];
   scene.add(new HemisphereLight(0x22305a, 0x080404, 0.25));
-  const sources: LightSource[] = specs.map((s) => ({ position: s.position, color: new Color(1, 0.25, 0.12), intensity: 0.6, distance: 4, phase: s.phase as number }));
+  const sources: LightSource[] = specs.filter((_, i) => i % 2 === 0).map((s) => ({ position: s.position, color: new Color(1, 0.25, 0.12), intensity: 0.6, distance: 4, phase: s.phase as number }));
 
   const night = skyState({
     zenith: new Color(0.004, 0.01, 0.045),
@@ -249,6 +254,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const chapter: Chapter = {
     scene,
     path,
+    terrain,
     music: 'garden',
     ambience: 'garden',
     steps: 'step-grass',
@@ -304,7 +310,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     pick(ray: Ray): TapAction | null {
-      if (ray.intersectsBox(sofaBox)) return () => (seated ? stand() : sit());
+      if (ray.intersectsBox(onGround(sofaBox))) return () => (seated ? stand() : sit());
       const i = lanterns.pick(ray, 20);
       if (i >= 0)
         return () => {
@@ -319,6 +325,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      terrain.dispose();
       lanterns.dispose();
       pumpkins.dispose();
       big.dispose();
@@ -332,7 +339,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   function sit() {
     seated = true;
     const w = ctx.walker;
-    w.position.set(SEAT.x, 0, SEAT.z - 0.55);
+    w.position.set(SEAT.x, heightAt(SEAT.x, SEAT.z - 0.55), SEAT.z - 0.55);
     w.yaw = Math.atan2(-(SKY_TREE.x - SEAT.x), -(SKY_TREE.z - SEAT.z)) + 0.9;
     w.pitch = 0.18;
     w.seated = true;

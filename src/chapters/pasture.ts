@@ -22,6 +22,7 @@ import { type LoadedModel, loadModel } from '../engine/models.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { standIn } from '../engine/props.ts';
 import { Path } from '../engine/rig.ts';
+import { aroundPath, onGround, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
@@ -65,6 +66,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     ],
     9,
   );
+  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => 0.85 * Math.sin(s / 19) + 0.35 * Math.sin(s / 8 + 2), bank: 0.04, rough: 1.0, seed: 62 }));
 
   const mask = new GroundMask(bounds, 3);
   const line: [number, number][] = path.points.filter((_, i) => i % 6 === 0).map((p) => [p.x, p.y]);
@@ -215,6 +217,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const chapter: Chapter = {
     scene,
     path,
+    terrain,
     music: 'pasture',
     ambience: 'pasture',
     steps: 'step-grass',
@@ -281,7 +284,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
     pick(ray: Ray): TapAction | null {
       for (const g of giants) {
-        if (ray.intersectsBox(g.box)) {
+        if (ray.intersectsBox(onGround(g.box))) {
           return () => {
             g.flare = 1;
             const at = g.head?.getWorldPosition(new Vector3()) ?? g.box.getCenter(new Vector3());
@@ -297,6 +300,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      terrain.dispose();
       fog.dispose();
       floor.geometry.dispose();
       redLights.mesh.geometry.dispose();

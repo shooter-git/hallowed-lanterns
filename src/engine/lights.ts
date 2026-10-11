@@ -1,4 +1,5 @@
-import { type Color, PointLight, type Scene, type Vector3 } from 'three';
+import { type Color, PointLight, type Scene, Vector3 } from 'three';
+import { heightAt } from './terrain.ts';
 
 export interface LightSource {
   position: Vector3;
@@ -44,6 +45,7 @@ export class LightPool {
       })
       .sort((a, b) => a.score - b.score);
     const ease = 1 - Math.exp(-dt * 6);
+    const at = new Vector3();
     this.lights.forEach((l, i) => {
       const pick = scored[i];
       if (!pick) {
@@ -51,11 +53,13 @@ export class LightPool {
         return;
       }
       const s = pick.s;
-      if (l.position.distanceToSquared(s.position) > 0.01) {
+      at.copy(s.position);
+      at.y += heightAt(at.x, at.z);
+      if (l.position.distanceToSquared(at) > 0.01) {
         // Swapping to another lantern: dim, move, brighten (eased so it never pops).
         l.intensity *= 1 - Math.min(1, ease * 2);
         if (l.intensity < 0.05) {
-          l.position.copy(s.position);
+          l.position.copy(at);
           l.color.copy(s.color);
           l.distance = s.distance;
         }

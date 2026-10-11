@@ -14,6 +14,7 @@ import {
 import type { GlowLight } from './glowfield.ts';
 import { NOISE } from './glsl.ts';
 import { shared } from './shared.ts';
+import { heightAt } from './terrain.ts';
 
 const SPARKS = 36;
 
@@ -159,9 +160,12 @@ export class Ember {
     this.t += dt;
     // Never right in your face: it keeps a polite distance from the camera.
     if (camera) {
-      const away = new Vector3().subVectors(this.target, camera);
+      // (The Ember's own coordinates are above the ground; the camera's are absolute.)
+      const cam = camera.clone();
+      cam.y -= heightAt(cam.x, cam.z);
+      const away = new Vector3().subVectors(this.target, cam);
       const d = away.length();
-      if (d < 1.6) this.target.copy(camera).addScaledVector(away.normalize(), 1.6);
+      if (d < 1.6) this.target.copy(cam).addScaledVector(away.normalize(), 1.6);
     }
     // A springy chase toward the target, with an idle bob and a wandering wobble.
     const k = this.agility;
@@ -171,7 +175,7 @@ export class Ember {
     this.position.addScaledVector(this.velocity, dt);
     const bob = Math.sin(this.t * 2.1) * 0.06 + Math.sin(this.t * 3.7) * 0.025;
     const wob = Math.sin(this.t * 1.3) * 0.04;
-    this.group.position.set(this.position.x + wob, this.position.y + bob, this.position.z);
+    this.group.position.set(this.position.x + wob, this.position.y + bob + heightAt(this.position.x, this.position.z), this.position.z);
     if (camera) {
       const away = new Vector3().subVectors(this.group.position, camera);
       const d = away.length();

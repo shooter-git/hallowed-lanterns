@@ -21,6 +21,7 @@ import type { LightSource } from '../engine/lights.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
+import { aroundPath, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
@@ -67,6 +68,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     ],
     (s) => (s < 58 ? 3.4 : 2.4),
   );
+  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => -0.022 * s + 0.22 * Math.sin(s / 9) + (s > 58 ? -0.06 * (s - 58) : 0), bank: 0.05, rough: 0.45, seed: 12 }));
 
   // --- Ground: gravel lane, dry grass all around. ---
   const mask = new GroundMask(bounds, 4);
@@ -123,9 +125,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   // --- The lanterns. ---
   const specs: PumpkinSpec[] = [];
-  const overheadRows = tier === 'low' ? [-1.6, -0.5, 0.5, 1.6] : [-2.05, -1.25, -0.45, 0.45, 1.25, 2.05];
-  const sideRows = tier === 'low' ? [1.45] : [1.45, 2.45];
-  const spacing = tier === 'low' ? 0.62 : 0.5;
+  // As packed as the real arbor: eight rows overhead, two tiers along each side, nearly touching.
+  const overheadRows = tier === 'low' ? [-2.0, -1.2, -0.45, 0.45, 1.2, 2.0] : [-2.2, -1.65, -1.1, -0.55, 0.55, 1.1, 1.65, 2.2];
+  const sideRows = tier === 'low' ? [1.4] : [1.35, 2.2];
+  const spacing = tier === 'low' ? 0.48 : 0.36;
   const lanternColour = (r: number) => {
     if (r < 0.025) return new Color(1, 0.08, 0.1).multiplyScalar(4);
     if (r < 0.045) return new Color(1, 0.1, 0.55).multiplyScalar(3.5);
@@ -157,7 +160,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     });
   };
   for (let z = LANE_START - 0.3; z > LANE_END + 0.2; z -= spacing) {
-    for (const x of overheadRows) add(x, 3.02 - Math.abs(x) * 0.05, z + (rnd() - 0.5) * 0.1, 0, 0.3);
+    for (const x of overheadRows) add(x, 3.05 - Math.abs(x) * 0.09 + (rnd() - 0.5) * 0.1, z + (rnd() - 0.5) * 0.08, 0, 0.3);
     for (const y of sideRows) {
       add(-HALF - 0.05, y, z + (rnd() - 0.5) * 0.1, Math.PI / 2, 0.22);
       add(HALF + 0.05, y, z + (rnd() - 0.5) * 0.1, -Math.PI / 2, 0.22);
@@ -179,10 +182,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   emberSpec.glow = new Color(1, 0.55, 0.16).multiplyScalar(5);
 
   const pumpkins = new PumpkinField(specs, ctx.atlas, {
-    detail: tier === 'low' ? [24, 12] : [36, 16],
-    simple: [14, 7],
+    detail: tier === 'low' ? [22, 10] : [28, 12],
+    simple: [12, 6],
   });
-  pumpkins.detailDistance = tier === 'low' ? 8 : 13;
+  pumpkins.detailDistance = tier === 'low' ? 7 : 11;
   pumpkins.wave = -10;
   scene.add(pumpkins.group);
 
@@ -208,7 +211,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(leds);
 
   // --- Glow field: every lantern and LED pools light on the gravel, the posts and the fog. ---
-  const glowLights: GlowLight[] = pumpkins.glowLights(2.4, tier === 'low' ? 0.14 : 0.09);
+  const glowLights: GlowLight[] = pumpkins.glowLights(2.4, tier === 'low' ? 0.12 : 0.06);
   for (const l of ledPositions) {
     glowLights.push({ x: l.p.x, z: l.p.z, radius: 0.6, color: l.c, intensity: 0.35, flicker: 0 });
   }
@@ -277,7 +280,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const fogDusk = new Color(0.035, 0.035, 0.06);
 
   // The lights that follow you.
-  const sources: LightSource[] = specs.map((s) => ({
+  const sources: LightSource[] = specs.filter((_, i) => i % 3 === 0).map((s) => ({
     position: s.position.clone().add(new Vector3(0, -0.05, 0.12)),
     color: s.glow.clone().multiplyScalar(1 / Math.max(1, s.glow.r)),
     intensity: 0.9,
@@ -297,6 +300,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const chapter: Chapter = {
     scene,
     path,
+    terrain,
     music: 'arbor',
     ambience: 'arbor',
     steps: 'step-gravel',
@@ -419,6 +423,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      terrain.dispose();
       pumpkins.dispose();
       fog.dispose();
       floor.geometry.dispose();

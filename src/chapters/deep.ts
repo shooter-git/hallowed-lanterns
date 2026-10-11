@@ -30,7 +30,8 @@ import { loadModel } from '../engine/models.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
-import { hallow, SHADER_PARS, shared } from '../engine/shared.ts';
+import { aroundPath, onGround, Terrain } from '../engine/terrain.ts';
+import { hallow, SHADER_PARS, shared, VERTEX_TERRAIN } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
 import { Drift } from '../engine/weather.ts';
@@ -85,7 +86,8 @@ function ledBeds(path: Path, inner: number, outer: number): Mesh {
     uniforms: { ...shared },
     vertexShader: /* glsl */ `
       varying vec3 vHlWorld;
-      void main() { vHlWorld = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vHlWorld, 1.0); }`,
+      ${VERTEX_TERRAIN}
+      void main() { vHlWorld = (modelMatrix * vec4(position, 1.0)).xyz; vHlWorld.y += hlTerrain(vHlWorld.xz); gl_Position = projectionMatrix * viewMatrix * vec4(vHlWorld, 1.0); }`,
     fragmentShader: /* glsl */ `
       ${SHADER_PARS}
       varying vec3 vHlWorld;
@@ -113,14 +115,15 @@ function ledBeds(path: Path, inner: number, outer: number): Mesh {
 /** Light rippling over the sea floor, as through moving water. */
 function caustics(bounds: Bounds): Mesh {
   const [minX, minZ, sx, sz] = bounds;
-  const geo = new PlaneGeometry(sx, sz);
+  const geo = new PlaneGeometry(sx, sz, Math.ceil(sx / 1.5), Math.ceil(sz / 1.5));
   geo.rotateX(-Math.PI / 2);
   geo.translate(minX + sx / 2, 0.02, minZ + sz / 2);
   const mat = new ShaderMaterial({
     uniforms: { ...shared },
     vertexShader: /* glsl */ `
       varying vec3 vHlWorld;
-      void main() { vHlWorld = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vHlWorld, 1.0); }`,
+      ${VERTEX_TERRAIN}
+      void main() { vHlWorld = (modelMatrix * vec4(position, 1.0)).xyz; vHlWorld.y += hlTerrain(vHlWorld.xz); gl_Position = projectionMatrix * viewMatrix * vec4(vHlWorld, 1.0); }`,
     fragmentShader: /* glsl */ `
       ${SHADER_PARS}
       varying vec3 vHlWorld;
@@ -177,12 +180,13 @@ function streamers(anchors: { p: Vector3; len: number; phase: number }[]): Mesh<
         uniform float uHlTime;
         varying float vT;
         varying vec3 vHlWorld;
+        ${VERTEX_TERRAIN}
         void main() {
           float t = -position.y;           // 0 at the bell, 1 at the tip
           vT = t;
           float wave = sin(uHlTime * 1.4 - t * 6.0 + aPhase * 6.28) * 0.12 * t;
           float wave2 = cos(uHlTime * 0.9 - t * 4.0 + aPhase * 3.0) * 0.1 * t;
-          vec3 w = aAt.xyz + vec3(wave + cos(aPhase * 6.28) * 0.08, -t * aAt.w, wave2 + sin(aPhase * 6.28) * 0.08);
+          vec3 w = aAt.xyz + vec3(wave + cos(aPhase * 6.28) * 0.08, -t * aAt.w + hlTerrain(aAt.xz), wave2 + sin(aPhase * 6.28) * 0.08);
           // Face the camera around the vertical axis.
           vec3 toCam = normalize(vec3(cameraPosition.x - w.x, 0.0, cameraPosition.z - w.z));
           vec3 side = vec3(toCam.z, 0.0, -toCam.x);
@@ -248,6 +252,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     ],
     3.4,
   );
+  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => -0.055 * Math.min(s, 44) + 0.18 * Math.sin(s / 6), bank: 0.05, rough: 0.5, seed: 7 }));
 
   const mask = new GroundMask(bounds, 4);
   mask.stroke(path.points.filter((_, i) => i % 4 === 0).map((p) => [p.x, p.y]), 3.6, 'r', 0.95);
@@ -276,12 +281,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const jellies: number[] = [];
   const tmp = new Vector2();
   const tan = new Vector2();
-  const count = tier === 'low' ? 34 : 64;
+  const count = tier === 'low' ? 70 : tier === 'mid' ? 150 : 200;
   for (let i = 0; i < count; i++) {
     const s = 2 + rnd() * (path.length - 4);
     path.at(s, tmp, tan);
-    const off = (rnd() - 0.5) * 8;
-    const pos = new Vector3(tmp.x - tan.y * off, 3.3 + rnd() * 2.6, tmp.y + tan.x * off);
+    const off = (rnd() - 0.5) * 2 * (rnd() < 0.6 ? 3.5 : 8);
+    const pos = new Vector3(tmp.x - tan.y * off, 2.6 + rnd() * 3.8, tmp.y + tan.x * off);
     const r = 0.16 + rnd() * 0.12;
     const purple = rnd() < 0.5;
     jellies.push(specs.length);
@@ -296,14 +301,14 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       hang: 9 - pos.y,
     });
     const len = 1.1 + rnd() * 1.6;
-    for (let k = 0; k < (tier === 'low' ? 5 : 8); k++) {
+    for (let k = 0; k < (tier === 'low' ? 4 : 7); k++) {
       const a = (k / 8) * Math.PI * 2;
       ribbons.push({ p: pos.clone().add(new Vector3(Math.cos(a) * r * 0.7, -r * 0.45, Math.sin(a) * r * 0.7)), len: len * (0.6 + rnd() * 0.5), phase: rnd() });
     }
   }
   // Pufferfish (lime, spotted) peering from the branches.
   const puffers: number[] = [];
-  for (let i = 0; i < (tier === 'low' ? 8 : 16); i++) {
+  for (let i = 0; i < (tier === 'low' ? 14 : 36); i++) {
     const s = 3 + rnd() * (path.length - 6);
     path.at(s, tmp, tan);
     const off = (rnd() < 0.5 ? -1 : 1) * (2.6 + rnd() * 2.5);
@@ -327,7 +332,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   // Coral boards along the beds.
   const coralColors = [new Color(1, 0.45, 0.1), new Color(1, 0.25, 0.55), new Color(0.75, 1, 0.2), new Color(1, 0.8, 0.2)];
   const corals: Mesh[] = [];
-  for (let i = 0; i < (tier === 'low' ? 14 : 28); i++) {
+  for (let i = 0; i < (tier === 'low' ? 34 : 80); i++) {
     const s = rnd() * path.length;
     path.at(s, tmp, tan);
     const off = (rnd() < 0.5 ? -1 : 1) * (2.2 + rnd() * 1.6);
@@ -336,6 +341,29 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     c.rotation.y = Math.atan2(-tan.y * -off, tan.x * -off) + (rnd() - 0.5) * 0.8;
     scene.add(c);
     corals.push(c);
+  }
+
+  // Giant neon clam shells in the beds, as in the photo.
+  for (let k = 0; k < 3; k++) {
+    const sh = new Shape();
+    const R = 1.0 + k * 0.15;
+    sh.moveTo(-R, 0);
+    for (let a = 0; a <= 12; a++) {
+      const t = Math.PI - (a / 12) * Math.PI;
+      const rr = R * (0.92 + 0.08 * Math.cos(a * Math.PI));
+      sh.lineTo(Math.cos(t) * rr, Math.sin(t) * rr * 1.1);
+    }
+    sh.lineTo(R, 0);
+    const geo = new ExtrudeGeometry(sh, { depth: 0.08, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, curveSegments: 4 });
+    const clam = new Mesh(geo, hallow(new MeshBasicGlow({ color: new Color(1, 0.3, 0.6).multiplyScalar(1.4) }), { key: 'clam' }));
+    const s0 = path.length * (0.3 + k * 0.25);
+    path.at(s0, tmp, tan);
+    const side = k % 2 ? 1 : -1;
+    clam.position.set(tmp.x - tan.y * 3.4 * side, 0, tmp.y + tan.x * 3.4 * side);
+    clam.rotation.y = Math.atan2(-tan.y * -side, tan.x * -side) + 0.4 * side;
+    clam.rotation.x = -0.25;
+    scene.add(clam);
+    corals.push(clam);
   }
 
   // The Keeper of the Deep.
@@ -395,11 +423,13 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       uniform float uHlTime;
       varying vec2 vUv;
       varying vec3 vHlWorld;
+      ${VERTEX_TERRAIN}
       void main() {
         vUv = uv;
         vec3 p = position;
         p.z += sin(p.x * 1.3 + uHlTime * 0.8) * 0.35 + sin(p.y * 2.0 + uHlTime * 0.6) * 0.15;
         vHlWorld = (modelMatrix * vec4(p, 1.0)).xyz;
+        vHlWorld.y += hlTerrain(vHlWorld.xz);
         gl_Position = projectionMatrix * viewMatrix * vec4(vHlWorld, 1.0);
       }`,
     fragmentShader: /* glsl */ `
@@ -443,11 +473,11 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     sheets.push(sheet);
   }
 
-  const bubbles = new Drift({ count: tier === 'low' ? 400 : 900, box: 18, size: 0.07, color: new Color(0.5, 0.7, 1), style: 'bubble', opacity: 0.8 });
+  const bubbles = new Drift({ count: tier === 'low' ? 900 : 2200, box: 18, size: 0.07, color: new Color(0.5, 0.7, 1), style: 'bubble', opacity: 0.8 });
   bubbles.velocity.set(0.05, 0.55, 0);
   scene.add(bubbles.points);
 
-  const glowLights: GlowLight[] = [...pumpkins.glowLights(2.2, 0.12)];
+  const glowLights: GlowLight[] = [...pumpkins.glowLights(2.2, tier === 'low' ? 0.08 : 0.05)];
   for (let s = 0; s <= path.length; s += 1.2) {
     path.at(s, tmp, tan);
     for (const side of [-1, 1]) glowLights.push({ x: tmp.x - tan.y * 2.7 * side, z: tmp.y + tan.x * 2.7 * side, radius: 2.2, color: new Color(0.15, 0.3, 1), intensity: 0.22, flicker: 0 });
@@ -456,7 +486,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   glowLights.push({ x: KEEPER.x, z: KEEPER.z + 2, radius: 9, color: new Color(0.35, 0.2, 1), intensity: 0.5, flicker: 0 });
   const sources: LightSource[] = [
     { position: KEEPER.clone().add(new Vector3(0, 1, 4)), color: new Color(0.45, 0.3, 1), intensity: 10, distance: 16 },
-    ...specs.filter((_, i) => jellies.includes(i)).slice(0, 24).map((s) => ({ position: s.position, color: new Color(1, 0.5, 0.2), intensity: 0.7, distance: 4 })),
+    ...specs.filter((_, i) => jellies.includes(i)).slice(0, 60).map((s) => ({ position: s.position, color: new Color(1, 0.5, 0.2), intensity: 0.7, distance: 4 })),
   ];
   scene.add(new HemisphereLight(0x1c3cff, 0x02040c, 0.35));
 
@@ -474,6 +504,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const chapter: Chapter = {
     scene,
     path,
+    terrain,
     music: 'deep',
     ambience: 'deep',
     steps: 'step-sand',
@@ -558,7 +589,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     pick(ray: Ray): TapAction | null {
-      if (keeperRoot && risen > 0.5 && ray.intersectsBox(keeperBox.clone().translate(new Vector3(0, keeperRoot.position.y, 0))))
+      if (keeperRoot && risen > 0.5 && ray.intersectsBox(onGround(keeperBox.clone().translate(new Vector3(0, keeperRoot.position.y, 0)))))
         return () => wave('It waves back.');
       const i = pumpkins.pick(ray, 18);
       if (i >= 0 && puffers.includes(i))
@@ -579,6 +610,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      terrain.dispose();
       ctx.audio.setUnderwater(0);
       pumpkins.dispose();
       woods.dispose();

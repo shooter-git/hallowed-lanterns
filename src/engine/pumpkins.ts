@@ -20,6 +20,7 @@ import {
 } from 'three';
 import type { GlowLight } from './glowfield.ts';
 import { hallow } from './shared.ts';
+import { heightAt } from './terrain.ts';
 
 /** One pumpkin (or pumpkin lantern) in a field of them. */
 export interface PumpkinSpec {
@@ -459,6 +460,7 @@ export class PumpkinField {
     this.specs.forEach((s, i) => {
       const r = Math.max(s.size.x, s.size.y) * 1.15;
       v.subVectors(s.position, ray.origin);
+      v.y += heightAt(s.position.x, s.position.z);
       const t = v.dot(ray.direction);
       if (t < 0 || t > bestT) return;
       const d2 = v.lengthSq() - t * t;

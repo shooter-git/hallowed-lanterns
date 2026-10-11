@@ -15,7 +15,7 @@ import {
   type Texture,
   Vector3,
 } from 'three';
-import { SHADER_PARS, shared } from './shared.ts';
+import { SHADER_PARS, shared, VERTEX_TERRAIN } from './shared.ts';
 
 /**
  * Things drifting in the air all around you — snowflakes, bubbles, pollen, dust in the light:
@@ -194,14 +194,16 @@ export class Billboards {
           varying vec2 vUv;
           varying vec3 vCol;
           varying vec3 vHlWorld;
+          ${VERTEX_TERRAIN}
           void main() {
             vUv = uv;
             vCol = aCol.rgb;
             float a = uHlTime * aCol.w;
             vec2 r = mat2(cos(a), -sin(a), sin(a), cos(a)) * position.xy * aAt.w;
-            vec4 mv = viewMatrix * vec4(aAt.xyz, 1.0);
+            vec3 at = aAt.xyz + vec3(0.0, hlTerrain(aAt.xz), 0.0);
+            vec4 mv = viewMatrix * vec4(at, 1.0);
             mv.xy += r;
-            vHlWorld = aAt.xyz;
+            vHlWorld = at;
             gl_Position = projectionMatrix * mv;
           }`,
         fragmentShader: /* glsl */ `

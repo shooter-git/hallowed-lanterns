@@ -26,6 +26,7 @@ import { Burst, RAINBOW } from '../engine/particles.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
+import { aroundPath, pointOnGround, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
@@ -93,6 +94,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     ],
     (s) => (s < 13 ? 5 : 3),
   );
+  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => (s < 9 ? 0.06 * (9 - s) : 0) + (s > 16 ? 0.05 * (s - 16) : 0), bank: 0.05, rough: 0.35, seed: 41 }));
 
   const mask = new GroundMask(bounds, 4);
   mask.stroke(path.points.filter((_, i) => i % 4 === 0).map((p) => [p.x, p.y]), 2.6, 'r', 0.8);
@@ -222,6 +224,25 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       yaw: (rnd() - 0.5) * 0.4,
     });
   }
+  // A third row up on a ledge behind: more letters, faces lit in candy colours, painted ones.
+  for (let i = 0; i < 13; i++) {
+    const x = -3.1 + i * 0.52 + (rnd() - 0.5) * 0.08;
+    const kind = rnd();
+    const r = 0.15 + rnd() * 0.05;
+    add({
+      position: STAGE.clone().add(new Vector3(x, 0.62 + r * 0.6, 1.55 + (rnd() - 0.5) * 0.15)),
+      size: new Vector3(r, r * 0.85, r),
+      carve: kind < 0.35 ? 100 + (CARVE.letters[i % 2] as number) : kind < 0.75 ? (CARVE.faces[Math.floor(rnd() * CARVE.faces.length)] as number) : -1,
+      skin: (shells[(i + 2) % shells.length] as Color).clone(),
+      glow: kind < 0.35 ? (paint[i % paint.length] as Color).clone() : kind < 0.75 ? (candy[(i + 1) % candy.length] as Color).clone().multiplyScalar(3.2) : new Color(0, 0, 0),
+      yaw: (rnd() - 0.5) * 0.3,
+    });
+  }
+  const ledge = new Mesh(new CylinderGeometry(0.06, 0.06, 7.2, 6), benchMat);
+  ledge.rotation.z = Math.PI / 2;
+  ledge.position.copy(STAGE).add(new Vector3(0, 0.58, 1.55));
+  ledge.scale.set(1, 1, 3);
+  scene.add(ledge);
   const pumpkins = new PumpkinField(specs, ctx.atlas, { detail: [36, 16], simple: [16, 8] });
   pumpkins.detailDistance = 16;
   scene.add(pumpkins.group);
@@ -286,6 +307,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const chapter: Chapter = {
     scene,
     path,
+    terrain,
     music: 'hollow',
     ambience: 'hollow',
     steps: 'step-gravel',
@@ -386,7 +408,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
         };
       }
       for (const g of gummies) {
-        const p = g.position.clone().add(new Vector3(0, 0.35, 0));
+        const p = pointOnGround(g.position.clone().add(new Vector3(0, 0.35, 0)));
         if (ray.distanceSqToPoint(p) < 0.12)
           return () => {
             g.scale.y = 0.7;
@@ -401,6 +423,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      terrain.dispose();
       pumpkins.dispose();
       oak.dispose();
       woods.dispose();

@@ -21,6 +21,7 @@ import { loadModel } from '../engine/models.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
+import { aroundPath, pointOnGround, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
@@ -65,6 +66,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     ],
     3.4,
   );
+  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => 0.028 * s + 0.25 * Math.sin(s / 8), bank: 0.06, rough: 0.5, seed: 47 }));
 
   const mask = new GroundMask(bounds, 4);
   mask.stroke(path.points.filter((_, i) => i % 4 === 0).map((p) => [p.x, p.y]), 2.2, 'r', 0.6);
@@ -84,6 +86,11 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     { leafTint: new Color(0.9, 0.95, 1.0), bark: new Color(0.06, 0.05, 0.05) },
   );
   scene.add(woods.group);
+  // Dense, snow-laden undergrowth close to the path and behind the snowman, as in the photo.
+  const bushAt = lineThePath(path.points, 2.4, { spacing: tier === 'low' ? 2.6 : 1.7, depth: 2, seed: 23, jitter: 1.4 });
+  for (let k = 0; k < 9; k++) bushAt.push({ x: SNOWMAN.x - 3 + k * 0.8 + (rnd() - 0.5) * 0.4, z: SNOWMAN.z - 1.8 - rnd() * 1.4, scale: 0.9 + rnd() * 0.6, yaw: rnd() * 6 });
+  const bushes = forest([{ species: 'bush', at: bushAt }], { leafTint: new Color(0.75, 0.82, 0.8), bark: new Color(0.05, 0.04, 0.04) });
+  scene.add(bushes.group);
   scene.add(treeLine({ radius: 110, height: 16, color: new Color(0.02, 0.025, 0.04), under: new Color(0.02, 0.03, 0.06) }));
 
   // The snowman: the model, or three striped gourds with a hat, a carrot and a corn-cob mug.
@@ -180,7 +187,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(ornaments.mesh);
 
   // Falling snow.
-  const snow = new Drift({ count: tier === 'low' ? 2500 : tier === 'mid' ? 4500 : 7000, box: 22, size: 0.045, color: new Color(0.85, 0.9, 1), style: 'snow' });
+  const snow = new Drift({ count: tier === 'low' ? 3000 : tier === 'mid' ? 7000 : 10000, box: 20, size: 0.05, color: new Color(0.85, 0.9, 1), style: 'snow' });
   scene.add(snow.points);
   const breath = new Breath();
   scene.add(breath.mesh);
@@ -206,6 +213,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const chapter: Chapter = {
     scene,
     path,
+    terrain,
     music: 'snow',
     ambience: 'snow',
     steps: 'step-snow',
@@ -275,7 +283,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       let best = -1;
       let bestD = 0.5;
       flakes.forEach((f, i) => {
-        const d = Math.sqrt(ray.distanceSqToPoint(f.position)) / Math.max(1, f.position.distanceTo(ray.origin) * 0.08);
+        const d = Math.sqrt(ray.distanceSqToPoint(pointOnGround(f.position))) / Math.max(1, f.position.distanceTo(ray.origin) * 0.08);
         if (d < bestD) {
           bestD = d;
           best = i;
@@ -289,7 +297,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
           void ctx.audio.sfx('snowflake', { at: f.position, volume: 0.8 });
         };
       }
-      if (ray.distanceSqToPoint(SNOWMAN.clone().add(new Vector3(0, 1.6, 0))) < 1.2)
+      if (ray.distanceSqToPoint(pointOnGround(SNOWMAN.clone().add(new Vector3(0, 1.6, 0)))) < 1.2)
         return () => {
           toast = 0.001;
           void ctx.audio.sfx('snowflake', { at: SNOWMAN, volume: 0.7, rate: 0.8 });
@@ -303,7 +311,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      terrain.dispose();
       woods.dispose();
+      bushes.dispose();
       snow.dispose();
       breath.dispose();
       ornaments.dispose();

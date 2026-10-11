@@ -151,6 +151,8 @@ export class Post {
   /** 0 = clear, 1 = fully faded to `fadeColor` (in scene light units). */
   fade = 0;
   readonly fadeColor = new Color(0, 0, 0);
+  /** Draw calls and triangles of the last scene pass (for checking the budget). */
+  readonly stats = { calls: 0, triangles: 0 };
 
   private readonly target: WebGLRenderTarget;
   private readonly mips: WebGLRenderTarget[] = [];
@@ -253,6 +255,8 @@ export class Post {
     this.resize();
     r.setRenderTarget(this.target);
     r.render(scene, camera);
+    this.stats.calls = r.info.render.calls;
+    this.stats.triangles = r.info.render.triangles;
 
     // Bloom: down the mip chain, then back up adding each level onto the next.
     let src: Texture = this.target.texture;
