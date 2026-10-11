@@ -273,7 +273,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     slices: tier === 'low' ? 4 : 9,
     height: 1.3,
     tint: new Color(0.04, 0.026, 0.038),
-    density: 0.11,
+    density: 0.075,
     glow: 0.9,
     wind: new Vector2(0.18, -0.12),
   });
@@ -303,20 +303,20 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     exposure: 0.95,
     bloom: 0.085,
     saturation: 1.18,
-    power: 1.1,
+    power: 1.18,
     tint: new Color(1.04, 0.98, 0.94),
-    lift: new Color(0.012, 0.008, 0.02),
+    lift: new Color(0.004, 0.003, 0.009),
   };
   const gradeDusk: Grade = {
     ...defaultGrade(),
     exposure: 1.25,
     bloom: 0.09,
     saturation: 1.15,
-    power: 1.12,
+    power: 1.16,
     tint: new Color(0.96, 0.97, 1.06),
-    lift: new Color(0.008, 0.008, 0.022),
+    lift: new Color(0.003, 0.004, 0.012),
   };
-  const fogSunset = new Color(0.2, 0.13, 0.13);
+  const fogSunset = new Color(0.13, 0.08, 0.07);
   const fogDusk = new Color(0.035, 0.035, 0.06);
 
   // The lights that follow you.
