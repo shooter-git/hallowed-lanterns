@@ -1,4 +1,530 @@
 {
   "$comment": "Every file you didn't make yourself: where it came from and its licence (CC0 or compatible). Publishing checks this.",
-  "assets": []
+  "assets": [
+    {
+      "path": "public/audio/ambience/arbor.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/ambience/deep.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/ambience/garden.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/ambience/grove.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/ambience/hollow.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/ambience/marigold.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/ambience/pasture.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/ambience/snow.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/arbor.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/deep.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/ember-born.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/finale.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/garden.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/grove.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/hollow.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/keeper-rises.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/marigold.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/pasture.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/music/snow.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/bubble-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/bubble-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/bubble-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/bubble-4.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/butterflies.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/candle-light.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/ember-chime-arbor.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/ember-chime-deep.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/ember-chime-garden.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/ember-chime-grove.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/ember-chime-hollow.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/ember-chime-marigold.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/ember-chime-pasture.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/ember-chime-snow.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/fog-swirl-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/fog-swirl-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/giant-low-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/giant-low-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/gummy-squeak-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/gummy-squeak-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/gummy-squeak-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/lantern-light.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/lantern-swing-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/lantern-swing-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/octopus-wave.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/puffer-puff.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/pumpkin-flare-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/pumpkin-flare-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/pumpkin-flare-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/snowflake-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/snowflake-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/snowflake-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/snowflake-4.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/snowflake-5.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/sprinkle-burst.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-grass-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-grass-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-grass-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-grass-4.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-gravel-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-gravel-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-gravel-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-gravel-4.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-sand-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-sand-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-sand-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-snow-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-snow-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-snow-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/step-snow-4.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/ui-tap.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/wish-hang.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/xylo-1.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/xylo-2.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/xylo-3.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/xylo-4.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/xylo-5.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/xylo-6.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/xylo-7.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/audio/sfx/xylo-8.mp3",
+      "license": "own",
+      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/arbor.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/arbor.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/barbed-wire.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/arbor.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/cake-pop.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/candy.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/candy-bucket.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/candy.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/candy-corn.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/candy.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/fence-post.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/arbor.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/gummy-bear.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/candy.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/hay-bale.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/lounge.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/lollipop.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/candy.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/longhorn-blower.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/longhorn.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/longhorn-grazing.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/longhorn.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/longhorn-lying.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/longhorn.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/longhorn-standing.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/longhorn.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/octopus.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/octopus.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/ofrenda.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/ofrenda.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/pallet-sofa.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/lounge.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/pallet.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/lounge.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/red-lantern.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/lounge.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/reed-fence.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/lounge.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/shepherd-hook.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/lounge.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/skewer.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/candy.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/snowman.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/snowman.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/tree-oak.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/tree-tall.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/tree-young.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/wishing-tree.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/wishing-tree.py (Hallowed Lanterns)"
+    }
+  ]
 }

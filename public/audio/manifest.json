@@ -1,0 +1,327 @@
+{
+  "motif": {
+    "key": "D major",
+    "notes": [
+      "D5",
+      "B5",
+      "A5",
+      "F#5",
+      "A5"
+    ],
+    "degrees": [
+      1,
+      6,
+      5,
+      3,
+      5
+    ],
+    "rhythm": "6/8: eighth pickup | quarter, eighth, eighth, quarter (held)",
+    "durationsEighths": [
+      1,
+      2,
+      1,
+      1,
+      2
+    ],
+    "intervalsSemitones": [
+      0,
+      9,
+      7,
+      4,
+      7
+    ],
+    "xyloNotes": [
+      "D5",
+      "E5",
+      "F#5",
+      "A5",
+      "B5",
+      "D6",
+      "E6",
+      "F#6"
+    ],
+    "xylo": [
+      0,
+      4,
+      3,
+      2,
+      3
+    ]
+  },
+  "music": {
+    "arbor": {
+      "file": "music/arbor.mp3",
+      "loopSeconds": 120.0,
+      "tailSeconds": 4,
+      "title": "Sundown",
+      "bpm": 50,
+      "meter": "6/8",
+      "beat": "dotted quarter",
+      "key": "D major",
+      "instrument": "music box"
+    },
+    "deep": {
+      "file": "music/deep.mp3",
+      "loopSeconds": 120.0,
+      "tailSeconds": 4,
+      "title": "Where the Lanterns Swim",
+      "bpm": 50,
+      "meter": "4/4",
+      "beat": "quarter",
+      "key": "F# minor / A major",
+      "instrument": "whale-song choir"
+    },
+    "ember-born": {
+      "file": "music/ember-born.mp3",
+      "oneShot": true,
+      "seconds": 7.0,
+      "title": "The Ember",
+      "key": "D major",
+      "stinger": true
+    },
+    "finale": {
+      "file": "music/finale.mp3",
+      "oneShot": true,
+      "seconds": 131.66,
+      "title": "Hallowed Lanterns",
+      "key": "D major -> E major",
+      "meter": "6/8",
+      "bpm": 48,
+      "beat": "dotted quarter"
+    },
+    "garden": {
+      "file": "music/garden.mp3",
+      "loopSeconds": 120.0,
+      "tailSeconds": 4,
+      "title": "Lantern Song",
+      "bpm": 64,
+      "meter": "4/4",
+      "beat": "quarter",
+      "key": "G major pentatonic",
+      "instrument": "zither"
+    },
+    "grove": {
+      "file": "music/grove.mp3",
+      "loopSeconds": 120.0,
+      "tailSeconds": 4,
+      "title": "Blue Hour",
+      "bpm": 72,
+      "meter": "4/4",
+      "beat": "quarter",
+      "key": "B minor",
+      "instrument": "celesta"
+    },
+    "hollow": {
+      "file": "music/hollow.mp3",
+      "loopSeconds": 120.0,
+      "tailSeconds": 4,
+      "title": "Sugar Rush",
+      "bpm": 112,
+      "meter": "4/4",
+      "beat": "quarter",
+      "key": "D major",
+      "instrument": "glockenspiel"
+    },
+    "keeper-rises": {
+      "file": "music/keeper-rises.mp3",
+      "oneShot": true,
+      "seconds": 15.93,
+      "title": "The Keeper Rises",
+      "key": "F# minor -> A major",
+      "stinger": true
+    },
+    "marigold": {
+      "file": "music/marigold.mp3",
+      "loopSeconds": 120.0,
+      "tailSeconds": 4,
+      "title": "Remember Me",
+      "bpm": 66,
+      "meter": "4/4",
+      "beat": "quarter",
+      "key": "G major",
+      "instrument": "nylon guitar"
+    },
+    "pasture": {
+      "file": "music/pasture.mp3",
+      "loopSeconds": 120.0,
+      "tailSeconds": 4,
+      "title": "Gentle Giants",
+      "bpm": 52,
+      "meter": "4/4",
+      "beat": "quarter",
+      "key": "D (open fifths)",
+      "instrument": "cello"
+    },
+    "snow": {
+      "file": "music/snow.mp3",
+      "loopSeconds": 120.0,
+      "tailSeconds": 4,
+      "title": "First Snow",
+      "bpm": 60,
+      "meter": "3/4",
+      "beat": "quarter",
+      "key": "A major",
+      "instrument": "celesta and sleigh bells"
+    }
+  },
+  "ambience": {
+    "arbor": {
+      "file": "ambience/arbor.mp3",
+      "loopSeconds": 60.0,
+      "tailSeconds": 3
+    },
+    "deep": {
+      "file": "ambience/deep.mp3",
+      "loopSeconds": 60.0,
+      "tailSeconds": 3
+    },
+    "garden": {
+      "file": "ambience/garden.mp3",
+      "loopSeconds": 60.0,
+      "tailSeconds": 3
+    },
+    "grove": {
+      "file": "ambience/grove.mp3",
+      "loopSeconds": 60.0,
+      "tailSeconds": 3
+    },
+    "hollow": {
+      "file": "ambience/hollow.mp3",
+      "loopSeconds": 60.0,
+      "tailSeconds": 3
+    },
+    "marigold": {
+      "file": "ambience/marigold.mp3",
+      "loopSeconds": 60.0,
+      "tailSeconds": 3
+    },
+    "pasture": {
+      "file": "ambience/pasture.mp3",
+      "loopSeconds": 60.0,
+      "tailSeconds": 3
+    },
+    "snow": {
+      "file": "ambience/snow.mp3",
+      "loopSeconds": 60.0,
+      "tailSeconds": 3
+    }
+  },
+  "sfx": {
+    "bubble": [
+      "sfx/bubble-1.mp3",
+      "sfx/bubble-2.mp3",
+      "sfx/bubble-3.mp3",
+      "sfx/bubble-4.mp3"
+    ],
+    "butterflies": [
+      "sfx/butterflies.mp3"
+    ],
+    "candle-light": [
+      "sfx/candle-light.mp3"
+    ],
+    "ember-chime-arbor": [
+      "sfx/ember-chime-arbor.mp3"
+    ],
+    "ember-chime-deep": [
+      "sfx/ember-chime-deep.mp3"
+    ],
+    "ember-chime-garden": [
+      "sfx/ember-chime-garden.mp3"
+    ],
+    "ember-chime-grove": [
+      "sfx/ember-chime-grove.mp3"
+    ],
+    "ember-chime-hollow": [
+      "sfx/ember-chime-hollow.mp3"
+    ],
+    "ember-chime-marigold": [
+      "sfx/ember-chime-marigold.mp3"
+    ],
+    "ember-chime-pasture": [
+      "sfx/ember-chime-pasture.mp3"
+    ],
+    "ember-chime-snow": [
+      "sfx/ember-chime-snow.mp3"
+    ],
+    "fog-swirl": [
+      "sfx/fog-swirl-1.mp3",
+      "sfx/fog-swirl-2.mp3"
+    ],
+    "giant-low": [
+      "sfx/giant-low-1.mp3",
+      "sfx/giant-low-2.mp3"
+    ],
+    "gummy-squeak": [
+      "sfx/gummy-squeak-1.mp3",
+      "sfx/gummy-squeak-2.mp3",
+      "sfx/gummy-squeak-3.mp3"
+    ],
+    "lantern-light": [
+      "sfx/lantern-light.mp3"
+    ],
+    "lantern-swing": [
+      "sfx/lantern-swing-1.mp3",
+      "sfx/lantern-swing-2.mp3"
+    ],
+    "octopus-wave": [
+      "sfx/octopus-wave.mp3"
+    ],
+    "puffer-puff": [
+      "sfx/puffer-puff.mp3"
+    ],
+    "pumpkin-flare": [
+      "sfx/pumpkin-flare-1.mp3",
+      "sfx/pumpkin-flare-2.mp3",
+      "sfx/pumpkin-flare-3.mp3"
+    ],
+    "snowflake": [
+      "sfx/snowflake-1.mp3",
+      "sfx/snowflake-2.mp3",
+      "sfx/snowflake-3.mp3",
+      "sfx/snowflake-4.mp3",
+      "sfx/snowflake-5.mp3"
+    ],
+    "sprinkle-burst": [
+      "sfx/sprinkle-burst.mp3"
+    ],
+    "step-grass": [
+      "sfx/step-grass-1.mp3",
+      "sfx/step-grass-2.mp3",
+      "sfx/step-grass-3.mp3",
+      "sfx/step-grass-4.mp3"
+    ],
+    "step-gravel": [
+      "sfx/step-gravel-1.mp3",
+      "sfx/step-gravel-2.mp3",
+      "sfx/step-gravel-3.mp3",
+      "sfx/step-gravel-4.mp3"
+    ],
+    "step-sand": [
+      "sfx/step-sand-1.mp3",
+      "sfx/step-sand-2.mp3",
+      "sfx/step-sand-3.mp3"
+    ],
+    "step-snow": [
+      "sfx/step-snow-1.mp3",
+      "sfx/step-snow-2.mp3",
+      "sfx/step-snow-3.mp3",
+      "sfx/step-snow-4.mp3"
+    ],
+    "ui-tap": [
+      "sfx/ui-tap.mp3"
+    ],
+    "wish-hang": [
+      "sfx/wish-hang.mp3"
+    ],
+    "xylo": [
+      "sfx/xylo-1.mp3",
+      "sfx/xylo-2.mp3",
+      "sfx/xylo-3.mp3",
+      "sfx/xylo-4.mp3",
+      "sfx/xylo-5.mp3",
+      "sfx/xylo-6.mp3",
+      "sfx/xylo-7.mp3",
+      "sfx/xylo-8.mp3"
+    ]
+  }
+}

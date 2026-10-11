@@ -7,6 +7,7 @@ import {
   Matrix4,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  Quaternion,
   type Ray,
   Scene,
   SphereGeometry,
@@ -20,6 +21,7 @@ import { type Bounds, ground, GroundMask } from '../engine/ground.ts';
 import type { LightSource } from '../engine/lights.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
+import { instanceModel, loadModel, modelSize } from '../engine/models.ts';
 import { Path } from '../engine/rig.ts';
 import { aroundPath, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
@@ -119,9 +121,19 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       }
     }
   }
-  for (const mesh of [posts, beams, cross]) {
-    mesh.computeBoundingSphere();
-    scene.add(mesh);
+  // The real pergola (Blender: weathered posts, braces, beams and wires) where we have it.
+  const bayModel = await loadModel('arbor', { glowReceive: 1 });
+  if (bayModel) {
+    const size = modelSize(bayModel);
+    const scale = new Vector3((HALF * 2 + 0.2) / size.x, 3.55 / size.y, BAY / size.z);
+    const at: Matrix4[] = [];
+    for (let i = 0; i < bays; i++) at.push(new Matrix4().compose(new Vector3(0, 0, LANE_START - (i + 0.5) * BAY), new Quaternion(), scale));
+    scene.add(instanceModel(bayModel, at));
+  } else {
+    for (const mesh of [posts, beams, cross]) {
+      mesh.computeBoundingSphere();
+      scene.add(mesh);
+    }
   }
 
   // --- Fence posts and barbed wire out in the field on the right. ---

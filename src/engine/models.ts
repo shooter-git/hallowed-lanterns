@@ -1,5 +1,5 @@
 import { gltfLoader } from '@allthespaces/portal/three';
-import { type Group, type Material, type Mesh, MeshStandardMaterial, type Object3D } from 'three';
+import { Box3, type Group, InstancedMesh, type Material, Matrix4, type Mesh, MeshStandardMaterial, type Object3D, Vector3 } from 'three';
 import { hallow } from './shared.ts';
 
 const base = new URL('./models/', document.baseURI);
@@ -56,4 +56,33 @@ export async function loadModel(name: string, options: { glowReceive?: number } 
     mesh.material = Array.isArray(mesh.material) ? mesh.material.map(swap) : swap(mesh.material);
   });
   return { root, glows, node: (n) => root.getObjectByName(n) };
+}
+
+/**
+ * Repeats a model at many places for a few draw calls: one instanced mesh per part of the model.
+ * `placements` are world matrices for the model's root.
+ */
+export function instanceModel(model: LoadedModel, placements: Matrix4[]): Group {
+  const out = model.root.clone(false) as Group;
+  out.clear();
+  out.position.set(0, 0, 0);
+  out.rotation.set(0, 0, 0);
+  out.scale.set(1, 1, 1);
+  model.root.updateMatrixWorld(true);
+  const rootInverse = model.root.matrixWorld.clone().invert();
+  model.root.traverse((o) => {
+    const mesh = o as Mesh;
+    if (!mesh.isMesh || !mesh.visible) return;
+    const local = rootInverse.clone().multiply(mesh.matrixWorld);
+    const inst = new InstancedMesh(mesh.geometry, mesh.material, placements.length);
+    placements.forEach((p, i) => inst.setMatrixAt(i, p.clone().multiply(local)));
+    inst.computeBoundingSphere();
+    out.add(inst);
+  });
+  return out;
+}
+
+/** The model's size (m) as loaded. */
+export function modelSize(model: LoadedModel): Vector3 {
+  return new Box3().setFromObject(model.root).getSize(new Vector3());
 }
