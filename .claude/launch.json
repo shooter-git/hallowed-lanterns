@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["vite", "--port", "5199", "--strictPort", "--host", "127.0.0.1"],
       "port": 5199
+    },
+    {
+      "name": "hallowed-lanterns-network",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5200", "--strictPort", "--host", "0.0.0.0"],
+      "port": 5200
     }
   ]
 }
