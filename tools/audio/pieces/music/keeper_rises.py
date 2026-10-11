@@ -13,10 +13,10 @@ from hlaudio.arrange import legato
 from hlaudio import mallets as ML, bowed as BW, voice as VO, wind as WI, perc as PC, effects as FX
 from hlaudio.piece import Mix, finish_oneshot
 
-CH = [(0.0, 4.5, (42, 49, 54, 57, 61)),      # F#m (add9 later)
-      (4.5, 2.6, (38, 50, 54, 57, 62)),      # D
-      (7.1, 2.3, (40, 52, 56, 59, 64)),      # E
-      (9.4, 5.6, (33, 45, 52, 57, 61, 64))]  # A
+CH = [(0.0, 3.3, (42, 49, 54, 57, 61)),      # F#m
+      (3.3, 2.3, (38, 50, 54, 57, 62)),      # D
+      (5.6, 2.2, (40, 52, 56, 59, 64)),      # E
+      (7.8, 6.2, (33, 45, 52, 57, 61, 64))]  # A
 
 
 def render():
@@ -43,7 +43,7 @@ def render():
                  gain=0.45, seed=40 + i)
         VO.choir(ch, [n for n in notes if n.p >= 55], "alto", singers=8, vowel=("u", "a"), morph=0.2 + 0.2 * i,
                  gain=0.45, seed=50 + i)
-    sop = motif(9.0, "A4", 0.42, vel=0.8)
+    sop = motif(7.4, "A4", 0.42, vel=0.8)
     for k, n in enumerate(sop):
         n.d = (sop[k + 1].t - n.t + 0.05) if k + 1 < len(sop) else 3.6
     VO.choir(ch, sop, "soprano", singers=10, vowel=("o", "a"), morph=0.7, gain=0.6, seed=60,
@@ -56,11 +56,11 @@ def render():
 
     gl = mix.track()
     # light rising through the water: a glass line gliding up two octaves
-    VO.glass_pad(gl, legato([N(1.0 + i * 1.1, 1.2, float(p), 0.45) for i, p in enumerate([54, 61, 66, 69, 73, 78, 81])],
+    VO.glass_pad(gl, legato([N(0.8 + i * 0.9, 1.0, float(p), 0.45) for i, p in enumerate([54, 61, 66, 69, 73, 78, 81])],
                             0.3), gain=0.35, seed=80, glide=0.7, attack=1.0, release=3.0)
-    for i, t in enumerate([0.3, 2.3, 4.3, 6.0, 7.4]):
+    for i, t in enumerate([0.3, 1.9, 3.4, 4.8, 6.0]):
         gl.add(t, PC.heartbeat(46.0, 0.3 + 0.12 * i, seed=i), gain=0.5)
-    ML.render(gl, [N(11.6 + 0.08 * k, 3.0, float(p), 0.45) for k, p in enumerate([81, 85, 88, 93])], ML.celesta,
+    ML.render(gl, [N(9.6 + 0.08 * k, 3.0, float(p), 0.45) for k, p in enumerate([81, 85, 88, 93])], ML.celesta,
               gain=0.35, pan_by_pitch=0.4, center_pitch=86)
     mix.add(gl, 1.0, {"underwater": 0.5, "shimmer:cathedral": 0.2}, name="glass+drum")
 
@@ -70,7 +70,7 @@ def render():
     out = out[:, : ns(16.0)]
     k = ns(3.0)
     out[:, -k:] *= np.cos(np.linspace(0, np.pi / 2, k)) ** 2
-    return finish_oneshot("music", "keeper-rises", out, -16.0, 128,
+    return finish_oneshot("music", "keeper-rises", out, -16.0, 128, max_s=14.0, end_fade=3.0,
                           meta={"title": "The Keeper Rises", "key": "F# minor -> A major", "stinger": True})
 
 

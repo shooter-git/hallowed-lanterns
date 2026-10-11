@@ -52,7 +52,7 @@ def render():
     out = out[:, : ns(7.5)]
     k = ns(2.5)
     out[:, -k:] *= np.cos(np.linspace(0, np.pi / 2, k)) ** 2
-    return finish_oneshot("music", "ember-born", out, -16.0, 128,
+    return finish_oneshot("music", "ember-born", out, -16.0, 128, max_s=6.5, end_fade=2.0,
                           meta={"title": "The Ember", "key": "D major", "stinger": True})
 
 

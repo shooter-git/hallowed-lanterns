@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: MIT
 """Paints the snowman's textures (used by snowman.py).
 
-gourd   2048 x 1024, u = around (rib grooves at u = k / ribs), v = bottom -> top.
+gourd   painted at 2048 x 1024, stored at 1024 x 512, u = around (rib grooves at u = k / ribs), v = bottom -> top.
         Carnival squash: creamy white with dark green stripes down the grooves (ragged,
         widest at the waist), thinner broken stripes on some lobes, green flecks, foam pits.
-props   2048 x 1024 atlas (regions in the params): bark, mossy bark, pallet wood, corn-cob
+props   painted at 2048 x 1024, stored at 1024 x 512: an atlas (regions in the params): bark, mossy bark, pallet wood, corn-cob
         kernels, carrot, hat felt, coal.
 Both with tangent-space normal maps (half resolution).
 """
@@ -57,7 +57,7 @@ def gourd():
     # foam pits: tiny dark pores
     pores = np.clip((T.fbm((H, W), (400, 1600), 1, seed=13) - 0.72) * 6, 0, 1)
     col = col * (1 - 0.35 * pores[..., None])
-    T.save(col, sp["out"]["gourd"], quality=90)
+    T.save(col, sp["out"]["gourd"], quality=90, scale=0.5)
     # height: pores dent in, paint slightly raised, gentle lumps
     hgt = (-0.8 * pores + 0.25 * m + 0.6 * (T.fbm((H, W), (30, 120), 3, seed=14) - 0.5))
     hs = hgt[::2, ::2]
@@ -144,8 +144,8 @@ def props():
     n = T.fbm((h, w), (10, 10), 4, seed=61)
     col[sl] = T.mix(T.hexrgb("#101012"), T.hexrgb("#2c2b2e"), n)
     hgt[sl] = n
-    T.save(col, sp["out"]["props"], quality=90)
-    T.save(T.normal_from_height(hgt[::2, ::2], strength=3.0, wrap=False), sp["out"]["props_n"], quality=92)
+    T.save(col, sp["out"]["props"], quality=90, scale=0.5)
+    T.save(T.normal_from_height(hgt[::2, ::2], strength=3.0, wrap=False), sp["out"]["props_n"], quality=92, scale=0.5)
 
 
 gourd()

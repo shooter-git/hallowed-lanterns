@@ -243,3 +243,51 @@ def render(track: Track, notes, fn, gain=1.0, pan=0.0, pan_spread=0.0, pan_by_pi
         pn = float(np.clip(pn, -1, 1))
         track.add(nt.t, x, gain=gain * nt.x.get("gain", 1.0), pan=pn)
     return track
+
+
+def piano(p, v=0.6, dur=0.5, seed=0, detune=3.5, strings=2, bright=1.0, damp_t60=0.14):
+    """Upright piano note: stiff-string partials (inharmonic), a hammer spectrum
+    that brightens with velocity, a strike-position comb, two-stage decay
+    (prompt sound + aftersound), slightly out-of-tune unisons (old upright),
+    a felt thump, and dampers at note-off."""
+    f0 = float(hz(p))
+    r = rng("piano", round(p * 4), seed)
+    rk = rng("piano-key", round(p * 4))       # per-key constants (tuning of the unisons)
+    B = 0.00025 * (f0 / 261.6) ** 0.8 + 0.00004
+    K = int(max(3, min(36, 6500.0 / f0)))
+    k = np.arange(1, K + 1, dtype=float)
+    fk = k * f0 * np.sqrt(1 + B * k * k)
+    keep = fk < 7500
+    k, fk = k[keep], fk[keep]
+    kc = (2.5 + 9.0 * v ** 1.3) * bright * (440.0 / max(f0, 110.0)) ** 0.25
+    amp = (1.0 / k ** 0.8) * np.exp(-(k - 1) / kc) * (0.25 + np.abs(np.sin(np.pi * k / 7.3)))
+    amp[fk > 4500] *= np.cos(np.clip((fk[fk > 4500] - 4500) / 3000, 0, 1) * np.pi / 2) ** 2
+    T = float(np.clip(7.0 * (261.6 / f0) ** 0.75, 0.7, 14.0))
+    t60 = T / (1 + 0.00035 * fk + 0.03 * (k - 1))
+    hold = max(dur, 0.05)
+    length = min(hold + damp_t60 * 1.6 + 0.05, float(np.max(t60)) * 1.1 + 0.05)
+    if p >= 89:  # no dampers in the top octaves
+        length = min(float(np.max(t60)) * 1.1, 6.0)
+    n = ns(length)
+    t = tvec(n)
+    env_d = np.ones(n)
+    if p < 89:
+        kd = ns(hold)
+        if kd < n:
+            env_d[kd:] = np.exp(-6.9 * (t[kd:] - t[kd]) / damp_t60)
+    out = np.zeros(n)
+    dets = rk.uniform(-detune, detune, strings)
+    dets -= dets.mean()
+    for s in range(strings):
+        ratio = 2 ** (dets[s] / 1200)
+        for kk in range(len(k)):
+            tau1 = t60[kk] / 6.9 * 0.18
+            tau2 = t60[kk] / 6.9
+            e = 0.55 * np.exp(-t / tau1) + 0.45 * np.exp(-t / tau2)
+            out += amp[kk] * e * np.sin(2 * np.pi * fk[kk] * ratio * t + r.uniform(0, 0.3))
+    out /= strings
+    out *= env_d * (1 - np.exp(-t / 0.0007))
+    thump = filt(r.standard_normal(min(n, ns(0.03))) * np.exp(-tvec(min(n, ns(0.03))) / 0.006),
+                 chain(("lp", 900, 0.7), ("hp", 60, 0.7)))
+    out[: thump.size] += thump * 0.12 * v
+    return out * (0.2 + 0.8 * v ** 1.2)

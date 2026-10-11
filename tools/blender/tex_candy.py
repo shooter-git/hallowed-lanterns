@@ -4,8 +4,8 @@
 Every texture keeps its right-most 32 px column for the shared bits: the top half is the white
 plastic of sticks and poles, the bottom half the green of pumpkin stems.
 
-bucket    2048 x 1024: rows 0-767 the outside (u around, rim at the top), painted orange with
-          the jack-o'-lantern face; rows 768-1023 the inside (darker, scuffed).
+bucket    painted at 2048 x 1024, stored at 1024 x 512: the top 3/4 the outside (u around, rim at the top), painted orange with
+          the jack-o'-lantern face; the bottom 1/4 the inside (darker, scuffed).
 handle    256 x 64: the glowing tube wound round the handle.
 corn      512 x 1024: candy-corn board (u across, v up).
 gummy     512 x 512: neutral grey gummy skin with painted highlights (tinted by the material's
@@ -88,7 +88,7 @@ def bucket():
     u2, v2 = grid(W, H - Ho)
     n = T.fbm((H - Ho, W), (6, 40), 4, seed=5)
     img[Ho:] = T.mix(T.hexrgb("#6a2a0e"), T.hexrgb("#b04a18"), n)
-    T.save(misc_column(img), sp["out"]["bucket"], quality=90)
+    T.save(misc_column(img), sp["out"]["bucket"], quality=90, scale=0.5)
     # glowing handle tube: white with soft rainbow tints along its length
     hu, hv = grid(256, 64)
     hue = np.stack([0.5 + 0.5 * np.cos(2 * np.pi * (hu * 3 + k / 3)) for k in range(3)], -1)

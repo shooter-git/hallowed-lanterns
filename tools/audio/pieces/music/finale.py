@@ -187,7 +187,7 @@ def render():
     n = out.shape[1]
     k = int(5.0 * 44100)
     out[:, n - k:] *= np.cos(np.linspace(0, np.pi / 2, k)) ** 2
-    return finish_oneshot("music", "finale", out, -16.0, 128,
+    return finish_oneshot("music", "finale", out, -16.0, 128, max_s=120.6, end_fade=4.5,
                           meta={"title": TITLE, "key": "D major -> E major", "meter": "6/8", "bpm": 48,
                                 "beat": "dotted quarter"})
 

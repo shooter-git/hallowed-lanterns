@@ -10,8 +10,8 @@ coal eyes, smile and buttons, gnarled branch arms and clumps of snow, on a snowy
 
 Nodes: `body` (root) with children `arm_L` and `arm_R` (pivots at the shoulders) and `mug`
 (child of `arm_R`, pivot at the mug's centre). L/R are as seen from the front, as in the photo:
-`arm_R` is on +X and holds the corn-cob mug; rotate it about its local Y axis (glTF Z... see
-README) to raise the mug in a toast.
+`arm_R` is on +X and holds the corn-cob mug; rotate it about the glTF +Z axis (toward the viewer; see
+README.md) to raise the mug in a toast.
 Materials: `gourd`, `snowman_props` (atlas: bark, pallet wood, corn, carrot, felt, coal), `snow`.
 """
 
@@ -45,6 +45,8 @@ def region_uv(name, swap=False):
     def m(u, v):
         if swap:
             u, v = v, u
+        u = 0.03 + 0.94 * min(max(u, 0.0), 1.0)   # stay clear of the neighbouring swatches (mip bleed)
+        v = 0.03 + 0.94 * min(max(v, 0.0), 1.0)
         return ((x + u * w) / AW, 1.0 - (y + (1.0 - v) * h) / AH)
     return m
 

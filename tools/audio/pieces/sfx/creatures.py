@@ -138,11 +138,11 @@ def butterflies():
 
 def render():
     for i in range(2):
-        finish_sfx("giant-low", f"giant-low-{i + 1}", giant_low(i), -3.0, max_s=2.7)
+        finish_sfx("giant-low", f"giant-low-{i + 1}", giant_low(i), -3.0, max_s=2.5)
     for i in range(3):
         finish_sfx("gummy-squeak", f"gummy-squeak-{i + 1}", gummy_squeak(i), -5.0)
     finish_sfx("puffer-puff", "puffer-puff", puffer_puff(), -4.0, max_s=1.1)
-    finish_sfx("octopus-wave", "octopus-wave", octopus_wave(), -3.0, max_s=2.2)
+    finish_sfx("octopus-wave", "octopus-wave", octopus_wave(), -3.0, max_s=2.0)
     finish_sfx("butterflies", "butterflies", butterflies(), -5.0, stereo=True, max_s=1.7)
 
 

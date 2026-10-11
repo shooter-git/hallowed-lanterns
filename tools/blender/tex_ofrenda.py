@@ -6,7 +6,7 @@ crest   2048 x 1024: the cut-out crest art, drawn in crest metres (x right, z up
         greener on the left and bluer on the right as under the LED wash in the photo).
 papel   1024 x 1024: three papel-picado flags (black paper, lace cut-outs, a monarch with
         coloured tissue wings) and a cell of four monarch butterflies. RGBA (alpha = paper).
-paint   2048 x 2048 atlas of everything opaque (regions in the params).
+paint   painted at 2048 x 1024, stored at 1024 x 512: an atlas of everything opaque (regions in the params).
 lights  512 x 512 emissive atlas: little glowing pumpkins, vase glow, bottle glass.
 flame   32 x 128 flame gradient (v up).
 """
@@ -357,7 +357,7 @@ def paint():
     c = T.mix(c, dk, T.smoothstep(1.0, 0.6, nose))
     c = np.where(gaps[..., None], dk, c)
     col[sl] = c
-    T.save(col, sp["out"]["paint"], quality=90)
+    T.save(col, sp["out"]["paint"], quality=90, scale=0.5)
 
 
 def lights():

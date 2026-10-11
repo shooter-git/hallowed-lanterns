@@ -507,24 +507,29 @@
       "source": "Modelled procedurally with tools/blender/snowman.py (Hallowed Lanterns)"
     },
     {
-      "path": "public/models/tree-oak.glb",
-      "license": "own",
-      "source": "Modelled procedurally with tools/blender (Hallowed Lanterns)"
-    },
-    {
-      "path": "public/models/tree-tall.glb",
-      "license": "own",
-      "source": "Modelled procedurally with tools/blender (Hallowed Lanterns)"
-    },
-    {
-      "path": "public/models/tree-young.glb",
-      "license": "own",
-      "source": "Modelled procedurally with tools/blender (Hallowed Lanterns)"
-    },
-    {
       "path": "public/models/wishing-tree.glb",
       "license": "own",
       "source": "Modelled procedurally with tools/blender/wishing-tree.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/pufferfish.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/pufferfish.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/coral-1.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/coral.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/coral-2.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/coral.py (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/models/coral-3.glb",
+      "license": "own",
+      "source": "Modelled procedurally with tools/blender/coral.py (Hallowed Lanterns)"
     }
   ]
 }

@@ -26,7 +26,7 @@ import bmesh  # noqa: E402
 import bpy  # noqa: E402
 import lib  # noqa: E402
 from lib import MB  # noqa: E402
-from mathutils import Matrix, Vector, geometry  # noqa: E402
+from mathutils import Matrix, Vector  # noqa: E402
 from mathutils import noise as mnoise  # noqa: E402
 
 THICK = 0.04
@@ -34,45 +34,9 @@ HEDGE = dict(x=6.0, y0=0.32, depth=0.6, h=2.6)
 
 
 def build_board(data, mat):
-    mb = MB()
     x0, x1, z0, z1 = data["box"]
-
-    def uv(x, z):
-        return ((x - x0) / (x1 - x0), (z - z0) / (z1 - z0))
-    loops = [l for l in data["loops"]]
-    vecs = [[Vector((p[0], p[1], 0.0)) for p in l["pts"]] for l in loops]
-    tris = geometry.tessellate_polygon(vecs)
-    flat = [p for l in loops for p in l["pts"]]
-    yf, yb = -THICK / 2, THICK / 2
-    front = [mb.v((x, yf, z)) for x, z in flat]
-    back = [mb.v((x, yb, z)) for x, z in flat]
-    for a, b, c in tris:
-        pa, pb, pc = flat[a], flat[b], flat[c]
-        cross = (pb[0] - pa[0]) * (pc[1] - pa[1]) - (pb[1] - pa[1]) * (pc[0] - pa[0])
-        if cross < 0:   # make (a, b, c) counter-clockwise in (x, z): its normal then faces -Y
-            b, c = c, b
-            pb, pc = pc, pb
-        mb.f((front[a], front[b], front[c]), [uv(*pa), uv(*pb), uv(*pc)], None, mat)
-        mb.f((back[a], back[c], back[b]), [uv(*pa), uv(*pc), uv(*pb)], None, mat)
-    # the edge of the board, wound outward
-    k = 0
-    for l in loops:
-        pts = l["pts"]
-        n = len(pts)
-        area = sum(pts[i][0] * pts[(i + 1) % n][1] - pts[(i + 1) % n][0] * pts[i][1] for i in range(n))
-        ccw = area > 0
-        # for a CCW outer loop the solid is on the left of travel; an edge quad (f_i, b_i, b_j, f_j)
-        # then faces outward. Holes are wound the other way round the solid.
-        outward_left = ccw != l["hole"]
-        for i in range(n):
-            j = (i + 1) % n
-            fi, fj, bi, bj = front[k + i], front[k + j], back[k + i], back[k + j]
-            q = (fi, bi, bj, fj) if outward_left else (fi, fj, bj, bi)
-            u = [uv(*pts[i]), uv(*pts[i]), uv(*pts[j]), uv(*pts[j])] if outward_left else \
-                [uv(*pts[i]), uv(*pts[j]), uv(*pts[j]), uv(*pts[i])]
-            mb.f(q, u, None, mat)
-        k += n
-    return mb
+    return lib.extrude_loops(MB(), data["loops"], THICK,
+                             lambda x, z: ((x - x0) / (x1 - x0), (z - z0) / (z1 - z0)), mat=mat)
 
 
 def build_hedge(hedge_mat, pom_mat):

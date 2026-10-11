@@ -30,7 +30,7 @@ import { loadModel } from '../engine/models.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
-import { aroundPath, onGround, Terrain } from '../engine/terrain.ts';
+import { aroundPath, onGround, pointOnGround, Terrain } from '../engine/terrain.ts';
 import { hallow, SHADER_PARS, shared, VERTEX_TERRAIN } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import { woodland } from '../engine/canopy.ts';
@@ -331,6 +331,23 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       hang: 2,
     });
   }
+  // Modelled pufferfish replace the painted-pumpkin stand-ins when we have them.
+  const pufferModel = await loadModel('pufferfish', { glowReceive: 0.6 });
+  const pufferObjects: Object3D[] = [];
+  if (pufferModel) {
+    for (const i of puffers) {
+      const s = specs[i] as PumpkinSpec;
+      const o = pufferModel.root.clone(true);
+      o.position.copy(s.position);
+      o.rotation.y = s.yaw;
+      o.scale.setScalar(0.9 + Math.random() * 0.5);
+      o.userData.base = o.scale.x;
+      scene.add(o);
+      pufferObjects.push(o);
+      s.size.set(0.001, 0.001, 0.001);
+    }
+    for (const m of pufferModel.glows.values()) m.emissiveIntensity = 1.6;
+  }
   const pumpkins = new PumpkinField(specs, ctx.atlas, { detail: [28, 12], simple: [14, 7] });
   scene.add(pumpkins.group);
   const ribbonMesh = streamers(ribbons);
@@ -339,10 +356,20 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   // Coral boards along the beds.
   const coralColors = [new Color(1, 0.45, 0.1), new Color(1, 0.25, 0.55), new Color(0.75, 1, 0.2), new Color(1, 0.8, 0.2)];
   const corals: Mesh[] = [];
+  const coralModels = (await Promise.all(['coral-1', 'coral-2', 'coral-3'].map((n) => loadModel(n, { glowReceive: 0.5 })))).filter(Boolean);
   for (let i = 0; i < (tier === 'low' ? 34 : 80); i++) {
     const s = rnd() * path.length;
     path.at(s, tmp, tan);
     const off = (rnd() < 0.5 ? -1 : 1) * (2.2 + rnd() * 1.6);
+    const cm = coralModels[i % Math.max(1, coralModels.length)];
+    if (cm && rnd() < 0.6) {
+      const o = cm.root.clone(true);
+      o.position.set(tmp.x - tan.y * off, 0, tmp.y + tan.x * off);
+      o.rotation.y = Math.atan2(-tan.y * -off, tan.x * -off) + (rnd() - 0.5) * 0.8;
+      o.scale.setScalar(1.0 + rnd() * 1.2);
+      scene.add(o);
+      continue;
+    }
     const c = coral(1.0 + rnd() * 1.1, (coralColors[i % coralColors.length] as Color).clone().multiplyScalar(1.6), i + 3);
     c.position.set(tmp.x - tan.y * off, 0, tmp.y + tan.x * off);
     c.rotation.y = Math.atan2(-tan.y * -off, tan.x * -off) + (rnd() - 0.5) * 0.8;
@@ -551,10 +578,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       for (const [i, t] of puffed) {
         const k = t + dt;
         const big = k < 0.25 ? k / 0.25 : Math.max(0, 1 - (k - 1.5) / 0.6);
-        pumpkins.pose(i, 1 + big * 0.45);
+        const fish = pufferObjects[puffers.indexOf(i)];
+        if (fish) fish.scale.setScalar((fish.userData.base as number) * (1 + big * 0.55));
+        else pumpkins.pose(i, 1 + big * 0.45);
         if (k > 2.2) {
           puffed.delete(i);
-          pumpkins.pose(i, 1);
+          if (!fish) pumpkins.pose(i, 1);
         } else puffed.set(i, k);
       }
       // The Keeper rises as you come near.
@@ -598,6 +627,16 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     pick(ray: Ray): TapAction | null {
       if (keeperRoot && risen > 0.5 && ray.intersectsBox(onGround(keeperBox.clone().translate(new Vector3(0, keeperRoot.position.y, 0)))))
         return () => wave('It waves back.');
+      for (let k = 0; k < pufferObjects.length; k++) {
+        const fish = pufferObjects[k] as Object3D;
+        if (ray.distanceSqToPoint(pointOnGround(fish.position)) < 0.18) {
+          const i = puffers[k] as number;
+          return () => {
+            puffed.set(i, 0);
+            void ctx.audio.sfx('puffer-puff', { at: pointOnGround(fish.position), volume: 0.8 });
+          };
+        }
+      }
       const i = pumpkins.pick(ray, 18);
       if (i >= 0 && puffers.includes(i))
         return () => {

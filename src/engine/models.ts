@@ -62,7 +62,7 @@ export async function loadModel(name: string, options: { glowReceive?: number } 
  * Repeats a model at many places for a few draw calls: one instanced mesh per part of the model.
  * `placements` are world matrices for the model's root.
  */
-export function instanceModel(model: LoadedModel, placements: Matrix4[]): Group {
+export function instanceModel(model: LoadedModel, placements: Matrix4[], options: { skip?: string; only?: string } = {}): Group {
   const out = model.root.clone(false) as Group;
   out.clear();
   out.position.set(0, 0, 0);
@@ -70,9 +70,15 @@ export function instanceModel(model: LoadedModel, placements: Matrix4[]): Group 
   out.scale.set(1, 1, 1);
   model.root.updateMatrixWorld(true);
   const rootInverse = model.root.matrixWorld.clone().invert();
+  const under = (o: Object3D, name: string) => {
+    for (let p: Object3D | null = o; p; p = p.parent) if (p.name === name) return true;
+    return false;
+  };
   model.root.traverse((o) => {
     const mesh = o as Mesh;
     if (!mesh.isMesh || !mesh.visible) return;
+    if (options.skip && under(o, options.skip)) return;
+    if (options.only && !under(o, options.only)) return;
     const local = rootInverse.clone().multiply(mesh.matrixWorld);
     const inst = new InstancedMesh(mesh.geometry, mesh.material, placements.length);
     placements.forEach((p, i) => inst.setMatrixAt(i, p.clone().multiply(local)));

@@ -159,10 +159,15 @@ def trim_silence(y, floor_db=-66.0, fade=0.08, keep_tail=0.05):
     return y
 
 
-def finish_oneshot(kind, name, x, target_lufs, kbps, meta=None, ceiling=-2.2, glue=True, tilt_hs_db=-1.0):
+def finish_oneshot(kind, name, x, target_lufs, kbps, meta=None, ceiling=-2.2, glue=True, tilt_hs_db=-1.0,
+                   max_s=None, end_fade=4.0):
     t0 = time.time()
     y = M.master(x, target_lufs, ceiling, circular=False, glue=glue, tilt_hs_db=tilt_hs_db)
     y = trim_silence(y, -60.0, fade=0.5)
+    if max_s is not None and y.shape[1] > ns(max_s):
+        y = y[:, : ns(max_s)].copy()
+        k = ns(min(end_fade, max_s / 3))
+        y[:, -k:] *= np.cos(np.linspace(0, np.pi / 2, k)) ** 2
     st = qa.stats(y)
     path = OUT / kind / f"{name}.mp3"
     y, I, TP = _encode_verified(y, path, kbps, target_lufs)

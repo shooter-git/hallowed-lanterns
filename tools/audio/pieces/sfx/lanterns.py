@@ -105,7 +105,7 @@ def render():
         finish_sfx("pumpkin-flare", f"pumpkin-flare-{i + 1}", pumpkin_flare(i), -3.0)
     for i in range(2):
         finish_sfx("lantern-swing", f"lantern-swing-{i + 1}", lantern_swing(i), -5.0, max_s=1.2)
-    finish_sfx("lantern-light", "lantern-light", lantern_light(), -4.0, max_s=1.5)
+    finish_sfx("lantern-light", "lantern-light", lantern_light(), -4.0, max_s=1.4)
     finish_sfx("candle-light", "candle-light", candle_light(), -3.0, max_s=1.8)
 
 

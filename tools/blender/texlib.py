@@ -20,8 +20,13 @@ def spec():
         return json.load(f)
 
 
-def save(arr, path, quality=90):
+def save(arr, path, quality=90, scale=1.0):
     a = np.clip(arr, 0, 1)
+    if scale != 1.0:   # paint big, store smaller (UVs are normalised, so the mapping is unchanged)
+        h, w = a.shape[:2]
+        im = Image.fromarray((a * 255 + 0.5).astype(np.uint8).squeeze())
+        im = im.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
+        a = np.asarray(im, dtype=float) / 255
     if a.ndim == 2:
         a = a[..., None]
     a = (a * 255 + 0.5).astype(np.uint8)

@@ -1120,3 +1120,44 @@ def lump(mb, center, radius, scale=(1, 1, 1), seed=0, rough=0.25, nu=10, nv=6, M
             else:
                 mb.f((rows[j][i], rows[j][i2], rows[j + 1][i2], rows[j + 1][i]),
                      [uvmap(u0, v0), uvmap(u1, v0), uvmap(u1, v1), uvmap(u0, v1)], None, mat)
+
+
+def extrude_loops(mb, loops, thickness, uv_face, uv_edge=None, mat=0, edge_mat=None):
+    """A flat board cut along outline loops in the x-z plane, `thickness` deep along y (centred).
+
+    loops: [{"pts": [[x, z], ...], "hole": bool}, ...] (as traced by OpenCV). uv_face(x, z) gives
+    the front and back faces' UVs (the back mirrors nothing: it reads the same art), uv_edge(x, z)
+    the edge band's (default: the same as the faces)."""
+    from mathutils import geometry
+    uv_edge = uv_edge or uv_face
+    edge_mat = mat if edge_mat is None else edge_mat
+    vecs = [[Vector((p[0], p[1], 0.0)) for p in l["pts"]] for l in loops]
+    tris = geometry.tessellate_polygon(vecs)
+    flat = [p for l in loops for p in l["pts"]]
+    yf, yb = -thickness / 2, thickness / 2
+    front = [mb.v((x, yf, z)) for x, z in flat]
+    back = [mb.v((x, yb, z)) for x, z in flat]
+    for a, b, c in tris:
+        pa, pb, pc = flat[a], flat[b], flat[c]
+        cross = (pb[0] - pa[0]) * (pc[1] - pa[1]) - (pb[1] - pa[1]) * (pc[0] - pa[0])
+        if cross < 0:   # counter-clockwise in (x, z): the normal faces -Y (the front)
+            b, c = c, b
+            pb, pc = pc, pb
+        mb.f((front[a], front[b], front[c]), [uv_face(*pa), uv_face(*pb), uv_face(*pc)], None, mat)
+        mb.f((back[a], back[c], back[b]), [uv_face(*pa), uv_face(*pc), uv_face(*pb)], None, mat)
+    k = 0
+    for l in loops:
+        pts = l["pts"]
+        n = len(pts)
+        area = sum(pts[i][0] * pts[(i + 1) % n][1] - pts[(i + 1) % n][0] * pts[i][1] for i in range(n))
+        outward_left = (area > 0) != bool(l["hole"])
+        for i in range(n):
+            j = (i + 1) % n
+            fi, fj, bi, bj = front[k + i], front[k + j], back[k + i], back[k + j]
+            ui, uj = uv_edge(*pts[i]), uv_edge(*pts[j])
+            if outward_left:
+                mb.f((fi, bi, bj, fj), [ui, ui, uj, uj], None, edge_mat)
+            else:
+                mb.f((fi, fj, bj, bi), [ui, uj, uj, ui], None, edge_mat)
+        k += n
+    return mb

@@ -101,6 +101,9 @@ def report(path):
     print("=" * 78)
 
 
+FIGURE = []
+
+
 def bounds():
     pts = [o.matrix_world @ Vector(c) for o in bpy.context.scene.objects if o.type == "MESH" for c in o.bound_box]
     lo = Vector([min(p[i] for p in pts) for i in range(3)])
@@ -129,7 +132,7 @@ def setup(mode, lo, hi, model_objs):
     scene.world = world
 
     # ground
-    bpy.ops.mesh.primitive_plane_add(size=rad * 30, location=(centre.x, centre.y, 0))
+    bpy.ops.mesh.primitive_plane_add(size=rad * 30, location=(centre.x, centre.y, min(0.0, lo.z)))
     ground = bpy.context.object
     gm = bpy.data.materials.new("preview_ground")
     gm.use_nodes = True
@@ -141,11 +144,13 @@ def setup(mode, lo, hi, model_objs):
     fig_mat = bpy.data.materials.new("preview_figure")
     fig_mat.use_nodes = True
     fig_mat.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.25, 0.32, 0.45, 1)
-    fx, fy = hi.x + 0.6, lo.y + 0.3
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.17, depth=1.42, location=(fx, fy, 0.71))
+    fx, fy, fz = hi.x + 0.6, lo.y + 0.3, min(0.0, lo.z)
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.17, depth=1.42, location=(fx, fy, fz + 0.71))
     bpy.context.object.data.materials.append(fig_mat)
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.12, location=(fx, fy, 1.58))
+    FIGURE.append(bpy.context.object)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.12, location=(fx, fy, fz + 1.58))
     bpy.context.object.data.materials.append(fig_mat)
+    FIGURE.append(bpy.context.object)
 
     if mode == "night":
         bg.inputs["Color"].default_value = (0.004, 0.006, 0.014, 1)
@@ -231,6 +236,8 @@ def main():
         d = Vector((math.sin(a) * math.cos(e), -math.cos(a) * math.cos(e), math.sin(e)))
         cam.location = target + d * dist
         cam.rotation_euler = (target - cam.location).to_track_quat("-Z", "Y").to_euler()
+        for f in FIGURE:   # the scale figure would stand between a side camera and the model
+            f.hide_render = label in ("side",)
         scene.render.filepath = os.path.join(out_dir, f"{name}-{mode}-{label}.png")
         bpy.ops.render.render(write_still=True)
         print("[preview]", scene.render.filepath)

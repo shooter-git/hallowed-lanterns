@@ -74,7 +74,7 @@
     "ember-born": {
       "file": "music/ember-born.mp3",
       "oneShot": true,
-      "seconds": 7.0,
+      "seconds": 6.5,
       "title": "The Ember",
       "key": "D major",
       "stinger": true
@@ -82,7 +82,7 @@
     "finale": {
       "file": "music/finale.mp3",
       "oneShot": true,
-      "seconds": 131.66,
+      "seconds": 120.6,
       "title": "Hallowed Lanterns",
       "key": "D major -> E major",
       "meter": "6/8",
@@ -125,7 +125,7 @@
     "keeper-rises": {
       "file": "music/keeper-rises.mp3",
       "oneShot": true,
-      "seconds": 15.93,
+      "seconds": 14.0,
       "title": "The Keeper Rises",
       "key": "F# minor -> A major",
       "stinger": true

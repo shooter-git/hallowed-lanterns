@@ -99,7 +99,7 @@ CHIMES = {
 
 def render():
     for ch, fn in CHIMES.items():
-        finish_sfx(f"ember-chime-{ch}", f"ember-chime-{ch}", fn(), -3.0, stereo=True, max_s=1.8)
+        finish_sfx(f"ember-chime-{ch}", f"ember-chime-{ch}", fn(), -3.0, stereo=True, max_s=1.7)
 
 
 if __name__ == "__main__":

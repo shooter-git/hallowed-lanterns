@@ -114,10 +114,10 @@ def _with_space(y, space, amt):
 def render():
     for i in range(4):
         finish_sfx("step-gravel", f"step-gravel-{i + 1}", _with_space(gravel(i), "room", 0.08), PEAK, max_s=0.5)
-        finish_sfx("step-grass", f"step-grass-{i + 1}", _with_space(grass(i), "forest", 0.05), PEAK, max_s=0.5)
+        finish_sfx("step-grass", f"step-grass-{i + 1}", _with_space(grass(i), "forest", 0.05), PEAK, max_s=0.45)
         finish_sfx("step-snow", f"step-snow-{i + 1}", _with_space(snow(i), "room", 0.05), PEAK, max_s=0.55)
     for i in range(3):
-        finish_sfx("step-sand", f"step-sand-{i + 1}", _with_space(sand(i), "underwater", 0.12), PEAK, max_s=0.6)
+        finish_sfx("step-sand", f"step-sand-{i + 1}", _with_space(sand(i), "underwater", 0.12), PEAK, max_s=0.5)
 
 
 if __name__ == "__main__":

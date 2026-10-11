@@ -128,7 +128,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     const scale = new Vector3((HALF * 2 + 0.2) / size.x, 3.55 / size.y, BAY / size.z);
     const at: Matrix4[] = [];
     for (let i = 0; i < bays; i++) at.push(new Matrix4().compose(new Vector3(0, 0, LANE_START - (i + 0.5) * BAY), new Quaternion(), scale));
-    scene.add(instanceModel(bayModel, at));
+    scene.add(instanceModel(bayModel, at, { skip: 'end_frame' }));
+    // The far end of the last bay closes the pergola.
+    scene.add(instanceModel(bayModel, [at[at.length - 1] as Matrix4], { only: 'end_frame' }));
   } else {
     for (const mesh of [posts, beams, cross]) {
       mesh.computeBoundingSphere();

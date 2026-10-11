@@ -127,9 +127,9 @@ def render():
         finish_sfx("snowflake", f"snowflake-{i + 1}", snowflake(p, i), -5.0, max_s=1.0)
     for i in range(4):
         finish_sfx("bubble", f"bubble-{i + 1}", bubble(i), -5.0)
-    finish_sfx("wish-hang", "wish-hang", wish_hang(), -3.0, stereo=True, max_s=2.3)
+    finish_sfx("wish-hang", "wish-hang", wish_hang(), -3.0, stereo=True, max_s=2.1)
     for i in range(2):
-        finish_sfx("fog-swirl", f"fog-swirl-{i + 1}", fog_swirl(i), -4.0, stereo=True, max_s=2.1)
+        finish_sfx("fog-swirl", f"fog-swirl-{i + 1}", fog_swirl(i), -4.0, stereo=True, max_s=1.9)
     finish_sfx("ui-tap", "ui-tap", ui_tap(), -9.0)
 
 

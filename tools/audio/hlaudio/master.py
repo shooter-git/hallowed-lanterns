@@ -166,7 +166,8 @@ def encode_mp3(x, path, kbps=128, mono=False):
     data = np.ascontiguousarray(x.T).tobytes()
     cmd = [FFMPEG, "-y", "-hide_banner", "-loglevel", "error", "-f", "f32le", "-ar", str(SR),
            "-ac", str(ch), "-i", "pipe:0", "-c:a", "libmp3lame", "-b:a", f"{kbps}k",
-           "-ar", str(SR), "-ac", str(ch), str(path)]
+           "-ar", str(SR), "-ac", str(ch), "-map_metadata", "-1", "-id3v2_version", "0",
+           "-write_id3v1", "0", str(path)]
     subprocess.run(cmd, input=data, check=True)
 
 

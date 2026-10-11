@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hallowed-lanterns",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5199", "--strictPort", "--host", "127.0.0.1"],
+      "port": 5199
+    }
+  ]
+}
