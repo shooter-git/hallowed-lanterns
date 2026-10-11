@@ -9,4 +9,18 @@ export const CHAPTERS: ChapterInfo[] = [
     subtitle: 'Sunset, and the lanterns are waking',
     load: () => import('./arbor.ts'),
   },
+  {
+    id: 'grove',
+    numeral: 'II',
+    name: 'The Candle Grove',
+    subtitle: 'Blue hour, and something is hiding',
+    load: () => import('./grove.ts'),
+  },
+  {
+    id: 'garden',
+    numeral: 'III',
+    name: 'The Lantern Garden',
+    subtitle: 'Nightfall, under a sky of lanterns',
+    load: () => import('./garden.ts'),
+  },
 ];

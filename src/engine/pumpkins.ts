@@ -247,9 +247,11 @@ export class PumpkinField {
     const hiGeo = pumpkinGeometry(options.detail[0], options.detail[1]);
     const loGeo = pumpkinGeometry(options.simple[0], options.simple[1]);
     const stemGeo = stemGeometry();
+    // Lit only a little by the glow field: much of it there is the pumpkin's own candle, which
+    // lights the inside, not the skin.
     this.body = hallow(new MeshStandardMaterial({ roughness: 0.5, metalness: 0 }), {
       key: 'pumpkin',
-      glow: 1,
+      glow: 0.35,
       uniforms: { uAtlas: { value: atlas }, ...this.uniforms },
       vertexPars: PUMPKIN_VERTEX_PARS,
       fragmentPars: PUMPKIN_FRAGMENT_PARS,
@@ -340,7 +342,7 @@ export class PumpkinField {
       g.setAttribute('position', new Float32BufferAttribute(lines, 3));
       const strings = new LineSegments(
         g,
-        hallow(new LineBasicMaterial({ color: 0x14110e }), { key: 'string', glow: 0.3 }),
+        hallow(new LineBasicMaterial({ color: 0x0b0907, transparent: true, opacity: 0.55 }), { key: 'string', glow: 0.05 }),
       );
       this.group.add(strings);
     }
