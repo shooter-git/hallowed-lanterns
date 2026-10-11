@@ -21,7 +21,9 @@ it, you can hear where it is.
 
 ## I. The Arbor of Faces — sunset
 
-A gravel lane under a long pergola of hundreds of carved jack-o'-lanterns, rows on rows of faces
+The walk begins at sunset in front of a great wall of stacked hay bales with the night's name in
+big black letters, heirloom pumpkins (orange, white, dusty pink) piled on bales at its foot and a
+rope of purple and orange lights strung on white stakes in front. Then into the arbor: a gravel lane under a long pergola of hundreds of carved jack-o'-lanterns, rows on rows of faces
 overhead and along the barbed-wire fence. The sun is going down behind the field. Low fog glows
 violet and peach, and purple and orange path lights run along both edges.
 
@@ -126,9 +128,10 @@ garlands, fruit, and rows of candles.
   Candles stay lit for everyone in your group.
 
 Beyond it is **the Wishing Tree**, with white branches covered in coral and teal leaves. Every
-leaf is a wish.
+leaf is a wish. Along the boxwood hedge, under a marigold garland, a black-clothed table with a
+little lamp, pencils and leaf cards is where people write them.
 
-- **Hang your own wish.** It's kept for your group: everyone who opens this object sees the tree
+- **Write a wish at the table and hang your own.** It's kept for your group: everyone who opens this object sees the tree
   grow, one leaf at a time.
 - The Ember settles on a branch and becomes a leaf of light. The lanterns in every chapter glow
   once, all together, and the night fades gently out.
