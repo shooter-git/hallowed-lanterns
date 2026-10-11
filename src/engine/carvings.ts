@@ -18,6 +18,13 @@ export const CARVE = {
   heartSkull: -1,
   /** Painted letters: m, s (the candy pumpkins). */
   letters: [] as number[],
+  /** Rows of feather scallops (the owl's body). */
+  feathers: -1,
+  /** A carved rose, and a sugar skull with flowers (the guitar). */
+  rose: -1,
+  sugarSkull: -1,
+  /** Two huge round owl eyes, painted. */
+  owlEyes: -1,
 };
 
 type Ctx = CanvasRenderingContext2D;
@@ -490,8 +497,8 @@ export function buildCarvingAtlas(): CanvasTexture {
   c.lineJoin = 'round';
   c.lineCap = 'round';
 
-  const designs: { draw: Draw; list: number[] | 'skull' }[] = [];
-  for (let i = 0; i < 30; i++) designs.push({ draw: face(i + Math.floor(i / 6)), list: CARVE.faces });
+  const designs: { draw: Draw; list: number[] | string }[] = [];
+  for (let i = 0; i < 26; i++) designs.push({ draw: face(i + Math.floor(i / 6)), list: CARVE.faces });
   for (let i = 0; i < 3; i++) designs.push({ draw: happy(i), list: CARVE.happy });
   for (let i = 0; i < 12; i++) designs.push({ draw: candles(1 + (i % 3)), list: CARVE.candles });
   for (let i = 0; i < 8; i++) designs.push({ draw: stars(i), list: CARVE.stars });
@@ -514,6 +521,66 @@ export function buildCarvingAtlas(): CanvasTexture {
     });
   }
 
+  const special: Record<string, Draw> = {
+    feathers: (c) => {
+      c.lineWidth = 0.045;
+      c.strokeStyle = '#fff';
+      for (let r = 0; r < 4; r++) {
+        for (let k = 0; k < 3; k++) {
+          const x = 0.22 + k * 0.28 + (r % 2) * 0.14 - 0.07;
+          const y = 0.22 + r * 0.19;
+          c.beginPath();
+          c.arc(x, y, 0.1, 0.15 * Math.PI, 0.85 * Math.PI);
+          c.stroke();
+        }
+      }
+    },
+    rose: (c) => {
+      c.lineWidth = 0.035;
+      c.strokeStyle = '#fff';
+      for (let k = 0; k < 4; k++) {
+        c.beginPath();
+        c.arc(0.5, 0.42, 0.05 + k * 0.05, Math.PI * (0.1 + k * 0.4), Math.PI * (1.3 + k * 0.4));
+        c.stroke();
+      }
+      c.beginPath();
+      c.moveTo(0.5, 0.62);
+      c.quadraticCurveTo(0.46, 0.75, 0.5, 0.88);
+      c.stroke();
+      for (const s2 of [-1, 1]) {
+        c.beginPath();
+        c.ellipse(0.5 + s2 * 0.1, 0.74, 0.08, 0.035, s2 * 0.5, 0, Math.PI * 2);
+        c.fill();
+      }
+    },
+    sugarSkull: (c, rnd) => {
+      skull(c, rnd);
+      c.save();
+      c.fillStyle = '#fff';
+      for (const [x, y] of [
+        [0.3, 0.22],
+        [0.5, 0.17],
+        [0.7, 0.22],
+      ] as [number, number][]) {
+        for (let k = 0; k < 6; k++) {
+          const a = (k * Math.PI) / 3;
+          c.beginPath();
+          c.ellipse(x + Math.cos(a) * 0.035, y + Math.sin(a) * 0.035, 0.03, 0.018, a, 0, Math.PI * 2);
+          c.fill();
+        }
+      }
+      c.restore();
+    },
+    owlEyes: (c) => {
+      for (const x of [0.31, 0.69]) {
+        c.beginPath();
+        c.arc(x, 0.44, 0.19, 0, Math.PI * 2);
+        c.fill();
+      }
+    },
+  };
+  for (const [name, draw] of Object.entries(special)) designs.push({ draw, list: name as 'skull' });
+
   designs.forEach((d, i) => {
     const cx = i % CELLS;
     const cy = Math.floor(i / CELLS);
@@ -525,8 +592,10 @@ export function buildCarvingAtlas(): CanvasTexture {
     c.clip();
     d.draw(c, rng(i * 7919 + 13));
     c.restore();
-    if (d.list === 'skull') CARVE.heartSkull = i;
-    else d.list.push(i);
+    if (typeof d.list === 'string') {
+      if (d.list === 'skull') CARVE.heartSkull = i;
+      else (CARVE as unknown as Record<string, number>)[d.list] = i;
+    } else d.list.push(i);
   });
 
   // Blurs by shrinking and growing the picture (works everywhere, unlike canvas filters).

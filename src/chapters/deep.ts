@@ -30,6 +30,7 @@ import { loadModel } from '../engine/models.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
+import { kraken } from '../scenes/kraken.ts';
 import { aroundPath, onGround, pointOnGround, Terrain } from '../engine/terrain.ts';
 import { hallow, SHADER_PARS, shared, VERTEX_TERRAIN } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
@@ -57,6 +58,8 @@ function rng(seed: number) {
 }
 
 const KEEPER = new Vector3(0, 0, -60);
+const WRECK = new Vector3(-8.5, 0, -14);
+const TREASURE = new Vector3(8.5, 0, -32);
 
 /** Ribbons of light along both sides of the path: beds of tiny blue LEDs, twinkling. */
 function ledBeds(path: Path, inner: number, outer: number): Mesh {
@@ -277,7 +280,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const canopy = woodland(path, {
     canopy: [6.2, 10], reach: 10, skyGap: 0.3, density: tier === 'low' ? 1.3 : 2.2, wallFrom: 4.2, wallTo: 13, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
     tint: new Color(0.22, 0.3, 0.55), seed: 51,
-    clear: (x, z, y) => Math.hypot(x - KEEPER.x, z - KEEPER.z) < 9 && y < 8,
+    clear: (x, z, y) =>
+      (Math.hypot(x - KEEPER.x, z - KEEPER.z) < 9 && y < 8) ||
+      (Math.hypot(x - WRECK.x, z - WRECK.z) < 7.5 && y < 8.5) ||
+      (Math.hypot(x - TREASURE.x, z - TREASURE.z) < 5 && y < 5),
   });
   scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 110, height: 16, color: new Color(0.004, 0.012, 0.04), under: new Color(0.01, 0.03, 0.12) }));
@@ -294,6 +300,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     path.at(s, tmp, tan);
     const off = (rnd() - 0.5) * 2 * (rnd() < 0.6 ? 3.5 : 8);
     const pos = new Vector3(tmp.x - tan.y * off, 2.6 + rnd() * 3.8, tmp.y + tan.x * off);
+    if (Math.hypot(pos.x - WRECK.x, pos.z - WRECK.z) < 6.5) continue;
     const r = 0.16 + rnd() * 0.12;
     const purple = rnd() < 0.5;
     jellies.push(specs.length);
@@ -361,6 +368,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     const s = rnd() * path.length;
     path.at(s, tmp, tan);
     const off = (rnd() < 0.5 ? -1 : 1) * (2.2 + rnd() * 1.6);
+    if (Math.hypot(tmp.x - tan.y * off - WRECK.x, tmp.y + tan.x * off - WRECK.z) < 6 || Math.hypot(tmp.x - tan.y * off - TREASURE.x, tmp.y + tan.x * off - TREASURE.z) < 4.5) continue;
     const cm = coralModels[i % Math.max(1, coralModels.length)];
     if (cm && rnd() < 0.6) {
       const o = cm.root.clone(true);
@@ -399,6 +407,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     scene.add(clam);
     corals.push(clam);
   }
+
+  // The Kraken's Wreck, and the treasure further on.
+  const wreck = await kraken(ctx, WRECK, Math.PI / 2, TREASURE, -Math.PI / 2);
+  scene.add(...wreck.objects);
 
   // The Keeper of the Deep.
   const keeper = await loadModel('octopus', { glowReceive: 0.3 });
@@ -511,7 +523,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   bubbles.velocity.set(0.05, 0.55, 0);
   scene.add(bubbles.points);
 
-  const glowLights: GlowLight[] = [...pumpkins.glowLights(2.2, tier === 'low' ? 0.08 : 0.05)];
+  const glowLights: GlowLight[] = [...pumpkins.glowLights(2.2, tier === 'low' ? 0.08 : 0.05), ...wreck.glow];
   for (let s = 0; s <= path.length; s += 1.2) {
     path.at(s, tmp, tan);
     for (const side of [-1, 1]) glowLights.push({ x: tmp.x - tan.y * 2.7 * side, z: tmp.y + tan.x * 2.7 * side, radius: 2.2, color: new Color(0.15, 0.3, 1), intensity: 0.22, flicker: 0 });
@@ -519,6 +531,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   for (const c of corals) glowLights.push({ x: c.position.x, z: c.position.z, radius: 1.2, color: (c.material as MeshBasicGlow).color, intensity: 0.08, flicker: 0 });
   glowLights.push({ x: KEEPER.x, z: KEEPER.z + 2, radius: 9, color: new Color(0.35, 0.2, 1), intensity: 0.5, flicker: 0 });
   const sources: LightSource[] = [
+    ...wreck.sources,
     { position: KEEPER.clone().add(new Vector3(0, 1, 4)), color: new Color(0.45, 0.3, 1), intensity: 10, distance: 16 },
     ...specs.filter((_, i) => jellies.includes(i)).slice(0, 60).map((s) => ({ position: s.position, color: new Color(1, 0.5, 0.2), intensity: 0.7, distance: 4 })),
   ];
@@ -567,6 +580,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       const e = ctx.ember;
       const scale = ctx.renderer.domElement.height / (2 * Math.tan((ctx.camera.fov * Math.PI) / 360));
       bubbles.update(dt, scale);
+      wreck.update(dt, time);
+      const stick = ctx.portal.input.stick('move');
+      if (w.seated && Math.hypot(stick.x, stick.y) > 0.3) w.seated = false;
       // Jellies pulse, brighter when you pass beneath.
       for (const i of jellies) {
         const s = specs[i] as PumpkinSpec;
@@ -625,6 +641,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     pick(ray: Ray): TapAction | null {
+      const wreckTap = wreck.pick(ray);
+      if (wreckTap) return wreckTap;
       if (keeperRoot && risen > 0.5 && ray.intersectsBox(onGround(keeperBox.clone().translate(new Vector3(0, keeperRoot.position.y, 0)))))
         return () => wave('It waves back.');
       for (let k = 0; k < pufferObjects.length; k++) {
@@ -656,6 +674,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      wreck.dispose();
       terrain.dispose();
       ctx.audio.setUnderwater(0);
       pumpkins.dispose();

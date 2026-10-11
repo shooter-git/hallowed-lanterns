@@ -26,6 +26,7 @@ import { Burst, RAINBOW } from '../engine/particles.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
+import { web } from '../scenes/web.ts';
 import { aroundPath, pointOnGround, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
@@ -81,10 +82,13 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const { tier } = ctx;
   const rnd = rng(55);
   const scene = new Scene();
-  const bounds: Bounds = [-40, -70, 80, 90];
+  const bounds: Bounds = [-40, -70, 80, 118];
+  const WEB = new Vector3(0, 0, 24);
 
   const path = new Path(
     [
+      [0, 40],
+      [0, 24],
       [0, 10],
       [0, 2],
       [0, -5.5],
@@ -93,9 +97,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       [12, -18],
       [10, -30],
     ],
-    (s) => (s < 13 ? 5 : 3),
+    (s) => (s < 30 ? 4 : s < 43 ? 5 : 3),
   );
-  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => (s < 9 ? 0.06 * (9 - s) : 0) + (s > 16 ? 0.05 * (s - 16) : 0), bank: 0.05, rough: 0.35, seed: 41 }));
+  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => (s < 30 ? 0.03 * (30 - s) : 0) + (s > 46 ? 0.05 * (s - 46) : 0), bank: 0.05, rough: 0.35, seed: 41 }));
 
   const mask = new GroundMask(bounds, 4);
   mask.stroke(path.points.filter((_, i) => i % 4 === 0).map((p) => [p.x, p.y]), 2.6, 'r', 0.8);
@@ -115,10 +119,22 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const canopy = woodland(path, {
     canopy: [5.5, 10], reach: 12, skyGap: 0.4, density: tier === 'low' ? 1.4 : 2.4, wallFrom: 4.5, wallTo: 14, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
     tint: new Color(0.38, 0.42, 0.5), seed: 31,
-    clear: (x, z, y) => Math.hypot(x - STAGE.x, z - STAGE.z) < 7.5 && y < 5.5,
+    clear: (x, z, y) => (Math.hypot(x - STAGE.x, z - STAGE.z) < 7.5 && y < 5.5) || (Math.abs(x - WEB.x) < 4.6 && Math.abs(z - WEB.z) < 7.5 && y < 4.8),
   });
   scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 100, height: 16, color: new Color(0.004, 0.006, 0.02), under: new Color(0.02, 0.02, 0.06) }));
+
+  // The Web, on the way in.
+  const theWeb = await web(ctx, WEB, 0);
+  scene.add(...theWeb.objects);
+  let webState: 'waiting' | 'caught' | 'free' = 'waiting';
+  theWeb.hooks.onFree = () => {
+    webState = 'free';
+    ctx.ember.excitement = 1;
+    setTimeout(() => (ctx.ember.excitement = 0), 1500);
+    void ctx.audio.sfx('ember-chime-hollow', { at: pointOnGround(theWeb.snare), volume: 0.9 });
+    ctx.ui.say('Free! It shakes off the web and zooms ahead.', 5);
+  };
 
   // Pumpkins of every kind.
   const specs: PumpkinSpec[] = [];
@@ -306,7 +322,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   for (const g of bucketModel?.glows.values() ?? []) g.emissiveIntensity = 3;
 
   // Coloured uplights: violet on the oak, magenta and amber on the candy, blue in the woods.
-  const glowLights: GlowLight[] = [...pumpkins.glowLights(1.6, 0.35), ...handleLights.lights];
+  const glowLights: GlowLight[] = [...pumpkins.glowLights(1.6, 0.35), ...handleLights.lights, ...theWeb.glow];
   const wash = (x: number, z: number, c: Color, r: number, i: number) => glowLights.push({ x: STAGE.x + x, z: STAGE.z + z, radius: r, color: c, intensity: i, flicker: 0 });
   wash(0.4, -2.2, new Color(0.45, 0.2, 1), 5, 0.7);
   wash(-5.5, -1, new Color(1, 0.2, 0.7), 4, 0.5);
@@ -314,6 +330,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   wash(0, 2.5, new Color(1, 0.7, 0.4), 4, 0.45);
   for (let i = 0; i < 10; i++) wash((rnd() - 0.5) * 30, -6 - rnd() * 14, new Color(0.15, 0.3, 1), 5, 0.4);
   const sources: LightSource[] = [
+    ...theWeb.sources,
     { position: STAGE.clone().add(new Vector3(0.4, 0.5, -1.2)), color: new Color(0.55, 0.25, 1), intensity: 6, distance: 9 },
     { position: STAGE.clone().add(new Vector3(-4.5, 0.4, 0.8)), color: new Color(1, 0.3, 0.75), intensity: 4, distance: 6 },
     { position: STAGE.clone().add(new Vector3(4.5, 0.4, 0.8)), color: new Color(1, 0.45, 0.6), intensity: 4, distance: 6 },
@@ -357,7 +374,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       shared.uFogHeight.value = 8;
       shared.uFogGlow.value = 0.8;
       ctx.ember.presence = 1;
-      ctx.ember.place(new Vector3(0, 1.8, 6));
+      ctx.ember.place(new Vector3(0, 1.8, 36));
       ctx.audio.preload('snow', ['xylo', 'gummy-squeak', 'sprinkle-burst']);
     },
 
@@ -372,7 +389,17 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       }
       // The Ember dives into the bucket and pops back out.
       emberClock += dt;
-      if (emberPlan === 'lead') {
+      // In the Web: the Ember flies in and gets stuck until you free it (or you walk on past).
+      const nearWeb = Math.hypot(w.position.x - WEB.x, w.position.z - WEB.z);
+      if (webState === 'waiting' && nearWeb < 9) {
+        webState = 'caught';
+        ctx.ui.say('Oh no — the Ember is caught in the web! Tap the web to free it.', 6);
+        void ctx.audio.sfx('web-stretch', { at: pointOnGround(theWeb.snare), volume: 0.8 });
+      }
+      if (webState === 'caught') {
+        e.target.copy(theWeb.snare).add(new Vector3(Math.sin(time * 23) * 0.04, Math.sin(time * 17) * 0.03, 0));
+        if (w.position.z < WEB.z - 9) theWeb.hooks.onFree?.();
+      } else if (emberPlan === 'lead') {
         path.at(Math.min(path.length, w.s + 4), tmp);
         e.target.set(tmp.x, 1.8, tmp.y);
         if (atStage) {
@@ -417,12 +444,15 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       }
       for (const g of gummies) g.scale.y += (1 - g.scale.y) * (1 - Math.exp(-dt * 6));
       sprinkles.update(dt, 0);
+      theWeb.update(dt, time);
       ctx.glow.moving.length = 0;
       if (e.presence > 0.01) ctx.glow.moving.push(e.glow);
       pumpkins.update(ctx.camera, dt);
     },
 
     pick(ray: Ray): TapAction | null {
+      const webTap = theWeb.pick(ray);
+      if (webTap) return webTap;
       const i = pumpkins.pick(ray, 12);
       if (i >= 0) {
         const note = xylo.indexOf(i);
@@ -456,6 +486,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      theWeb.dispose();
       terrain.dispose();
       pumpkins.dispose();
       oak.dispose();

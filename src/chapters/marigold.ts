@@ -34,6 +34,7 @@ import type { LightSource } from '../engine/lights.ts';
 import { loadModel } from '../engine/models.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { Path } from '../engine/rig.ts';
+import { guitar } from '../scenes/guitar.ts';
 import { hallow, SHADER_PARS, shared, VERTEX_TERRAIN } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import { aroundPath, heightAt, pointOnGround, Terrain } from '../engine/terrain.ts';
@@ -62,6 +63,7 @@ function rng(seed: number) {
 
 const OFRENDA = new Vector3(0, 0, -10);
 const TREE = new Vector3(13, 0, -27);
+const GUITAR = new Vector3(5.8, 0, -3);
 
 type Wish = {
   text: string;
@@ -312,7 +314,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const canopy = woodland(path, {
     canopy: [5.5, 10], reach: 13, skyGap: 0.5, density: tier === 'low' ? 1.2 : 2, wallFrom: 5.5, wallTo: 15, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
     tint: new Color(0.38, 0.45, 0.4), seed: 61,
-    clear: (x, z, y) => Math.hypot(x - OFRENDA.x, z - OFRENDA.z) < 8 || (Math.hypot(x - TREE.x, z - TREE.z) < 6 && y < 6.5),
+    clear: (x, z, y) => Math.hypot(x - OFRENDA.x, z - OFRENDA.z) < 8 || (Math.hypot(x - TREE.x, z - TREE.z) < 6 && y < 6.5) || (Math.hypot(x - GUITAR.x, z - GUITAR.z) < 3.5 && y < 7.5),
   });
   scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 110, height: 16, color: new Color(0.004, 0.008, 0.012), under: new Color(0.03, 0.025, 0.012) }));
@@ -530,13 +532,24 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   });
   const offCandle = portal.session.on<{ i: number }>('candle', ({ i }) => lightCandle(i, false));
 
+  // The giant guitar beside the ofrenda, its neon strings rising into green fog.
+  const theGuitar = await guitar(ctx, GUITAR, -1.35);
+  scene.add(...theGuitar.objects);
+  theGuitar.onSong = () => {
+    butterflies.release(pointOnGround(GUITAR.clone().setY(1.5)), 14);
+    void ctx.audio.sfx('ember-chime-marigold', { at: pointOnGround(GUITAR), volume: 1 });
+    ctx.ui.say('The Ember’s song, on the strings of the giant guitar.', 5);
+  };
+  mask.blob(GUITAR.x, GUITAR.z, 5, 'g', 0.8);
+
   // Light: the crest's teal, warm candles, a white wash on the tree.
-  const glowLights: GlowLight[] = [...marigolds.lights];
+  const glowLights: GlowLight[] = [...marigolds.lights, ...theGuitar.glow];
   candleSpots.forEach((p) => glowLights.push({ x: p.x, z: p.z, radius: 1.2, color: new Color(1, 0.6, 0.25), intensity: 0.1, flicker: 1, phase: Math.random() }));
   glowLights.push({ x: OFRENDA.x, z: OFRENDA.z + 1, radius: 7, color: new Color(0.2, 0.9, 0.75), intensity: 0.35, flicker: 0 });
   glowLights.push({ x: TREE.x, z: TREE.z + 2, radius: 6, color: new Color(1, 0.92, 0.82), intensity: 0.5, flicker: 0 });
   glowLights.push({ x: TABLE.x, z: TABLE.z, radius: 2.2, color: new Color(0.85, 0.9, 1), intensity: 0.6, flicker: 0 });
   const sources: LightSource[] = [
+    ...theGuitar.sources,
     { position: OFRENDA.clone().add(new Vector3(0, 4.2, 1.2)), color: new Color(0.3, 1, 0.85), intensity: 5, distance: 9 },
     { position: OFRENDA.clone().add(new Vector3(0, 0.9, 2.2)), color: new Color(1, 0.65, 0.3), intensity: 4, distance: 6 },
     { position: TREE.clone().add(new Vector3(0, 2.5, 3.5)), color: new Color(1, 0.95, 0.85), intensity: 7, distance: 10 },
@@ -642,6 +655,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       const w = ctx.walker;
       const e = ctx.ember;
       butterflies.update(dt, time);
+      theGuitar.update(dt, time);
       sky.update(dt);
       const nearOfrenda = Math.hypot(w.position.x - OFRENDA.x, w.position.z - (OFRENDA.z + 3)) < 6;
       if (nearOfrenda && !candleHint) {
@@ -692,6 +706,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     pick(ray: Ray): TapAction | null {
+      const strum = theGuitar.pick(ray);
+      if (strum) return strum;
       if (!hung && finale < 0 && ray.intersectsBox(tableBox.clone().translate(new Vector3(0, heightAt(TABLE.x, TABLE.z), 0)))) return () => void hangWish();
       if (ray.intersectsBox(candleBox.clone().translate(new Vector3(0, heightAt(OFRENDA.x, OFRENDA.z), 0)))) {
         // The nearest unlit candle to the ray.
@@ -721,6 +737,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      theGuitar.dispose();
       offSession();
       offCandle();
       offerOff?.();

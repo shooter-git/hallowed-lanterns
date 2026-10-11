@@ -8,6 +8,7 @@ import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { archway, reedFence, standIn, walkwayFrame } from '../engine/props.ts';
 import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
+import { owl } from '../scenes/owl.ts';
 import { aroundPath, heightAt, onGround, Terrain } from '../engine/terrain.ts';
 import { shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
@@ -36,6 +37,8 @@ function rng(seed: number) {
 const TUNNEL_END = -24;
 const SKY_TREE = new Vector3(-2, 0, -54);
 const SEAT = new Vector3(9.2, 0, -31.2);
+const OWL = new Vector3(-7.6, 0, -29.5);
+const OWL_YAW = 1.05;
 
 export async function build(ctx: ChapterContext): Promise<Chapter> {
   const { tier } = ctx;
@@ -179,7 +182,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     canopy: [5.2, 9.5], reach: 11, skyGap: 0.35, density: tier === 'low' ? 1.2 : 2, wallFrom: 3.2, wallTo: 14, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
     tint: new Color(0.4, 0.46, 0.42), seed: 21,
     // Keep the Lantern Sky open above and around its tree, and the lounge's lanterns clear.
-    clear: (x, z, y) => (Math.hypot(x - SKY_TREE.x, z - SKY_TREE.z) < 17 && y > 2.2) || (Math.hypot(x - SEAT.x, z - SEAT.z) < 3.5 && y < 3),
+    clear: (x, z, y) =>
+      (Math.hypot(x - SKY_TREE.x, z - SKY_TREE.z) < 17 && y > 2.2) ||
+      (Math.hypot(x - SEAT.x, z - SEAT.z) < 3.5 && y < 3) ||
+      (Math.hypot(x - OWL.x, z - OWL.z) < 6.5 && y < 6.5),
   });
   scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 110, height: 17, color: new Color(0.005, 0.007, 0.018), under: new Color(0.06, 0.015, 0.02) }));
@@ -232,9 +238,28 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(pumpkins.group);
 
   // Light.
-  const glowLights: GlowLight[] = [...lanterns.glowLights(2.6, tier === 'low' ? 0.09 : 0.06), ...fairy.lights];
+  // The owl, wings spread in front of a reed fence of fairy lights.
+  const theOwl = await owl(ctx, OWL, OWL_YAW);
+  scene.add(...theOwl.objects);
+  const back = (dx: number, dz: number): [number, number] => {
+    const v = new Vector3(dx, 0, dz).applyAxisAngle(new Vector3(0, 1, 0), OWL_YAW).add(OWL);
+    return [v.x, v.z];
+  };
+  const owlFence = reedFence([[back(-6.5, -1.2), back(-2, -1.6), back(2, -1.6), back(6.5, -1.2)]], 1.9);
+  scene.add(owlFence);
+  const owlRuns: { from: Vector3; to: Vector3; sag: number }[] = [];
+  for (const h of [1.75, 1.05]) {
+    for (let k = -6; k < 6; k += 2) {
+      const [x0, z0] = back(k, -1.5);
+      const [x1, z1] = back(k + 2, -1.5);
+      owlRuns.push({ from: new Vector3(x0, h, z0), to: new Vector3(x1, h, z1), sag: h > 1.5 ? 0.45 : 0.3 });
+    }
+  }
+  const owlLights = stringLights(owlRuns, { spacing: 0.2, color: new Color(1, 0.78, 0.48), brightness: 9, glowEvery: 4, glowRadius: 1.4, glowIntensity: 0.07 });
+  scene.add(owlLights.mesh);
+  const glowLights: GlowLight[] = [...lanterns.glowLights(2.6, tier === 'low' ? 0.09 : 0.06), ...fairy.lights, ...theOwl.glow, ...owlLights.lights];
   scene.add(new HemisphereLight(0x22305a, 0x080404, 0.25));
-  const sources: LightSource[] = specs.filter((_, i) => i % 2 === 0).map((s) => ({ position: s.position, color: new Color(1, 0.25, 0.12), intensity: 0.6, distance: 4, phase: s.phase as number }));
+  const sources: LightSource[] = [...theOwl.sources, ...specs.filter((_, i) => i % 2 === 0).map((s) => ({ position: s.position, color: new Color(1, 0.25, 0.12), intensity: 0.6, distance: 4, phase: s.phase as number }))];
 
   const night = skyState({
     zenith: new Color(0.004, 0.01, 0.045),
@@ -314,10 +339,13 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       ctx.glow.moving.length = 0;
       ctx.glow.moving.push(e.glow);
       lanterns.update(dt, 0.05 + 0.03 * Math.sin(time * 0.3));
+      theOwl.update(dt, time);
       pumpkins.update(ctx.camera, dt);
     },
 
     pick(ray: Ray): TapAction | null {
+      const owlTap = theOwl.pick(ray);
+      if (owlTap) return owlTap;
       if (ray.intersectsBox(onGround(sofaBox))) return () => (seated ? stand() : sit());
       const i = lanterns.pick(ray, 20);
       if (i >= 0)
@@ -333,6 +361,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      theOwl.dispose();
       terrain.dispose();
       lanterns.dispose();
       pumpkins.dispose();

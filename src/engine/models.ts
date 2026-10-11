@@ -92,3 +92,44 @@ export function instanceModel(model: LoadedModel, placements: Matrix4[], options
 export function modelSize(model: LoadedModel): Vector3 {
   return new Box3().setFromObject(model.root).getSize(new Vector3());
 }
+
+/**
+ * Lets a model's long parts (tentacles) sway and curl: each mesh whose name starts with `prefix`
+ * gets a vertex bend driven by its `along` UV (0 at the root, 1 at the tip). Returns a handle per
+ * part: set `wave` (0–1) to make it curl and wave.
+ */
+export function bendable(model: LoadedModel, prefix: string, options: { sway?: number; key?: string } = {}) {
+  const parts: { node: Object3D; wave: { value: number } }[] = [];
+  model.root.traverse((o) => {
+    const mesh = o as Mesh;
+    if (!mesh.isMesh) return;
+    // '*' means every part that has a bend map; otherwise parts named with the prefix.
+    if (prefix === '*' ? !mesh.geometry.getAttribute('uv1') : !o.name.startsWith(prefix)) return;
+    const mat = (mesh.material as MeshStandardMaterial).clone();
+    const wave = { value: 0 };
+    const phase = parts.length * 0.8 + 0.3;
+    hallow(mat, {
+      key: `${options.key ?? prefix}${parts.length}`,
+      glow: 0.3,
+      uniforms: { uWave: wave, uPhase: { value: phase }, uSway: { value: options.sway ?? 0.25 } },
+      vertexPars: 'uniform float uWave;\nuniform float uPhase;\nuniform float uSway;',
+      vertex: [
+        [
+          '#include <begin_vertex>',
+          /* glsl */ `#include <begin_vertex>
+          {
+            float a = uv1.x;
+            float sway = sin(uHlTime * 0.7 + uPhase + a * 2.5) * uSway + uWave * sin(uHlTime * 5.0 + a * 3.0) * 0.9;
+            transformed.x += sway * a * a;
+            transformed.z += cos(uHlTime * 0.5 + uPhase * 1.3 + a * 2.0) * uSway * 0.6 * a * a;
+            transformed.y += uWave * a * a * 0.6;
+          }`,
+        ],
+      ],
+    });
+    mat.defines = { ...(mat.defines ?? {}), USE_UV1: '' };
+    mesh.material = mat;
+    parts.push({ node: o, wave });
+  });
+  return parts;
+}

@@ -22,6 +22,8 @@ import { type LoadedModel, loadModel } from '../engine/models.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { standIn } from '../engine/props.ts';
 import { Path } from '../engine/rig.ts';
+import { forest } from '../engine/trees.ts';
+import { pictureShow } from '../scenes/pictureShow.ts';
 import { aroundPath, onGround, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
@@ -51,7 +53,7 @@ const HEIGHT: Record<string, number> = { 'longhorn-standing': 7.0, 'longhorn-gra
 export async function build(ctx: ChapterContext): Promise<Chapter> {
   const { tier } = ctx;
   const scene = new Scene();
-  const bounds: Bounds = [-45, -95, 90, 110];
+  const bounds: Bounds = [-45, -115, 90, 130];
 
   const path = new Path(
     [
@@ -63,8 +65,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       [4, -46],
       [-3, -56],
       [-6, -68],
+      [-10, -80],
+      [-12, -88],
+      [-4, -95],
+      [5, -99],
     ],
-    9,
+    (s) => (s < 82 ? 9 : 7),
   );
   const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => 0.85 * Math.sin(s / 19) + 0.35 * Math.sin(s / 8 + 2), bank: 0.04, rough: 1.0, seed: 62 }));
 
@@ -176,8 +182,18 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(fog.mesh);
   scene.add(new HemisphereLight(0x1b2448, 0x050403, 0.22));
 
+  // The picture show, in a clearing at the far side of the pasture, ringed by trees.
+  const SHOW = new Vector3(-13, 0, -104);
+  const show = await pictureShow(ctx, SHOW, 0.25);
+  scene.add(...show.objects);
+  const ring = forest([
+    { species: 'oak', at: [-26, -20, -12, -4, 4].map((x, i) => ({ x: SHOW.x + x + 4, z: SHOW.z - 7 - (i % 2) * 3, scale: 0.9 + (i % 3) * 0.15, yaw: i })) },
+    { species: 'tall', at: [-30, -23, -16, -8, 0, 8].map((x, i) => ({ x: SHOW.x + x + 6, z: SHOW.z - 11 - (i % 2) * 2, scale: 1, yaw: i * 2 })) },
+  ]);
+  scene.add(ring.group);
+
   // Each giant pours white light onto the grass around it.
-  const glowLights: GlowLight[] = [...redLights.lights, ...amberLights.lights];
+  const glowLights: GlowLight[] = [...redLights.lights, ...amberLights.lights, ...show.glow];
   const white = new Color(0.95, 0.97, 1.0);
   for (const g of giants) {
     const c = g.box.getCenter(new Vector3());
@@ -193,12 +209,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       glowLights.push({ x: c.x + dx * size.x, z: c.z + dz * size.z, radius: Math.max(size.x, size.z) * 0.75, color: white, intensity: 0.32, flicker: 0 });
     }
   }
-  const sources: LightSource[] = giants.map((g) => ({
+  const sources: LightSource[] = [...show.sources, ...giants.map((g) => ({
     position: g.box.getCenter(new Vector3()).setY(1.6),
     color: new Color(0.9, 0.95, 1),
     intensity: 4,
     distance: 14,
-  }));
+  }))];
 
   const night = skyState({
     zenith: new Color(0.003, 0.006, 0.03),
@@ -213,6 +229,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const near = new Vector3();
   const standing = giants[0] as Giant;
   let greeted = false;
+  let showHinted = false;
 
   const chapter: Chapter = {
     scene,
@@ -276,6 +293,17 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
           e.target.set(tmp.x, 2 + Math.sin(time * 0.6) * 0.3, tmp.y);
         }
       }
+      show.update(dt, time);
+      // Up from the bench: back to the night's own music.
+      const stick = ctx.portal.input.stick('move');
+      if (w.seated && Math.hypot(stick.x, stick.y) > 0.3) {
+        w.seated = false;
+        void ctx.audio.setScene('pasture', 'pasture', 3);
+      }
+      if (!showHinted && Math.hypot(w.position.x - SHOW.x, w.position.z - SHOW.z) < 18) {
+        showHinted = true;
+        ctx.ui.say('A picture show in the clearing. Tap a bench to sit and watch.', 6);
+      }
       ctx.glow.moving.length = 0;
       ctx.glow.moving.push(e.glow);
       fog.walkers[0]?.set(w.position.x, w.position.z);
@@ -283,6 +311,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     pick(ray: Ray): TapAction | null {
+      const sit = show.pick(ray);
+      if (sit) return sit;
       for (const g of giants) {
         if (ray.intersectsBox(onGround(g.box))) {
           return () => {
@@ -300,6 +330,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      show.dispose();
+      ring.dispose();
       terrain.dispose();
       fog.dispose();
       floor.geometry.dispose();
