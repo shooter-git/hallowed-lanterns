@@ -44,4 +44,11 @@ export const CHAPTERS: ChapterInfo[] = [
     subtitle: 'Then, impossibly, it begins to snow',
     load: () => import('./snow.ts'),
   },
+  {
+    id: 'deep',
+    numeral: 'VII',
+    name: 'The Deep',
+    subtitle: 'Where the lanterns swim',
+    load: () => import('./deep.ts'),
+  },
 ];
