@@ -61,6 +61,9 @@ crickets come closer, and the lanterns overhead sway as one in a warm breeze.
 
 - The Ember races ahead and lights lanterns as it passes. Tap a tassel to set its lantern
   swinging.
+- Along a reed fence strung with fairy lights stands a **giant owl**: a pumpkin head with huge round
+  eyes, a body of glowing pumpkins carved with feathers, and enormous wings of pale blue feathers.
+  Tap it and it hoots, blinks and ruffles its wings.
 
 *Music — "Lantern Song":* plucked zither and bamboo flute, pentatonic and unhurried. *Around
 you:* rustling reeds, soft wind chimes.
@@ -76,10 +79,21 @@ one lying down, one standing tall. They breathe, slowly.
 - Tap one and it answers with a deep, gentle low that turns into a cello note. The field lights
   pulse with their breathing.
 
+Past the herd, in a clearing ringed by trees, there's a **picture show**: a screen above a stage
+of hay bales, white benches, strings of purple and blue globe lights overhead, green lights along
+the bales. Sit on a bench and watch the film — a shadow-puppet tale of the Ember's own night.
+
 *Music — "Gentle Giants":* low cello and horn in open fifths, big and still. *Around you:* an open
 field of crickets and the quiet hum of the night.
 
 ## V. Sweet Hollow — candy land
+
+On the way in: **the Web**. Stretchy white cobweb glows violet under blacklight — walls of it, a
+ceiling of it, strands everywhere — with pumpkins wrapped in web and tiny neon spiders on them. A
+giant pumpkin spider with pink spiral eyes watches from the middle, and a neon-green praying mantis
+turns its head to follow you. The Ember flies straight into the web and gets stuck: tap the web to
+free it.
+
 
 Under an old oak washed in violet light: a giant jack-o'-lantern candy bucket with a glowing
 handle, towers of candy corn, rainbow pumpkins stacked on skewers, gummy-bear pumpkins, lollipop
@@ -109,6 +123,12 @@ are walking along the sea floor. **Pumpkin jellyfish** drift overhead trailing g
 pufferfish peer out from the branches, coral glows along a path of blue lights, and everything
 sounds far away, as sound does underwater.
 
+Halfway along: **the Kraken's Wreck**. Giant glowing orange tentacles rise out of the sea floor
+around a great inflatable pumpkin; one arches over the broken hull of a ship; pumpkin-headed
+skeleton pirates sit in a rowboat. Tap a tentacle and it curls. Further on lies the **treasure**:
+a huge open chest heaped with gold on a low platform, skeletons guarding it, palm trees made of
+pumpkins. Tap the chest and it creaks open — then sit a while beside it.
+
 At the end, the **Keeper of the Deep** rises from waves of light: a giant octopus with a pumpkin
 for a head and ember-orange eyes. It turns to look at you.
 
@@ -126,6 +146,11 @@ garlands, fruit, and rows of candles.
 
 - **Light a candle for someone you remember.** Monarch butterflies lift from the marigolds.
   Candles stay lit for everyone in your group.
+
+Beside the ofrenda, in green fog, stands a **giant guitar** covered in carved pumpkins — roses and
+sugar skulls glowing red, a rim of little pink and purple lights — with six neon-green strings
+rising high into the mist. Tap the strings to play them. (The Ember's song can be played on them
+too.)
 
 Beyond it is **the Wishing Tree**, with white branches covered in coral and teal leaves. Every
 leaf is a wish. Along the boxwood hedge, under a marigold garland, a black-clothed table with a
