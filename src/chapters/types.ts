@@ -11,7 +11,7 @@ import type { SurfaceMaps } from '../engine/texgen.ts';
 import type { UI } from '../engine/ui.ts';
 
 export type Tier = 'low' | 'mid' | 'high';
-export type SurfaceKind = 'gravel' | 'dryGrass' | 'lawn' | 'leaves';
+export type SurfaceKind = 'gravel' | 'dryGrass' | 'lawn' | 'leaves' | 'snow';
 
 /** What a chapter can use from the engine. */
 export interface ChapterContext {

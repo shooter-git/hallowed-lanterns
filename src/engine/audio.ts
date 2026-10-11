@@ -146,11 +146,17 @@ export class AudioDirector {
 
   private readonly filters: BiquadFilterNode[] = [];
 
-  /** 0 = in air, 1 = deep underwater (muffled, far away). */
-  setUnderwater(amount: number) {
+  /**
+   * 0 = in air, 1 = deep underwater: the world's sounds go muffled and far away. The music is
+   * left alone unless `music` (the Deep's own music is written for being underwater).
+   */
+  setUnderwater(amount: number, music = false) {
     const f = 20000 * (1 - amount) + 520 * amount;
     const now = this.started ? this.ctx.currentTime : 0;
-    for (const filt of this.filters) filt.frequency.setTargetAtTime(f, now, 0.4);
+    this.filters.forEach((filt, i) => {
+      if (i === 0 && !music) filt.frequency.setTargetAtTime(20000, now, 0.4);
+      else filt.frequency.setTargetAtTime(f, now, 0.4);
+    });
   }
 
   private file(path: string): Promise<AudioBuffer | null> {

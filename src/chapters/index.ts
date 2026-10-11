@@ -37,4 +37,11 @@ export const CHAPTERS: ChapterInfo[] = [
     subtitle: 'Where the candy grows',
     load: () => import('./hollow.ts'),
   },
+  {
+    id: 'snow',
+    numeral: 'VI',
+    name: 'October Snow',
+    subtitle: 'Then, impossibly, it begins to snow',
+    load: () => import('./snow.ts'),
+  },
 ];

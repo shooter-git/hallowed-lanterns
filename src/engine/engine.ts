@@ -12,7 +12,7 @@ import { Post } from './post.ts';
 import { Walker } from './rig.ts';
 import { shared } from './shared.ts';
 import { Sky } from './sky.ts';
-import { bakeSurface, DRY_GRASS, GRAVEL, LAWN, LEAF_LITTER, type SurfaceMaps } from './texgen.ts';
+import { bakeSurface, DRY_GRASS, GRAVEL, LAWN, LEAF_LITTER, SNOW, type SurfaceMaps } from './texgen.ts';
 import { UI } from './ui.ts';
 
 type Progress = {
@@ -90,7 +90,7 @@ export class Engine {
       surface: (kind) => {
         let s = this.surfaces.get(kind);
         if (!s) {
-          const glsl = { gravel: GRAVEL, dryGrass: DRY_GRASS, lawn: LAWN, leaves: LEAF_LITTER }[kind];
+          const glsl = { gravel: GRAVEL, dryGrass: DRY_GRASS, lawn: LAWN, leaves: LEAF_LITTER, snow: SNOW }[kind];
           s = bakeSurface(renderer, glsl, tier === 'low' ? 512 : 1024);
           this.surfaces.set(kind, s);
         }

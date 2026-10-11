@@ -171,6 +171,19 @@ vec4 surface(vec2 uv, out float height) {
 }
 `;
 
+/** Fresh snow over the ground: soft drifts, footprint-dimpled, with frozen glints. */
+export const SNOW = /* glsl */ `
+vec4 surface(vec2 uv, out float height) {
+  float drift = fbmP(uv * 3.0, 3.0);
+  float fine = fbmP(uv * 30.0, 30.0);
+  vec3 dimples = voronoiP(uv * 14.0, 14.0, 9.0);
+  float dent = smoothstep(0.0, 0.45, dimples.x) * 0.25;
+  height = drift * 0.6 + fine * 0.25 + dent;
+  vec3 col = mix(vec3(0.72, 0.76, 0.82), vec3(0.92, 0.94, 0.97), drift * 0.7 + fine * 0.3);
+  return vec4(col, 0.6);
+}
+`;
+
 export function bakeSurface(
   renderer: WebGLRenderer,
   surfaceGlsl: string,
