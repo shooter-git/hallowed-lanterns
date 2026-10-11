@@ -8,6 +8,7 @@ import { buildCarvingAtlas } from './carvings.ts';
 import { Ember } from './ember.ts';
 import { GlowField } from './glowfield.ts';
 import { LightPool } from './lights.ts';
+import { People } from './people.ts';
 import { Post } from './post.ts';
 import { Walker } from './rig.ts';
 import { shared } from './shared.ts';
@@ -38,6 +39,7 @@ export class Engine {
   private readonly raycaster = new Raycaster();
   private readonly surfaces = new Map<SurfaceKind, SurfaceMaps>();
   private moved = false;
+  private people!: People;
 
   constructor(private readonly portal: Portal) {}
 
@@ -100,6 +102,12 @@ export class Engine {
       reducedMotion: portal.reducedMotion,
       restart: () => this.goTo(0),
     };
+
+    this.people = new People(
+      portal,
+      (i) => CHAPTERS[i]?.name ?? 'the next part of the night',
+      (text) => ui.say(text, 4),
+    );
 
     portal.progress(0.35, 'Lighting candles');
     this.chapter = await this.build(0);
@@ -214,6 +222,7 @@ export class Engine {
     audio.setUnderwater(0);
     chapter.scene.add(sky.mesh, ember.group, ember.trail);
     lights.attach(chapter.scene);
+    this.people?.enter(chapter.scene, this.index);
     walker.setPath(chapter.path, 0);
     if (chapter.startYaw !== undefined) walker.yaw = chapter.startYaw;
     walker.autoTarget = null;
@@ -275,6 +284,7 @@ export class Engine {
     }
     if (this.transition) this.stepTransition(dt);
 
+    if (this.begun) glow.moving.push(...this.people.update(dt, walker.position));
     const forward = new Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
     ember.update(dt, renderer.domElement.height / (2 * Math.tan((camera.fov * Math.PI) / 360)), camera.position);
     lights.update(dt, camera.position, forward);
