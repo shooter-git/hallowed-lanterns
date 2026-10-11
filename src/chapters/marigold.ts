@@ -422,6 +422,52 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     hedge.rotation.y = 0.5;
     scene.add(hedge);
   }
+  // The wish-writing table along the hedge: a black cloth, a little lamp, pencils, leaf cards.
+  const table = new Group();
+  const cloth = hallow(new MeshStandardMaterial({ color: 0x050506, roughness: 0.85 }), { key: 'cloth', glow: 1 });
+  const top = new Mesh(new BoxGeometry(2.6, 0.76, 0.85), cloth);
+  top.position.y = 0.38;
+  table.add(top);
+  const lampMat = hallow(new MeshStandardMaterial({ color: 0x111111, roughness: 0.4, metalness: 0.5 }), { key: 'lamp' });
+  const stem = new Mesh(new BoxGeometry(0.02, 0.36, 0.02), lampMat);
+  stem.position.set(0.3, 0.94, 0);
+  const shade = new Mesh(new BoxGeometry(0.2, 0.04, 0.2), hallow(new MeshStandardMaterial({ color: 0x111111, emissive: 0xdde8ff, emissiveIntensity: 3 }), { key: 'lampglow' }));
+  shade.position.set(0.3, 1.13, 0);
+  const cup = new Mesh(new BoxGeometry(0.09, 0.12, 0.09), lampMat);
+  cup.position.set(0.55, 0.82, 0.15);
+  table.add(stem, shade, cup);
+  const cardTex = (() => {
+    const c = document.createElement('canvas');
+    c.width = 128;
+    c.height = 96;
+    const g = c.getContext('2d') as CanvasRenderingContext2D;
+    g.fillStyle = '#f2efe8';
+    g.fillRect(0, 0, 128, 96);
+    for (let y = 0; y < 4; y++)
+      for (let x = 0; x < 6; x++) {
+        g.fillStyle = (x + y) % 3 === 0 ? '#3cc4b0' : (x + y) % 3 === 1 ? '#f07a6a' : '#f2a03a';
+        g.beginPath();
+        g.ellipse(12 + x * 20, 14 + y * 22, 8, 5, 0.6, 0, Math.PI * 2);
+        g.fill();
+      }
+    const t = new CanvasTexture(c);
+    t.colorSpace = SRGBColorSpace;
+    return t;
+  })();
+  const cardMat = hallow(new MeshStandardMaterial({ map: cardTex, roughness: 0.8 }), { key: 'card', glow: 1 });
+  for (let k = 0; k < 6; k++) {
+    const card = new Mesh(new PlaneGeometry(0.28, 0.21), cardMat);
+    card.rotation.x = -Math.PI / 2;
+    card.rotation.z = (rnd() - 0.5) * 0.6;
+    card.position.set(-1.05 + k * 0.33, 0.765, (rnd() - 0.5) * 0.3);
+    table.add(card);
+  }
+  const TABLE = TREE.clone().add(new Vector3(-4.6, 0, 1.6));
+  table.position.copy(TABLE);
+  table.rotation.y = 0.5;
+  scene.add(table);
+  const tableBox = new Box3().setFromObject(table).expandByScalar(0.1);
+
   // Leaves: hundreds of coral and teal wish tags on the branches (more along each anchor).
   const leafPositions: { p: Vector3; color: Color; spin: number }[] = [];
   const coral = new Color(1, 0.42, 0.38).multiplyScalar(0.62);
@@ -482,10 +528,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   candleSpots.forEach((p) => glowLights.push({ x: p.x, z: p.z, radius: 1.2, color: new Color(1, 0.6, 0.25), intensity: 0.1, flicker: 1, phase: Math.random() }));
   glowLights.push({ x: OFRENDA.x, z: OFRENDA.z + 1, radius: 7, color: new Color(0.2, 0.9, 0.75), intensity: 0.35, flicker: 0 });
   glowLights.push({ x: TREE.x, z: TREE.z + 2, radius: 6, color: new Color(1, 0.92, 0.82), intensity: 0.5, flicker: 0 });
+  glowLights.push({ x: TABLE.x, z: TABLE.z, radius: 2.2, color: new Color(0.85, 0.9, 1), intensity: 0.6, flicker: 0 });
   const sources: LightSource[] = [
     { position: OFRENDA.clone().add(new Vector3(0, 4.2, 1.2)), color: new Color(0.3, 1, 0.85), intensity: 5, distance: 9 },
     { position: OFRENDA.clone().add(new Vector3(0, 0.9, 2.2)), color: new Color(1, 0.65, 0.3), intensity: 4, distance: 6 },
     { position: TREE.clone().add(new Vector3(0, 2.5, 3.5)), color: new Color(1, 0.95, 0.85), intensity: 7, distance: 10 },
+    { position: TABLE.clone().add(new Vector3(0, 1.1, 0)), color: new Color(0.85, 0.9, 1), intensity: 2.5, distance: 3.5 },
   ];
   scene.add(new HemisphereLight(0x284050, 0x080604, 0.3));
 
@@ -530,7 +578,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     offerOff = null;
     const w = await ctx.ui.askWish();
     if (!w) {
-      offerOff = ctx.ui.offer('Hang a wish', () => void hangWish());
+      offerOff = ctx.ui.offer('Write a wish', () => void hangWish());
       return;
     }
     const used = new Set(wishes.map((x) => x.anchor));
@@ -595,7 +643,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       }
       const nearTree = Math.hypot(w.position.x - TREE.x, w.position.z - TREE.z) < 9;
       if (nearTree) atTree += dt;
-      if (nearTree && !offerOff && !hung && finale < 0) offerOff = ctx.ui.offer('Hang a wish', () => void hangWish());
+      if (nearTree && !offerOff && !hung && finale < 0) {
+        offerOff = ctx.ui.offer('Write a wish', () => void hangWish());
+        ctx.ui.say('Write a wish at the table, and hang it on the tree.', 6);
+      }
       if (!nearTree && offerOff && finale < 0) {
         offerOff();
         offerOff = null;
@@ -634,6 +685,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     pick(ray: Ray): TapAction | null {
+      if (!hung && finale < 0 && ray.intersectsBox(tableBox.clone().translate(new Vector3(0, heightAt(TABLE.x, TABLE.z), 0)))) return () => void hangWish();
       if (ray.intersectsBox(candleBox.clone().translate(new Vector3(0, heightAt(OFRENDA.x, OFRENDA.z), 0)))) {
         // The nearest unlit candle to the ray.
         let best = -1;

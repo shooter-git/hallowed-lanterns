@@ -24,6 +24,7 @@ import { Path } from '../engine/rig.ts';
 import { aroundPath, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
+import { buildEntrance } from './entrance.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
 
 /**
@@ -33,6 +34,8 @@ import type { Chapter, ChapterContext, TapAction } from './types.ts';
  */
 
 const LANE_START = 2;
+const ENTRANCE = new Vector3(-6.5, 0, 21.5);
+const ENTRANCE_YAW = 0.82;
 const LANE_END = -50;
 const BAY = 4;
 const HALF = 2.75;
@@ -52,11 +55,14 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const { tier } = ctx;
   const rnd = rng(20261011);
   const scene = new Scene();
-  const bounds: Bounds = [-40, -80, 80, 100];
+  const bounds: Bounds = [-40, -80, 80, 125];
 
   // --- The walk: in under the pergola, down the lane, then off left into the trees. ---
+  // You begin in front of the hay-bale sign, then walk to the pergola.
   const path = new Path(
     [
+      [1, 27.5],
+      [1, 20],
       [0, 9],
       [0, 0],
       [0, -20],
@@ -66,9 +72,13 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       [-5, -61],
       [-9, -64],
     ],
-    (s) => (s < 58 ? 3.4 : 2.4),
+    (s) => (s < 17 ? 7 : s < 77 ? 3.4 : 2.4),
   );
-  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => -0.022 * s + 0.22 * Math.sin(s / 9) + (s > 58 ? -0.06 * (s - 58) : 0), bank: 0.05, rough: 0.45, seed: 12 }));
+  const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => -0.022 * s + 0.22 * Math.sin(s / 9) + (s > 77 ? -0.06 * (s - 77) : 0) + (s < 17 ? 0.012 * (17 - s) : 0), bank: 0.05, rough: 0.45, seed: 12 }));
+
+  // --- The entrance: the hay-bale wall with the night's name. ---
+  const entrance = buildEntrance(ctx, ENTRANCE, ENTRANCE_YAW, rnd);
+  scene.add(entrance.group, ...entrance.world);
 
   // --- Ground: gravel lane, dry grass all around. ---
   const mask = new GroundMask(bounds, 4);
@@ -215,6 +225,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   for (const l of ledPositions) {
     glowLights.push({ x: l.p.x, z: l.p.z, radius: 0.6, color: l.c, intensity: 0.35, flicker: 0 });
   }
+  glowLights.push(...entrance.glow);
 
   // --- Light, sky, fog. ---
   const hemi = new HemisphereLight(0xffc9a0, 0x1a1210, 0.5);
@@ -280,13 +291,13 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const fogDusk = new Color(0.035, 0.035, 0.06);
 
   // The lights that follow you.
-  const sources: LightSource[] = specs.filter((_, i) => i % 3 === 0).map((s) => ({
+  const sources: LightSource[] = [...entrance.sources, ...specs.filter((_, i) => i % 3 === 0).map((s) => ({
     position: s.position.clone().add(new Vector3(0, -0.05, 0.12)),
     color: s.glow.clone().multiplyScalar(1 / Math.max(1, s.glow.r)),
     intensity: 0.9,
     distance: 4.5,
     phase: s.phase as number,
-  }));
+  }))];
 
   // --- Story state. ---
   let time = 0;
@@ -301,6 +312,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     scene,
     path,
     terrain,
+    startYaw: Math.atan2(-(ENTRANCE.x - 1), -(ENTRANCE.z + 1.5 - 27.5)) - 0.12,
     music: 'arbor',
     ambience: 'arbor',
     steps: 'step-gravel',
@@ -317,7 +329,6 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       shared.uFogGlow.value = 0.55;
       ctx.audio.preload('arbor', ['pumpkin-flare', 'ember-chime-arbor', 'step-gravel']);
       ctx.audio.preload('grove');
-      waveStarted = 1.2;
     },
 
     update(dt) {
@@ -325,7 +336,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       const w = ctx.walker;
       const progress = Math.min(1, Math.max(0, w.s / (path.length - 6)));
 
-      // The wave: the lanterns wake from the entrance to the far end.
+      // The wave: the lanterns wake from the entrance to the far end, as you come near.
+      if (waveStarted < 0 && (w.position.z < 15 || time > 45)) waveStarted = time + 0.4;
       if (waveStarted >= 0 && time > waveStarted) {
         const front = (time - waveStarted) * 6.5 - 4;
         pumpkins.wave = front;
@@ -402,6 +414,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       fog.walkers[0]?.set(w.position.x, w.position.z);
       fog.update();
       pumpkins.update(ctx.camera, dt);
+      entrance.pumpkins.update(ctx.camera, dt);
     },
 
     pick(ray: Ray): TapAction | null {
@@ -424,6 +437,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
     dispose() {
       terrain.dispose();
+      entrance.dispose();
       pumpkins.dispose();
       fog.dispose();
       floor.geometry.dispose();

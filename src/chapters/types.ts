@@ -42,6 +42,8 @@ export type TapAction = () => void;
 export interface Chapter {
   readonly scene: Scene;
   readonly path: Path;
+  /** Which way you face when you arrive (radians); along the path if left out. */
+  readonly startYaw?: number;
   /** The lie of the land (gentle rises and dips); flat if left out. */
   readonly terrain?: Terrain;
   /** Music and ambience keys in the audio manifest. */

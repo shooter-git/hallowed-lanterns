@@ -103,7 +103,8 @@ export class Engine {
 
     portal.progress(0.35, 'Lighting candles');
     this.chapter = await this.build(0);
-    this.enter(this.chapter, false);
+    // Set the scene (light, sky, fog) now, so the title sits over the real place.
+    this.enter(this.chapter, true);
     portal.progress(0.75, 'Rolling in the fog');
     await renderer.compileAsync(this.chapter.scene, camera);
 
@@ -155,7 +156,7 @@ export class Engine {
           this.chapter.dispose();
           this.chapter = await this.build(n);
           this.index = n;
-          this.enter(this.chapter, false);
+          this.enter(this.chapter, true);
         }
         this.begin();
         const at = Number(q.get('at') ?? 0);
@@ -177,7 +178,6 @@ export class Engine {
     this.begun = true;
     void audio.setScene(this.chapter?.music ?? null, this.chapter?.ambience ?? null, 3);
     ui.showControls();
-    this.chapter?.enter();
     const info = CHAPTERS[this.index];
     if (info) setTimeout(() => ui.chapterCard(info.numeral, info.name, info.subtitle), 600);
     setTimeout(
@@ -215,6 +215,7 @@ export class Engine {
     chapter.scene.add(sky.mesh, ember.group, ember.trail);
     lights.attach(chapter.scene);
     walker.setPath(chapter.path, 0);
+    if (chapter.startYaw !== undefined) walker.yaw = chapter.startYaw;
     walker.autoTarget = null;
     if (run) chapter.enter();
   }

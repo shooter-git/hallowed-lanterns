@@ -21,6 +21,10 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .hl-ui {
   position: fixed;
   inset: 0;
