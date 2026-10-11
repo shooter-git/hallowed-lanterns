@@ -23,4 +23,11 @@ export const CHAPTERS: ChapterInfo[] = [
     subtitle: 'Nightfall, under a sky of lanterns',
     load: () => import('./garden.ts'),
   },
+  {
+    id: 'pasture',
+    numeral: 'IV',
+    name: 'The Pasture of Giants',
+    subtitle: 'Deep night, and something enormous is breathing',
+    load: () => import('./pasture.ts'),
+  },
 ];

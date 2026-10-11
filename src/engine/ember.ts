@@ -58,7 +58,7 @@ export class Ember {
             vUv = uv;
             // Billboard: keep the quad facing the camera, upright.
             vec3 centre = (modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-            float s = 0.42 * uPresence * (1.0 + 0.25 * uExcite);
+            float s = 0.3 * uPresence * (1.0 + 0.25 * uExcite);
             vec3 p = centre + vec3(position.x * s, (position.y + 0.18) * s * 1.5, 0.0);
             gl_Position = projectionMatrix * vec4(p, 1.0);
           }`,
@@ -76,8 +76,8 @@ export class Ember {
             float n2 = hlNoise(vec2(p.x * 13.0 + 3.0, p.y * 9.0 - uTime * 7.0)) - 0.5;
             p.x += (n * 0.16 + n2 * 0.06) * rise * (1.0 + uExcite);
             // Teardrop: round at the bottom, pointed at the top.
-            float w = mix(0.2, 0.02, smoothstep(0.0, 0.62, p.y + 0.12)) * (p.y < -0.05 ? 1.0 : 1.0);
-            float body = 1.0 - smoothstep(0.0, 1.0, length(vec2(p.x / max(w, 0.02), (p.y + 0.02) / 0.5)));
+            float w = mix(0.26, 0.03, smoothstep(-0.05, 0.5, p.y + 0.1));
+            float body = 1.0 - smoothstep(0.0, 1.0, length(vec2(p.x / max(w, 0.03), (p.y + 0.02) / 0.4)));
             body = clamp(body, 0.0, 1.0);
             float core = smoothstep(0.35, 0.9, body);
             vec3 col = mix(vec3(1.0, 0.22, 0.03), vec3(1.0, 0.62, 0.2), smoothstep(0.0, 0.5, body));
@@ -150,8 +150,14 @@ export class Ember {
     this.velocity.set(0, 0, 0);
   }
 
-  update(dt: number, pixelScale: number) {
+  update(dt: number, pixelScale: number, camera?: Vector3) {
     this.t += dt;
+    // Never right in your face: it keeps a polite distance from the camera.
+    if (camera) {
+      const away = new Vector3().subVectors(this.target, camera);
+      const d = away.length();
+      if (d < 1.6) this.target.copy(camera).addScaledVector(away.normalize(), 1.6);
+    }
     // A springy chase toward the target, with an idle bob and a wandering wobble.
     const k = this.agility;
     const to = new Vector3().subVectors(this.target, this.position);
@@ -161,6 +167,11 @@ export class Ember {
     const bob = Math.sin(this.t * 2.1) * 0.06 + Math.sin(this.t * 3.7) * 0.025;
     const wob = Math.sin(this.t * 1.3) * 0.04;
     this.group.position.set(this.position.x + wob, this.position.y + bob, this.position.z);
+    if (camera) {
+      const away = new Vector3().subVectors(this.group.position, camera);
+      const d = away.length();
+      if (d < 1.1) this.group.position.copy(camera).addScaledVector(away.normalize(), 1.1);
+    }
 
     const u = this.flame.material.uniforms;
     u.uPresence!.value = this.presence;

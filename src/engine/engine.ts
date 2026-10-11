@@ -265,7 +265,7 @@ export class Engine {
     if (this.transition) this.stepTransition(dt);
 
     const forward = new Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    ember.update(dt, renderer.domElement.height / (2 * Math.tan((camera.fov * Math.PI) / 360)));
+    ember.update(dt, renderer.domElement.height / (2 * Math.tan((camera.fov * Math.PI) / 360)), camera.position);
     lights.update(dt, camera.position, forward);
     glow.render(renderer);
     sky.update(camera.position);
