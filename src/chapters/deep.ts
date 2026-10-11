@@ -33,6 +33,7 @@ import { Path } from '../engine/rig.ts';
 import { aroundPath, onGround, Terrain } from '../engine/terrain.ts';
 import { hallow, SHADER_PARS, shared, VERTEX_TERRAIN } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
+import { woodland } from '../engine/canopy.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
 import { Drift } from '../engine/weather.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
@@ -273,6 +274,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     { leafTint: new Color(0.25, 0.32, 0.5), bark: new Color(0.03, 0.04, 0.07) },
   );
   scene.add(woods.group);
+  const canopy = woodland(path, {
+    canopy: [6.2, 10], reach: 10, skyGap: 0.3, density: tier === 'low' ? 1.3 : 2.2, wallFrom: 4.2, wallTo: 13, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
+    tint: new Color(0.22, 0.3, 0.55), seed: 51,
+    clear: (x, z, y) => Math.hypot(x - KEEPER.x, z - KEEPER.z) < 9 && y < 8,
+  });
+  scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 110, height: 16, color: new Color(0.004, 0.012, 0.04), under: new Color(0.01, 0.03, 0.12) }));
 
   // Jellyfish: glowing pumpkin bells with trailing ribbons.
@@ -614,6 +621,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       ctx.audio.setUnderwater(0);
       pumpkins.dispose();
       woods.dispose();
+      canopy.dispose();
       bubbles.dispose();
       floor.geometry.dispose();
       ribbonMesh.geometry.dispose();

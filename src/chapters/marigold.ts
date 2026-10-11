@@ -37,6 +37,7 @@ import { Path } from '../engine/rig.ts';
 import { hallow, SHADER_PARS, shared, VERTEX_TERRAIN } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import { aroundPath, heightAt, pointOnGround, Terrain } from '../engine/terrain.ts';
+import { woodland } from '../engine/canopy.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
 
@@ -308,6 +309,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     { species: 'oak', at: woodsAt.filter((_, i) => i % 2 === 1) },
   ]);
   scene.add(woods.group);
+  const canopy = woodland(path, {
+    canopy: [5.5, 10], reach: 13, skyGap: 0.5, density: tier === 'low' ? 1.2 : 2, wallFrom: 5.5, wallTo: 15, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
+    tint: new Color(0.38, 0.45, 0.4), seed: 61,
+    clear: (x, z, y) => Math.hypot(x - OFRENDA.x, z - OFRENDA.z) < 8 || (Math.hypot(x - TREE.x, z - TREE.z) < 6 && y < 6.5),
+  });
+  scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 110, height: 16, color: new Color(0.004, 0.008, 0.012), under: new Color(0.03, 0.025, 0.012) }));
 
   // --- The ofrenda. ---
@@ -719,6 +726,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       offerOff?.();
       terrain.dispose();
       woods.dispose();
+      canopy.dispose();
       butterflies.dispose();
       sky.dispose();
       fog.dispose();

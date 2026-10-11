@@ -11,6 +11,7 @@ import { Path } from '../engine/rig.ts';
 import { aroundPath, heightAt, onGround, Terrain } from '../engine/terrain.ts';
 import { shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
+import { woodland } from '../engine/canopy.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
 
@@ -174,6 +175,13 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     { species: 'young', at: woodsAt.filter((_, i) => i % 2 === 1) },
   ]);
   scene.add(woods.group);
+  const canopy = woodland(path, {
+    canopy: [5.2, 9.5], reach: 11, skyGap: 0.35, density: tier === 'low' ? 1.2 : 2, wallFrom: 3.2, wallTo: 14, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
+    tint: new Color(0.4, 0.46, 0.42), seed: 21,
+    // Keep the Lantern Sky open above and around its tree, and the lounge's lanterns clear.
+    clear: (x, z, y) => (Math.hypot(x - SKY_TREE.x, z - SKY_TREE.z) < 17 && y > 2.2) || (Math.hypot(x - SEAT.x, z - SEAT.z) < 3.5 && y < 3),
+  });
+  scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 110, height: 17, color: new Color(0.005, 0.007, 0.018), under: new Color(0.06, 0.015, 0.02) }));
 
   // The lounge: a pallet sofa with a hay-bale seat, pallets of real pumpkins, lanterns on hooks.
@@ -330,6 +338,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       pumpkins.dispose();
       big.dispose();
       woods.dispose();
+      canopy.dispose();
       floor.geometry.dispose();
       fences.geometry.dispose();
       fairy.mesh.geometry.dispose();

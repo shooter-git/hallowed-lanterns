@@ -29,6 +29,7 @@ import { Path } from '../engine/rig.ts';
 import { aroundPath, pointOnGround, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
+import { woodland } from '../engine/canopy.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
 
@@ -111,6 +112,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     { species: 'oak', at: ring.filter((_, i) => i % 2 === 1) },
   ]);
   scene.add(woods.group);
+  const canopy = woodland(path, {
+    canopy: [5.5, 10], reach: 12, skyGap: 0.4, density: tier === 'low' ? 1.4 : 2.4, wallFrom: 4.5, wallTo: 14, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
+    tint: new Color(0.38, 0.42, 0.5), seed: 31,
+    clear: (x, z, y) => Math.hypot(x - STAGE.x, z - STAGE.z) < 7.5 && y < 5.5,
+  });
+  scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 100, height: 16, color: new Color(0.004, 0.006, 0.02), under: new Color(0.02, 0.02, 0.06) }));
 
   // Pumpkins of every kind.
@@ -214,7 +221,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const paint = [new Color(0.95, 0.75, 0.1), new Color(0.95, 0.45, 0.08), new Color(0.98, 0.9, 0.3)];
   const shells = [new Color(0.35, 0.06, 0.03), new Color(0.06, 0.04, 0.1), new Color(0.5, 0.05, 0.04), new Color(0.32, 0.12, 0.32), new Color(0.6, 0.25, 0.04)];
   for (let i = 0; i < 8; i++) {
-    const r = 0.15 + i * 0.006;
+    const r = 0.195 - i * 0.007; // bigger pumpkins ring lower
     xylo.push(
       add({
         position: STAGE.clone().add(new Vector3(-1.6 + i * 0.46, 0.35 + r * 0.6, 2.25)),
@@ -453,6 +460,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       pumpkins.dispose();
       oak.dispose();
       woods.dispose();
+      canopy.dispose();
       sprinkles.dispose();
       floor.geometry.dispose();
       for (const c of corns) c.geometry.dispose();

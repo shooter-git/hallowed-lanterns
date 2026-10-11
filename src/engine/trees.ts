@@ -41,11 +41,13 @@ export interface TreeSpecies {
   seed: number;
 }
 
-export const SPECIES: Record<'oak' | 'tall' | 'young' | 'bush', TreeSpecies> = {
+export const SPECIES: Record<'oak' | 'tall' | 'young' | 'bush' | 'pole', TreeSpecies> = {
   oak: { height: 9, trunkRadius: 0.32, spread: 0.75, depth: 3, children: 4, crownStart: 0.3, leafSize: 1.5, leafDensity: 4, lift: 0.25, seed: 11 },
   tall: { height: 12, trunkRadius: 0.22, spread: 0.42, depth: 3, children: 3, crownStart: 0.45, leafSize: 1.3, leafDensity: 4, lift: 0.55, seed: 23 },
   young: { height: 6, trunkRadius: 0.12, spread: 0.5, depth: 2, children: 4, crownStart: 0.35, leafSize: 1.1, leafDensity: 5, lift: 0.45, seed: 37 },
   /** Undergrowth: low, dense, many-stemmed. */
+  /** A tall bare trunk with a few big limbs (the woodland canopy cards give it its leaves). */
+  pole: { height: 11, trunkRadius: 0.2, spread: 0.38, depth: 1, children: 3, crownStart: 0.55, leafSize: 1, leafDensity: 0, lift: 0.5, seed: 53 },
   bush: { height: 1.8, trunkRadius: 0.04, spread: 0.9, depth: 2, children: 5, crownStart: 0.05, leafSize: 0.75, leafDensity: 5, lift: 0.4, seed: 41 },
 };
 
@@ -306,7 +308,7 @@ export function forest(
     const leaves = foliageGeometry(tips, sp.leafSize, centre, sp.seed + 1);
     disposables.push(bark, leaves);
     const barkMesh = new InstancedMesh(bark, barkMat, at.length);
-    const leafMesh = options.leafless ? null : new InstancedMesh(leaves, leafMat, at.length);
+    const leafMesh = options.leafless || tips.length === 0 ? null : new InstancedMesh(leaves, leafMat, at.length);
     at.forEach((p, i) => {
       const s = p.scale ?? 1;
       q.setFromAxisAngle(new Vector3(0, 1, 0), p.yaw ?? 0);

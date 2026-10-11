@@ -24,6 +24,7 @@ import { Path } from '../engine/rig.ts';
 import { aroundPath, pointOnGround, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
+import { woodland } from '../engine/canopy.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
 import { Billboards, Breath, Drift, snowflakeTexture } from '../engine/weather.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
@@ -91,6 +92,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   for (let k = 0; k < 9; k++) bushAt.push({ x: SNOWMAN.x - 3 + k * 0.8 + (rnd() - 0.5) * 0.4, z: SNOWMAN.z - 1.8 - rnd() * 1.4, scale: 0.9 + rnd() * 0.6, yaw: rnd() * 6 });
   const bushes = forest([{ species: 'bush', at: bushAt }], { leafTint: new Color(0.75, 0.82, 0.8), bark: new Color(0.05, 0.04, 0.04) });
   scene.add(bushes.group);
+  const canopy = woodland(path, {
+    canopy: [4.6, 8.5], reach: 9, skyGap: 0.3, density: tier === 'low' ? 1.4 : 2.4, wallFrom: 3, wallTo: 12, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 5,
+    tint: new Color(0.55, 0.62, 0.62), seed: 41,
+    clear: (x, z, y) => Math.hypot(x - SNOWMAN.x, z - SNOWMAN.z) < 2.6 && y < 4,
+  });
+  scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 110, height: 16, color: new Color(0.02, 0.025, 0.04), under: new Color(0.02, 0.03, 0.06) }));
 
   // The snowman: the model, or three striped gourds with a hat, a carrot and a corn-cob mug.
@@ -314,6 +321,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       terrain.dispose();
       woods.dispose();
       bushes.dispose();
+      canopy.dispose();
       snow.dispose();
       breath.dispose();
       ornaments.dispose();

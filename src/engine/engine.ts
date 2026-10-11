@@ -46,10 +46,16 @@ export class Engine {
   async boot() {
     const portal = this.portal;
     const forced = import.meta.env.DEV ? new URLSearchParams(location.search).get('tier') : null;
-    const tier = (forced ?? portal.tier) as Tier;
     portal.progress(0.05, 'Gathering pumpkins');
     this.stage = createStage(portal, { fov: 62, shadows: false, antialias: false });
     const { renderer, camera } = this.stage;
+    // Drawn without a graphics card (a software renderer): use the lightest settings so the
+    // page keeps answering.
+    let tier = (forced ?? portal.tier) as Tier;
+    const gl = renderer.getContext();
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    const name = String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    if (!forced && /swiftshader|llvmpipe|software|basic render/i.test(name)) tier = 'low';
     renderer.toneMapping = NoToneMapping;
     renderer.setClearColor(0x000000, 1);
     camera.near = 0.05;

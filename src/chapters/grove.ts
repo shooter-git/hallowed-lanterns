@@ -21,6 +21,7 @@ import { Path } from '../engine/rig.ts';
 import { aroundPath, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
+import { woodland } from '../engine/canopy.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
 
@@ -84,16 +85,20 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(floor);
 
   // The woods.
-  const trees = lineThePath(path.points, 4.2, { spacing: tier === 'low' ? 6 : 4.2, depth: tier === 'low' ? 2 : 3, seed: 7 });
+  // Dense woods: trees right at the path's edge, bare trunks behind, a closed canopy overhead.
+  const trees = lineThePath(path.points, 3.4, { spacing: tier === 'low' ? 4.5 : 3.4, depth: 1, seed: 7 });
+  const back = lineThePath(path.points, 6.5, { spacing: tier === 'low' ? 5 : 3.6, depth: tier === 'low' ? 2 : 3, seed: 8 });
   const woods = forest(
     [
-      { species: 'tall', at: trees.filter((_, i) => i % 3 === 0) },
-      { species: 'oak', at: trees.filter((_, i) => i % 3 === 1) },
-      { species: 'young', at: trees.filter((_, i) => i % 3 === 2) },
+      { species: 'tall', at: trees.filter((_, i) => i % 2 === 0) },
+      { species: 'young', at: trees.filter((_, i) => i % 2 === 1) },
+      { species: 'pole', at: back },
     ],
     { leafTint: new Color(0.42, 0.5, 0.4) },
   );
   scene.add(woods.group);
+  const canopy = woodland(path, { canopy: [5.5, 10], reach: 10, skyGap: 0.55, density: tier === 'low' ? 1.4 : 2.4, wallFrom: 3.4, wallTo: 13, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 5, tint: new Color(0.42, 0.5, 0.42), seed: 11 });
+  scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 120, height: 18, color: new Color(0.006, 0.008, 0.02), under: new Color(0.04, 0.02, 0.02) }));
 
   // The lanterns: hanging high in the branches on long strings, thickest over the path.
@@ -339,6 +344,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       terrain.dispose();
       pumpkins.dispose();
       woods.dispose();
+      canopy.dispose();
       fog.dispose();
       floor.geometry.dispose();
       leds.geometry.dispose();
