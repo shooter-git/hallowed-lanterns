@@ -279,3 +279,89 @@ body {
     transition-duration: 0.01s;
   }
 }
+
+/* Wishes. */
+.hl-dialog {
+  position: absolute;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(92vw, 26rem);
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid var(--hl-edge);
+  background: rgba(14, 9, 8, 0.86);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: auto;
+  box-sizing: border-box;
+  z-index: 20;
+}
+.hl-dialog-title {
+  margin: 0 0 10px;
+  font: 400 1.15rem / 1.2 var(--hl-serif);
+}
+.hl-dialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 200, 140, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--hl-ink);
+  font: italic 400 1.05rem / 1.35 var(--hl-serif);
+  resize: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.hl-dialog textarea:focus {
+  outline: 2px solid rgba(255, 200, 140, 0.7);
+}
+.hl-dialog-row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.hl-chip {
+  min-height: 44px;
+  padding: 0 1em;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+}
+.hl-chip[aria-checked="true"] {
+  border-color: rgba(255, 255, 255, 0.8);
+}
+.hl-coral {
+  box-shadow: inset 0 0 0 999px rgba(255, 120, 100, 0.25);
+}
+.hl-teal {
+  box-shadow: inset 0 0 0 999px rgba(80, 210, 190, 0.22);
+}
+.hl-quiet {
+  background: transparent;
+}
+.hl-go {
+  background: rgba(120, 60, 15, 0.6);
+}
+.hl-offer {
+  position: absolute;
+  left: 50%;
+  bottom: calc(86px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  font: 400 1.05rem / 1 var(--hl-serif) !important;
+  box-shadow: 0 0 26px rgba(255, 150, 60, 0.35);
+}
+@media (orientation: portrait) {
+  .hl-ui[data-touch="1"] .hl-offer {
+    bottom: calc(238px + env(safe-area-inset-bottom));
+  }
+}
+.hl-ending {
+  background: radial-gradient(ellipse at 50% 50%, rgba(10, 6, 8, 0.2), rgba(5, 3, 6, 0.75) 80%);
+  pointer-events: auto;
+}

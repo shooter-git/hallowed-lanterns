@@ -98,6 +98,7 @@ export class Engine {
         return s;
       },
       reducedMotion: portal.reducedMotion,
+      restart: () => this.goTo(0),
     };
 
     portal.progress(0.35, 'Lighting candles');

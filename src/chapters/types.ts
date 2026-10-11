@@ -32,6 +32,8 @@ export interface ChapterContext {
   /** Baked ground textures (made once, shared between chapters). */
   surface(kind: SurfaceKind): SurfaceMaps;
   reducedMotion: boolean;
+  /** Back to the beginning of the night. */
+  restart: () => void;
 }
 
 /** What happens when someone taps something. */

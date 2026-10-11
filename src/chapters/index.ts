@@ -51,4 +51,11 @@ export const CHAPTERS: ChapterInfo[] = [
     subtitle: 'Where the lanterns swim',
     load: () => import('./deep.ts'),
   },
+  {
+    id: 'marigold',
+    numeral: 'VIII',
+    name: 'The Marigold Garden',
+    subtitle: 'Remember, and make a wish',
+    load: () => import('./marigold.ts'),
+  },
 ];

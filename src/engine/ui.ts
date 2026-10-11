@@ -129,6 +129,87 @@ export class UI {
     }
   }
 
+  /**
+   * Asks for a wish: a few words and a leaf colour. Resolves with them, or null if they'd rather
+   * not. Nothing leaves the creation except into the group's own saves.
+   */
+  askWish(): Promise<{ text: string; color: 'coral' | 'teal' } | null> {
+    return new Promise((resolve) => {
+      const panel = document.createElement('div');
+      panel.className = 'hl-dialog';
+      panel.setAttribute('role', 'dialog');
+      panel.setAttribute('aria-label', 'Hang a wish on the tree');
+      panel.innerHTML = `
+        <p class="hl-dialog-title">Hang a wish on the tree</p>
+        <textarea maxlength="80" rows="2" placeholder="A few words — for someone, or for something"></textarea>
+        <div class="hl-dialog-row" role="radiogroup" aria-label="Leaf colour">
+          <button type="button" class="hl-chip hl-coral" role="radio" aria-checked="true" data-c="coral">Coral leaf</button>
+          <button type="button" class="hl-chip hl-teal" role="radio" aria-checked="false" data-c="teal">Teal leaf</button>
+        </div>
+        <div class="hl-dialog-row">
+          <button type="button" class="hl-button hl-quiet" data-a="cancel">Not now</button>
+          <button type="button" class="hl-button hl-go" data-a="hang">Hang it</button>
+        </div>`;
+      let color: 'coral' | 'teal' = 'coral';
+      const text = panel.querySelector('textarea') as HTMLTextAreaElement;
+      panel.querySelectorAll<HTMLButtonElement>('.hl-chip').forEach((b) =>
+        b.addEventListener('click', () => {
+          color = b.dataset.c as 'coral' | 'teal';
+          panel.querySelectorAll('.hl-chip').forEach((o) => o.setAttribute('aria-checked', o === b ? 'true' : 'false'));
+        }),
+      );
+      const done = (v: { text: string; color: 'coral' | 'teal' } | null) => {
+        panel.remove();
+        resolve(v);
+      };
+      (panel.querySelector('[data-a="cancel"]') as HTMLButtonElement).addEventListener('click', () => done(null));
+      (panel.querySelector('[data-a="hang"]') as HTMLButtonElement).addEventListener('click', () => {
+        const t = text.value.replace(/\s+/g, ' ').trim();
+        done({ text: t || '✶', color });
+      });
+      this.root.append(panel);
+      setTimeout(() => text.focus(), 50);
+    });
+  }
+
+  /** A wish someone hung, shown for a few seconds. */
+  showWish(text: string, by: string) {
+    this.say(by ? `“${text}” — ${by}` : `“${text}”`, 6);
+  }
+
+  /** A soft call to action floating low in the frame (e.g. "Hang a wish"). Returns a remover. */
+  offer(label: string, onClick: () => void): () => void {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'hl-button hl-offer';
+    b.textContent = label;
+    b.addEventListener('click', onClick);
+    this.root.append(b);
+    return () => b.remove();
+  }
+
+  /** The end of the night. */
+  ending(onAgain: () => void) {
+    const card = document.createElement('div');
+    card.className = 'hl-title hl-show hl-ending';
+    card.innerHTML = `
+      <div class="hl-title-inner">
+        <p class="hl-kicker">and every light found its way home</p>
+        <h1>Hallowed Lanterns</h1>
+        <p class="hl-small">Thank you for walking with us tonight.</p>
+        <div class="hl-dialog-row" style="justify-content:center;margin-top:1.4em">
+          <button type="button" class="hl-button hl-quiet" data-a="stay">Stay a while</button>
+          <button type="button" class="hl-begin" data-a="again">Walk again</button>
+        </div>
+      </div>`;
+    (card.querySelector('[data-a="stay"]') as HTMLButtonElement).addEventListener('click', () => card.remove());
+    (card.querySelector('[data-a="again"]') as HTMLButtonElement).addEventListener('click', () => {
+      card.remove();
+      onAgain();
+    });
+    this.root.append(card);
+  }
+
   toggleMenu(show = this.menu.hidden) {
     this.menu.hidden = !show;
     this.menuButton.setAttribute('aria-expanded', show ? 'true' : 'false');
