@@ -18,12 +18,12 @@ The story, chapter by chapter, is in [docs/STORY.md](docs/STORY.md); how it's bu
 |---|---|---|
 | I | The Arbor of Faces | The hay-bale sign at sunset, then a lane under hundreds of carved jack-o'-lanterns that wake as the sun goes. One loses its flame. |
 | II | The Candle Grove | Blue hour. Candle-carved pumpkins hang in the trees over red-lit rolling fog; the Ember plays hide and seek. |
-| III | The Lantern Garden | A tunnel of red lanterns the Ember lights as it runs ahead, the Lantern Sky, and a lounge where you can sit. |
-| IV | The Pasture of Giants | Three enormous glowing longhorns breathe under the stars; the tall one lowers its head to look at you. |
-| V | Sweet Hollow | Candy land under a violet oak. Play the Ember's song on the letter pumpkins. |
+| III | The Lantern Garden | A tunnel of red lanterns the Ember lights as it runs ahead, the Lantern Sky, a giant owl, and a lounge where you can sit. |
+| IV | The Pasture of Giants | Three enormous glowing longhorns breathe under the stars; then a picture show in a clearing. |
+| V | Sweet Hollow | Through the Web (a pumpkin spider, a neon mantis) to candy land under a violet oak. Play the Ember's song on the letter pumpkins. |
 | VI | October Snow | It snows; a gourd snowman raises his corn-cob mug; the snowflakes slow, stop, and rise… |
-| VII | The Deep | …into bubbles. Pumpkin jellyfish, coral, and the Keeper of the Deep, who waves back. |
-| VIII | The Marigold Garden | Light a candle at the ofrenda, write a wish and hang it on the Wishing Tree. |
+| VII | The Deep | …into bubbles. Pumpkin jellyfish, the Kraken's Wreck and its treasure, and the Keeper of the Deep, who waves back. |
+| VIII | The Marigold Garden | Light a candle at the ofrenda, play the giant guitar, write a wish and hang it on the Wishing Tree. |
 
 You walk at your own pace the whole way (or let "Walk with me" walk for you). Candles you light
 and wishes you hang are kept for your group, and everyone in the session walks the same night as a
@@ -66,6 +66,8 @@ in `vendor/`), so a server can follow it:
   light the ground and fog, carved-pumpkin and paper-lantern shaders, the terrain, the walk,
   the Ember, sound, the people walking with you, the interface.
 - `src/chapters/` — one module per chapter, each loaded only when you get there.
+- `src/scenes/` — set pieces placed inside chapters (the owl, the picture show, the Web, the
+  Kraken's Wreck, the guitar).
 - `tools/blender/` — Blender scripts that model the longhorns, the octopus, the snowman, the
   ofrenda and the rest (`blender -b --factory-startup -P tools/blender/<name>.py`).
 - `tools/audio/` — the soundtrack and every sound, synthesised from scratch in Python
