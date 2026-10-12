@@ -17,10 +17,10 @@ The story, chapter by chapter, is in [docs/STORY.md](docs/STORY.md); how it's bu
 | | Chapter | |
 |---|---|---|
 | I | The Arbor of Faces | The hay-bale sign at sunset, then a lane under hundreds of carved jack-o'-lanterns that wake as the sun goes. One loses its flame. |
-| II | The Candle Grove | Blue hour. Candle-carved pumpkins hang in the trees over red-lit rolling fog; the Ember plays hide and seek. |
+| II | The Candle Grove | Blue hour. Candle-carved pumpkins hang in the trees over red-lit rolling fog, which wells out of a magical well; the Ember plays hide and seek. |
 | III | The Lantern Garden | A tunnel of red lanterns the Ember lights as it runs ahead, the Lantern Sky, a giant owl, and a lounge where you can sit. |
 | IV | The Pasture of Giants | Three enormous glowing longhorns breathe under the stars; then a picture show in a clearing. |
-| V | Sweet Hollow | Through the Web (a pumpkin spider, a neon mantis) to candy land under a violet oak. Play the Ember's song on the letter pumpkins. |
+| V | Sweet Hollow | Through the Web (a pumpkin spider, a neon mantis), past a giant fly-eating Venus flytrap, to candy land under a violet oak. Play the Ember's song on the letter pumpkins. |
 | VI | October Snow | It snows; a gourd snowman raises his corn-cob mug; the snowflakes slow, stop, and rise… |
 | VII | The Deep | …into bubbles. Pumpkin jellyfish, the Kraken's Wreck and its treasure, and the Keeper of the Deep, who waves back. |
 | VIII | The Marigold Garden | Light a candle at the ofrenda, play the giant guitar, write a wish and hang it on the Wishing Tree. |
@@ -71,13 +71,20 @@ in `vendor/`), so a server can follow it:
   Kraken's Wreck, the guitar).
 - `tools/blender/` — Blender scripts that model the longhorns, the octopus, the snowman, the
   ofrenda and the rest (`blender -b --factory-startup -P tools/blender/<name>.py`).
-- `tools/audio/` — the soundtrack and every sound, synthesised from scratch in Python, and the
-  footsteps, cut from CC0 recordings (see its README).
+- `tools/audio/` — the soundtrack and every sound, composed and made in Python: a sampler that
+  plays the VSCO 2 CE orchestra, synthesised textures, and real CC0 foley cut into sounds (see
+  its README).
 - `node tools/lock-assets.mjs` — records new models and sounds in `assets.lock.json` as our own.
 
-Every picture, model and sound is made by this project's own tools, except the footsteps: real
-studio foley by Joseph Sardin ([BigSoundBank](https://bigsoundbank.com)), released under CC0. Thank
-you, Joseph.
+Every picture, model and sound is made by this project's own tools, with two kinds of borrowed
+recordings, both released under CC0:
+
+- The orchestra is played from [VSCO 2 Community Edition](https://github.com/sgossner/VSCO-2-CE)
+  by Versilian Studios: the score is composed and performed by `tools/audio`, on their recordings.
+- The footsteps, the fly, the flytrap's snap and the coin down the well are cut from studio
+  foley by Joseph Sardin ([BigSoundBank](https://bigsoundbank.com)).
+
+Thank you, both.
 
 ## Privacy
 

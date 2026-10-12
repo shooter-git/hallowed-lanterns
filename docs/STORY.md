@@ -33,8 +33,10 @@ violet and peach, and purple and orange path lights run along both edges.
 - Near the end of the lane, one lantern sputters and its flame hops out: **the Ember**. It looks
   at you, waits, and darts off into the trees.
 
-*Music — "Sundown":* music box and warm strings in a slow 6/8. *Around you:* the last birds of the
-day giving way to the first crickets, gravel under your feet, distant happy voices.
+*Music — "Sundown":* a felt-piano figure turning against the bar, the Ember's motif slowed into a
+canon for clarinet, bassoon, flute and solo violin, plucked bass, an organ pedal and distant horns.
+*Around you:* the last birds of the day giving way to the first crickets, gravel under your feet,
+distant happy voices.
 
 ## II. The Candle Grove — blue hour
 
@@ -45,9 +47,14 @@ you walk.
 
 - The Ember plays **hide and seek**. It hides inside a hanging pumpkin, which glows brighter and
   hums. Find it three times and it leads you on.
+- At the bend, **the magical well**: an old stone well under a little shingled roof, ivy up its
+  posts, with red-lit fog welling out of it and spilling over the rim. It's where the grove's
+  fog comes from. Toss a coin in: it rings off the stone, falls a long way, and the well breathes
+  out a surge of fog as the echo comes back up.
 
-*Music — "Blue Hour":* harp and celesta arpeggios over a soft choir. *Around you:* leaves in the
-wind, crickets, the hush of the fog.
+*Music — "Blue Hour":* in 7/8: a glass arpeggio and its mirror image, a plucked pedal, the motif in
+clarinet then in close canon for solo violin, flute and bassoon, over ticking strings. *Around
+you:* leaves in the wind, crickets, the hush of the fog.
 
 ## III. The Lantern Garden — nightfall
 
@@ -65,8 +72,9 @@ crickets come closer, and the lanterns overhead sway as one in a warm breeze.
   eyes, a body of glowing pumpkins carved with feathers, and enormous wings of pale blue feathers.
   Tap it and it hoots, blinks and ruffles its wings.
 
-*Music — "Lantern Song":* plucked zither and bamboo flute, pentatonic and unhurried. *Around
-you:* rustling reeds, soft wind chimes.
+*Music — "Lantern Song":* a harp pattern that grows a note at a time, cycling organ, woodwinds
+trading notes, a small fugue for winds, horn and violin, and plucked harmony. *Around you:*
+rustling reeds, soft wind chimes.
 
 ## IV. The Pasture of Giants — deep night
 
@@ -83,8 +91,9 @@ Past the herd, in a clearing ringed by trees, there's a **picture show**: a scre
 of hay bales, white benches, strings of purple and blue globe lights overhead, green lights along
 the bales. Sit on a bench and watch the film — a shadow-puppet tale of the Ember's own night.
 
-*Music — "Gentle Giants":* low cello and horn in open fifths, big and still. *Around you:* an open
-field of crickets and the quiet hum of the night.
+*Music — "Gentle Giants":* brass entering in canon over a dotted string ostinato, a clarinet and
+solo violin turning the motif upside down, and one deep swell. *Around you:* an open field of
+crickets and the quiet hum of the night.
 
 ## V. Sweet Hollow — candy land
 
@@ -93,6 +102,12 @@ ceiling of it, strands everywhere — with pumpkins wrapped in web and tiny neon
 giant pumpkin spider with pink spiral eyes watches from the middle, and a neon-green praying mantis
 turns its head to follow you. The Ember flies straight into the web and gets stuck: tap the web to
 free it.
+
+Just past it, set back among the trees: **a giant fly-eating Venus flytrap**, its head as wide as
+a car, green outside and deep red within, long teeth along its lips and a fly the size of a cat
+caught between them. Hay bales strung with teal lights and a few glowing pumpkins sit at its
+feet. The fly buzzes now and then; tap the trap and it snaps shut (the little ones too), holds,
+and slowly opens again.
 
 
 Under an old oak washed in violet light: a giant jack-o'-lantern candy bucket with a glowing
@@ -103,7 +118,8 @@ pumpkins, and rows of letter pumpkins.
   whole hollow bursts into sprinkles.
 - Gummy bears wobble and squeak. The Ember dives into the bucket and pops out again.
 
-*Music — "Sugar Rush":* pizzicato strings and glockenspiel, playful.
+*Music — "Sugar Rush":* a marimba cycle with plucked strings tossing a quick version of the motif
+between them, and woodwinds in growing groups.
 
 ## VI. October Snow
 
@@ -113,8 +129,9 @@ trees. Everything goes hushed, and you can see your breath.
 
 - Catch snowflakes (tap them); each one rings a tiny bell.
 
-*Music — "First Snow":* celesta and sleigh bells, very quiet. *Around you:* the muffled hush of
-snow, soft crunching steps.
+*Music — "First Snow":* harp against glass in four-against-three, a clarinet and solo violin canon,
+and plucked strings falling like snow. *Around you:* the muffled hush of snow, soft crunching
+steps.
 
 ## VII. The Deep
 
@@ -135,8 +152,9 @@ for a head and ember-orange eyes. It turns to look at you.
 - **Wave to it** (tap it) and it waves a tentacle back.
 - Jellyfish pulse brighter as you pass beneath them. Tap a pufferfish and it puffs up.
 
-*Music — "Where the Lanterns Swim":* whale-song pads and a slow choir that swells when the Keeper
-rises.
+*Music — "Where the Lanterns Swim":* a five-note arpeggio sliding through a slow tidal filter,
+mirrored glass, gliding whale-like glass tones, and a horn and violin canon; when the Keeper rises,
+the whole orchestra swells.
 
 ## VIII. The Marigold Garden — finale
 
@@ -161,7 +179,9 @@ little lamp, pencils and leaf cards is where people write them.
 - The Ember settles on a branch and becomes a leaf of light. The lanterns in every chapter glow
   once, all together, and the night fades gently out.
 
-*Music — "Remember Me":* nylon guitar and strings, ending on the full "Hallowed Lanterns" theme.
+*Music — "Remember Me":* an upright-piano cycle that turns from major to minor inside its own
+figure, the motif in the right hand with a clarinet canon, a flute counterline and plucked strings,
+ending on the full "Hallowed Lanterns" theme.
 
 ## Together
 

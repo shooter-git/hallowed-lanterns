@@ -26,6 +26,7 @@ import { Burst, RAINBOW } from '../engine/particles.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
+import { flytrap } from '../scenes/flytrap.ts';
 import { web } from '../scenes/web.ts';
 import { aroundPath, pointOnGround, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
@@ -84,6 +85,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const scene = new Scene();
   const bounds: Bounds = [-40, -70, 80, 118];
   const WEB = new Vector3(0, 0, 24);
+  // Just past the Web, set back on the right: the giant flytrap over its hay bales.
+  const FLYTRAP = new Vector3(5.8, 0, 8.5);
 
   const path = new Path(
     [
@@ -111,7 +114,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const oak = forest([{ species: 'oak', at: [{ x: STAGE.x + 0.4, z: STAGE.z - 2.2, scale: 1.5, yaw: 2 }] }], { leafTint: new Color(0.4, 0.45, 0.42) });
   scene.add(oak.group);
   const ring = lineThePath(path.points, 6.5, { spacing: 5, depth: 2, seed: 15 }).filter(
-    (t) => Math.hypot(t.x - STAGE.x, t.z - STAGE.z) > 6 && !(Math.abs(t.x - WEB.x) < 9 && Math.abs(t.z - WEB.z) < 9.5),
+    (t) => Math.hypot(t.x - STAGE.x, t.z - STAGE.z) > 6 && !(Math.abs(t.x - WEB.x) < 9 && Math.abs(t.z - WEB.z) < 9.5) && Math.hypot(t.x - FLYTRAP.x, t.z - FLYTRAP.z) > 5,
   );
   const woods = forest([
     { species: 'tall', at: ring.filter((_, i) => i % 2 === 0) },
@@ -121,7 +124,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const canopy = woodland(path, {
     canopy: [5.5, 10], reach: 12, skyGap: 0.4, density: tier === 'low' ? 1.4 : 2.4, wallFrom: 4.5, wallTo: 14, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
     tint: new Color(0.38, 0.42, 0.5), seed: 31,
-    clear: (x, z, y) => (Math.hypot(x - STAGE.x, z - STAGE.z) < 7.5 && y < 5.5) || (Math.abs(x - WEB.x) < 8.2 && Math.abs(z - WEB.z) < 8.5 && y < 4.8),
+    clear: (x, z, y) => (Math.hypot(x - STAGE.x, z - STAGE.z) < 7.5 && y < 5.5) || (Math.abs(x - WEB.x) < 8.2 && Math.abs(z - WEB.z) < 8.5 && y < 4.8) || (Math.hypot(x - FLYTRAP.x, z - FLYTRAP.z) < 4.8 && y < 6.2),
   });
   scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 100, height: 16, color: new Color(0.004, 0.006, 0.02), under: new Color(0.02, 0.02, 0.06) }));
@@ -129,6 +132,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   // The Web, on the way in.
   const theWeb = await web(ctx, WEB, 0);
   scene.add(...theWeb.objects);
+  // Facing the path (its hay bales towards you).
+  const theTrap = await flytrap(ctx, FLYTRAP, -Math.PI / 2);
+  scene.add(...theTrap.objects);
   let webState: 'waiting' | 'caught' | 'free' = 'waiting';
   theWeb.hooks.onFree = () => {
     webState = 'free';
@@ -324,7 +330,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   for (const g of bucketModel?.glows.values() ?? []) g.emissiveIntensity = 3;
 
   // Coloured uplights: violet on the oak, magenta and amber on the candy, blue in the woods.
-  const glowLights: GlowLight[] = [...pumpkins.glowLights(1.6, 0.35), ...handleLights.lights, ...theWeb.glow];
+  const glowLights: GlowLight[] = [...pumpkins.glowLights(1.6, 0.35), ...handleLights.lights, ...theWeb.glow, ...theTrap.glow];
   const wash = (x: number, z: number, c: Color, r: number, i: number) => glowLights.push({ x: STAGE.x + x, z: STAGE.z + z, radius: r, color: c, intensity: i, flicker: 0 });
   wash(0.4, -2.2, new Color(0.45, 0.2, 1), 5, 0.7);
   wash(-5.5, -1, new Color(1, 0.2, 0.7), 4, 0.5);
@@ -333,6 +339,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   for (let i = 0; i < 10; i++) wash((rnd() - 0.5) * 30, -6 - rnd() * 14, new Color(0.15, 0.3, 1), 5, 0.4);
   const sources: LightSource[] = [
     ...theWeb.sources,
+    ...theTrap.sources,
     { position: STAGE.clone().add(new Vector3(0.4, 0.5, -1.2)), color: new Color(0.55, 0.25, 1), intensity: 6, distance: 9 },
     { position: STAGE.clone().add(new Vector3(-4.5, 0.4, 0.8)), color: new Color(1, 0.3, 0.75), intensity: 4, distance: 6 },
     { position: STAGE.clone().add(new Vector3(4.5, 0.4, 0.8)), color: new Color(1, 0.45, 0.6), intensity: 4, distance: 6 },
@@ -447,6 +454,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       for (const g of gummies) g.scale.y += (1 - g.scale.y) * (1 - Math.exp(-dt * 6));
       sprinkles.update(dt, 0);
       theWeb.update(dt, time);
+      theTrap.update(dt, time);
       ctx.glow.moving.length = 0;
       if (e.presence > 0.01) ctx.glow.moving.push(e.glow);
       pumpkins.update(ctx.camera, dt);
@@ -455,6 +463,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     pick(ray: Ray): TapAction | null {
       const webTap = theWeb.pick(ray);
       if (webTap) return webTap;
+      const trapTap = theTrap.pick(ray);
+      if (trapTap) return trapTap;
       const i = pumpkins.pick(ray, 12);
       if (i >= 0) {
         const note = xylo.indexOf(i);
@@ -489,6 +499,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
     dispose() {
       theWeb.dispose();
+      theTrap.dispose();
       terrain.dispose();
       pumpkins.dispose();
       oak.dispose();

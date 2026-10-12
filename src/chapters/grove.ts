@@ -23,6 +23,7 @@ import { hallow, shared } from '../engine/shared.ts';
 import { lerpSky, skyState, treeLine } from '../engine/sky.ts';
 import { woodland } from '../engine/canopy.ts';
 import { forest, lineThePath } from '../engine/trees.ts';
+import { well } from '../scenes/well.ts';
 import type { Chapter, ChapterContext, TapAction } from './types.ts';
 
 /**
@@ -48,6 +49,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const scene = new Scene();
   const bounds: Bounds = [-40, -90, 80, 105];
 
+  // The magical well, just off the path on the bend, where the grove's red fog comes from.
+  const WELL = new Vector3(-1.2, 0, -20.5);
   const path = new Path(
     [
       [0, 8],
@@ -86,8 +89,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   // The woods.
   // Dense woods: trees right at the path's edge, bare trunks behind, a closed canopy overhead.
-  const trees = lineThePath(path.points, 3.4, { spacing: tier === 'low' ? 4.5 : 3.4, depth: 1, seed: 7 });
-  const back = lineThePath(path.points, 6.5, { spacing: tier === 'low' ? 5 : 3.6, depth: tier === 'low' ? 2 : 3, seed: 8 });
+  const byWell = (t: { x: number; z: number }) => Math.hypot(t.x - WELL.x, t.z - WELL.z) > 2.6;
+  const trees = lineThePath(path.points, 3.4, { spacing: tier === 'low' ? 4.5 : 3.4, depth: 1, seed: 7 }).filter(byWell);
+  const back = lineThePath(path.points, 6.5, { spacing: tier === 'low' ? 5 : 3.6, depth: tier === 'low' ? 2 : 3, seed: 8 }).filter(byWell);
   const woods = forest(
     [
       { species: 'tall', at: trees.filter((_, i) => i % 2 === 0) },
@@ -97,7 +101,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     { leafTint: new Color(0.42, 0.5, 0.4) },
   );
   scene.add(woods.group);
-  const canopy = woodland(path, { canopy: [5.5, 10], reach: 10, skyGap: 0.55, density: tier === 'low' ? 1.4 : 2.4, wallFrom: 3.4, wallTo: 13, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 5, tint: new Color(0.42, 0.5, 0.42), seed: 11 });
+  const canopy = woodland(path, { canopy: [5.5, 10], reach: 10, skyGap: 0.55, density: tier === 'low' ? 1.4 : 2.4, wallFrom: 3.4, wallTo: 13, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 5, tint: new Color(0.42, 0.5, 0.42), seed: 11, clear: (x, z, y) => Math.hypot(x - WELL.x, z - WELL.z) < 2.4 && y < 3.6 });
   scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 120, height: 18, color: new Color(0.006, 0.008, 0.02), under: new Color(0.04, 0.02, 0.02) }));
 
@@ -162,6 +166,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     if (i % 2 === 0) glowLights.push({ x: p.x, z: p.z, radius: 1.3, color: red, intensity: 0.6, flicker: 0 });
   });
 
+  const theWell = await well(ctx, WELL, Math.PI / 2);
+  scene.add(...theWell.objects);
+  glowLights.push(...theWell.glow);
+
   const fog = new FogBank({
     bounds: mask.bounds,
     mask: mask.texture(),
@@ -213,6 +221,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     distance: 4.5,
     phase: s.phase as number,
   }));
+  sources.push(...theWell.sources);
 
   // --- Hide and seek. ---
   // Three hiding places: a pumpkin near the path at about a quarter, a half and three quarters.
@@ -271,6 +280,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       lerpGrade(ctx.post.grade, gradeA, gradeB, t);
       shared.uFogColor.value.copy(fogA).lerp(fogB, t);
       ctx.sky.mesh.material.uniforms.uSunColor!.value = ctx.sky.state.sunColor;
+      theWell.update(dt, time);
 
       const e = ctx.ember;
       if (phase === 'lead') {
@@ -327,6 +337,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     pick(ray: Ray): TapAction | null {
+      const wellTap = theWell.pick(ray);
+      if (wellTap) return wellTap;
       const i = pumpkins.pick(ray, 30);
       if (i < 0) return null;
       if (phase === 'hidden' && i === hiding) return () => reveal(true);
@@ -343,6 +355,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     dispose() {
       terrain.dispose();
       pumpkins.dispose();
+      theWell.dispose();
       woods.dispose();
       canopy.dispose();
       fog.dispose();

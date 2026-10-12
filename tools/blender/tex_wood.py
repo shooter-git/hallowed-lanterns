@@ -103,7 +103,7 @@ def main():
     dc = T.hexrgb(sp.get("dirt_color", "#2a241e"))
     col = T.mix(col, dc, sp.get("dirt", 0.3) * dirt)
     T.save(np.clip(col, 0, 1), out(sp, "color"), quality=sp.get("quality", 88))
-    if "normal" in sp["out"]:
+    if any(k == "normal" or k.startswith("normal_") for k in sp["out"]):
         T.save(T.normal_from_height(T.blur(height, 0.7, wrap=True), strength=sp.get("normal_strength", 3.0)),
                out(sp, "normal"), quality=92)
 

@@ -293,3 +293,29 @@ the right. Materials `guitar_wood` (+ normal), `ivy` (+ normal), `rods`.
 `screen` is a 6 × 3.6 m grid (bottom edge 0.55 m up, 0.18 m in front of the truss) with UVs
 0..1 across it (u left → right, v bottom → top seen from the front) and a plain white `screen`
 material: put the film on it.
+
+### The magic well and the Venus flytrap (`magic-well.py`, `venus-flytrap.py`)
+
+Painters `tex_well.py` (stone, shaft, rope, ivy leaf) and `tex_flytrap.py` (trap, plant, fly);
+wood and shingles from `tex_wood.py`. Axes below are glTF / three.js.
+
+| File | Size (x × y × z) | Tris | Nodes |
+|---|---|---|---|
+| `magic-well.glb` | 1.98 × 2.58 × 1.64 | 16.5k | `magic_well` → `windlass`, `crank`, empties `fog_source`, `coin_drop` |
+| `venus-flytrap.glb` | 3.4 × 4.1 × 3.1 | 24.4k | `venus_flytrap` → `trap` → `lobe_upper`, `lobe_lower`, `fly` → `wing_L`, `wing_R`; `trap_small_1`, `trap_small_2` → `trap_small_<n>_upper`, `trap_small_<n>_lower` |
+
+- **Well** (Candle Grove): wall of fieldstones 1.3 m across, 0.85 m to the capstone tops; two
+  ivy-wound posts, shingled roof (ridge 2.5 m). The shaft (`glow_well_inner`) goes down to
+  y = 0.02 and glows red just under the rim, fading into the dark. `fog_source` is at the
+  shaft's centre 0.3 m below the rim (y = 0.55); `coin_drop` is 0.45 m above the opening.
+  `crank` (pivot glTF (0.82, 1.55, 0)) and `windlass` (drum + rope coil, pivot (0, 1.55, 0))
+  both turn about their local **X** (the axle runs left-right). Materials `stone` (+ normal),
+  `wood` (+ normal), `shingle`, `ivy` (alpha MASK), `rope`, `glow_well_inner`.
+- **Flytrap** (Sweet Hollow): origin at the middle of the rosette; the big head (2.6 m across)
+  hangs over the front (+Z), top 4.1 m up, underside ~2.7 m. All traps hinge on their node's
+  local **X**; the mouth faces local +Z, a little upward. Close: `lobe_upper` +13°,
+  `lobe_lower` −13° about local X (the small traps: ±16°); the opposite signs open wider. The
+  teeth of the two lobes interlock when closed. `fly` pivots in its thorax; `wing_L`/`wing_R`
+  flap about their local Z (the body axis). Vines hang from the hinge ends (part of `trap`).
+  Materials `stem`, `leaf`, `trap_outer` (base + dim emission), `glow_trap`, `teeth` (dim
+  emission), `fly_body`, `fly_wing` (alpha BLEND, double-sided), `vine` (alpha MASK).
