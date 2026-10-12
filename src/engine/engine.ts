@@ -163,6 +163,10 @@ export class Engine {
     });
     portal.progress(1, 'Ready');
     portal.ready();
+    // Let the world draw itself a few times behind the title's cover (shaders compiled, the
+    // evening's light settled) before it's seen: no flashes while it wakes.
+    for (let i = 0; i < 4; i++) await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => setTimeout(r, 250));
 
     // While developing: ?at=<metres> starts straight away at that point of the first chapter,
     // ?chapter=<n> at another chapter, and window.hl gives scripts the engine.
@@ -177,6 +181,7 @@ export class Engine {
           this.index = n;
           this.enter(this.chapter, true);
         }
+        ui.dropTitle();
         this.begin();
         const at = Number(q.get('at') ?? 0);
         if (at > 0) walker.setPath(this.chapter.path, at);

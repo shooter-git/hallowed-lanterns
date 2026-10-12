@@ -48,6 +48,31 @@ body {
   background: radial-gradient(ellipse at 50% 55%, rgba(10, 6, 8, 0.15), rgba(5, 3, 6, 0.72) 75%);
   opacity: 0;
   transition: opacity 1.4s ease;
+  isolation: isolate;
+}
+/* The solid night the title sits on while everything loads; it fades away to show the world. */
+.hl-title::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #0b0809;
+  opacity: 0;
+  transition: opacity 2s ease;
+  pointer-events: none;
+}
+.hl-title.hl-cover::before {
+  opacity: 1;
+  transition: none;
+}
+.hl-title.hl-cover {
+  opacity: 1;
+  transition: none;
+}
+.hl-loading {
+  margin: 1.2em 0 0;
+  font: italic 400 1rem / 1.3 var(--hl-serif);
+  color: var(--hl-dim);
 }
 .hl-title.hl-show {
   opacity: 1;

@@ -3,6 +3,10 @@
  * controls (walk with me, chapters). The app's own menu button lives in the top-left corner,
  * so nothing goes there.
  */
+const TITLE_HEADING = `
+        <p class="hl-kicker">One October night at the pumpkin patch</p>
+        <h1>Hallowed Lanterns</h1>`;
+
 export class UI {
   readonly root = document.createElement('div');
   private readonly title = document.createElement('div');
@@ -47,6 +51,19 @@ export class UI {
     this.root.append(this.title, this.card, this.line, this.hint, this.controls, this.menuButton, this.menu);
     document.body.append(this.root);
     this.root.dataset.touch = touch ? '1' : '0';
+
+    // From the very first moment: the title on a solid night, while everything loads behind it.
+    // Nothing is seen of the world until it has drawn itself a few times (showTitle lifts it).
+    this.title.innerHTML = `
+      <div class="hl-title-inner">${TITLE_HEADING}
+        <p class="hl-loading">Lighting the lanterns…</p>
+      </div>`;
+    this.title.classList.add('hl-show', 'hl-cover');
+  }
+
+  /** Lifts the title away at once (when a developer starts partway in). */
+  dropTitle() {
+    this.title.remove();
   }
 
   /**
@@ -55,9 +72,7 @@ export class UI {
    * plays while you look. Then a tap anywhere calls `onBegin` and resolves.
    */
   showTitle(options: { soundReady: boolean; onSound: () => void; onBegin: () => void }): Promise<void> {
-    const heading = `
-        <p class="hl-kicker">One October night at the pumpkin patch</p>
-        <h1>Hallowed Lanterns</h1>`;
+    const heading = TITLE_HEADING;
     const ready = () => {
       this.title.innerHTML = `
       <div class="hl-title-inner">${heading}
@@ -65,7 +80,9 @@ export class UI {
         <p class="hl-small">Best with headphones</p>
       </div>`;
     };
+    // The night behind the title fades in under it.
     this.title.classList.add('hl-show');
+    this.title.classList.remove('hl-cover');
     return new Promise((resolve) => {
       let stage: 'listen' | 'begin' = options.soundReady ? 'begin' : 'listen';
       let since = performance.now();
