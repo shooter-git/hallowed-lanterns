@@ -11,6 +11,7 @@ export class UI {
   private readonly hint = document.createElement('p');
   private readonly controls = document.createElement('div');
   readonly walkButton = document.createElement('button');
+  private readonly offers = new Set<HTMLButtonElement>();
   readonly menuButton = document.createElement('button');
   private readonly menu = document.createElement('div');
   private lineTimer = 0;
@@ -195,7 +196,17 @@ export class UI {
     b.textContent = label;
     b.addEventListener('click', onClick);
     this.root.append(b);
-    return () => b.remove();
+    this.offers.add(b);
+    return () => {
+      b.remove();
+      this.offers.delete(b);
+    };
+  }
+
+  /** Takes down every offer (a chapter's offers end with it). */
+  clearOffers() {
+    for (const b of this.offers) b.remove();
+    this.offers.clear();
   }
 
   /** The end of the night. */

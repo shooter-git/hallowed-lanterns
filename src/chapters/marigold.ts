@@ -606,6 +606,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   let time = 0;
   let offerOff: (() => void) | null = null;
+  const takeOfferDown = () => {
+    offerOff?.();
+    offerOff = null;
+  };
   let hung = false;
   let atTree = 0;
   let finale = -1;
@@ -628,11 +632,16 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     }
   }
 
+  // While the wish is being written there's no offer, and none may appear behind the card.
+  let writing = false;
   async function hangWish() {
     offerOff?.();
     offerOff = null;
+    writing = true;
     const w = await ctx.ui.askWish();
+    writing = false;
     if (!w) {
+      takeOfferDown();
       offerOff = ctx.ui.offer('Write a wish', () => void hangWish());
       return;
     }
@@ -699,7 +708,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       }
       const nearTree = Math.hypot(w.position.x - TREE.x, w.position.z - TREE.z) < 9;
       if (nearTree) atTree += dt;
-      if (nearTree && !offerOff && !hung && finale < 0) {
+      if (nearTree && !offerOff && !writing && !hung && finale < 0) {
         offerOff = ctx.ui.offer('Write a wish', () => void hangWish());
         ctx.ui.say('Write a wish at the table, and hang it on the tree.', 6);
       }

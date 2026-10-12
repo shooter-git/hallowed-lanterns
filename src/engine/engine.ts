@@ -265,6 +265,8 @@ export class Engine {
     if (this.transition || index === this.index) return;
     this.next = this.build(index);
     this.transition = { t: 0, phase: 'out', target: index };
+    // Whatever the chapter you're leaving was offering goes with it.
+    this.ctx.ui.clearOffers();
     void this.ctx.audio.sfx('fog-swirl', { volume: 0.7 });
   }
 
@@ -323,6 +325,7 @@ export class Engine {
           this.enter(chapter, true);
           await this.stage.renderer.compileAsync(chapter.scene, this.stage.camera);
           old?.dispose();
+          ui.clearOffers();
           tr.phase = 'in';
           tr.t = 0;
           void audio.setScene(chapter.music, chapter.ambience, 5);
