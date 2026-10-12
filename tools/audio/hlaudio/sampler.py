@@ -19,6 +19,18 @@ What it does, per note:
 Levels: each sample's body loudness is measured and normalised towards its
 dynamic layer's reference, so neighbouring notes match while the layers keep
 their own colour.
+
+A second library, the Versilian Community Sample Library (VCSL, CC0, also by
+Versilian Studios; sparse-checked-out into tools/audio/.cache/vcsl/), gives
+the Lantern Garden its festival colour: a dan tranh (the Vietnamese cousin of
+the guzheng: plucks, tremolo, glissandi), a temple gong, finger cymbals, a
+woodblock and an ocarina. Its names follow other conventions (notes at the
+start of the file name, an octave low; dynamics as words), it is catalogued
+separately (.cache/vcsl-catalog.json) and pitches that names cannot give are
+measured: the gong, cymbal and woodblock by their strongest partial, the
+zither's plucks well after the attack (a hard pluck starts sharp).
+Plucked and struck notes can carry a pitch curve: `x["bend"]` (time, semitone
+breakpoints: a guzheng press or slide) and `x["vib"]` (a pressed vibrato).
 """
 from __future__ import annotations
 
@@ -38,6 +50,9 @@ from .core import SR, ns, rng, undb, smoothstep, Track
 
 VSCO = Path(__file__).resolve().parents[1] / ".cache" / "vsco"
 CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "vsco-catalog.json"
+VCSL = Path(__file__).resolve().parents[1] / ".cache" / "vcsl"
+VCSL_CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "vcsl-catalog.json"
+LIBS = {"vsco": (VSCO, CATALOG, 9), "vcsl": (VCSL, VCSL_CATALOG, 1)}
 NOTE = {"C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5, "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11}
 
 # Timpani have no note names: principal (1,1)-mode frequencies measured from the
@@ -71,6 +86,13 @@ class Inst:
     pitch: str = "name"       # "name" | "organ" | "timp_hit" | "timp_roll" | "none"
     single_layer: bool = False
     organ_base: int = 0
+    lib: str = "vsco"         # "vsco" | "vcsl"
+    # VCSL measuring options
+    tune_from: float = 0.04   # s after the attack where a pluck's tuning is read
+    tune_n: int = 1           # how many 0.35 s windows (0.5 s apart)
+    peak_band: tuple = ()     # pitch="peak": (lo, hi) Hz of the partial that names the pitch
+    peak_win: tuple = (0.0, 0.5)  # ... read between these seconds after the onset
+    fixed_midi: float = 0.0   # pitch="fixed": every file sits at this (nominal) pitch
 
 
 INSTRUMENTS = {i.name: i for i in [
@@ -149,6 +171,41 @@ INSTRUMENTS = {i.name: i for i in [
          width=0.6, body=0.2, layer_spread=0),
     Inst("belltree", "Percussion", "drum", match=r"BellTree", pitch="none", release=2.0, ref_db=-22, width=0.8,
          body=0.5, layer_spread=0, single_layer=True),
+    # ---- VCSL (CC0, Versilian Studios): the Lantern Garden's festival colour
+    # dan tranh plucks: strings B C# D# F# G# (B pentatonic) from B2 to B5, mf/f/ff;
+    # named an octave low; tuning read 0.6-1.6 s after the pluck
+    Inst("zither", "Chordophones/Zithers/Dan Tranh/Normal", "oneshot", lib="vcsl", octave=12, release=0.9,
+         ref_db=-18, layer_spread=8, pan=0.2, width=0.5, body=0.3, tune_from=0.6, tune_n=3),
+    # tremolo (the right hand's rapid re-plucking on a held note), one layer, ~10-13 s
+    Inst("zither_trem", "Chordophones/Zithers/Dan Tranh/Tremolo", "oneshot", lib="vcsl", octave=12,
+         release=0.7, ref_db=-20, layer_spread=0, pan=0.2, width=0.5, body=1.0, single_layer=True,
+         tune_from=0.6, tune_n=3),
+    # glissandi over all the strings (B pentatonic: play them at G to sweep G pentatonic)
+    Inst("zither_gliss_up", "Chordophones/Zithers/Dan Tranh/Gliss", "oneshot", lib="vcsl",
+         match=r"Gliss_Up_Med_mf", pitch="fixed", fixed_midi=71.0, release=1.5, ref_db=-20, layer_spread=0,
+         pan=0.2, width=0.7, body=1.0, single_layer=True),
+    Inst("zither_gliss_down", "Chordophones/Zithers/Dan Tranh/Gliss", "oneshot", lib="vcsl",
+         match=r"Gliss_Dwn_Med_mf", pitch="fixed", fixed_midi=71.0, release=1.5, ref_db=-20, layer_spread=0,
+         pan=0.2, width=0.7, body=1.0, single_layer=True),
+    # ocarina (a clay flute: the xun's soft, breathy voice), straight and with vibrato; A4-C#6
+    Inst("ocarina", "Aerophones/Edge-blown Aerophones/Ocarina, Typical/Sustains/Sus", "sus", lib="vcsl",
+         octave=12, release=0.4, lag=0.03, ref_db=-22, pan=-0.1, width=0.35, single_layer=True,
+         legato_skip=0.2, xfade=0.2),
+    Inst("ocarina_vib", "Aerophones/Edge-blown Aerophones/Ocarina, Typical/Sustains/SusVib", "sus", lib="vcsl",
+         octave=12, release=0.4, lag=0.03, ref_db=-22, pan=-0.1, width=0.35, single_layer=True,
+         legato_skip=0.2, xfade=0.2),
+    # temple gong: fundamental ~143.5 Hz (D3, a third of a semitone flat), partials at ~345, 420, 566 Hz
+    Inst("gong", "Idiophones/Struck Idiophones/Gong 1", "drum", lib="vcsl", match=r"^gong_(p|mf|f|fff)\.wav$",
+         pitch="peak", peak_band=(120.0, 170.0), peak_win=(1.0, 3.0), release=6.0, ref_db=-18, layer_spread=14,
+         width=1.0, body=1.0),
+    # finger cymbals: one hit, ringing at ~3.1 kHz (G7)
+    Inst("finger_cymbal", "Idiophones/Struck Idiophones/Finger Cymbals", "drum", lib="vcsl", pitch="peak",
+         peak_band=(2500.0, 4000.0), peak_win=(0.05, 1.0), release=2.5, ref_db=-24, layer_spread=0,
+         width=0.4, body=0.3, single_layer=True),
+    # woodblock (the temple block): pp/mp/f/ff, round robins; resonance ~1.37 kHz
+    Inst("woodblock", "Idiophones/Struck Idiophones/Woodblock", "drum", lib="vcsl", match=r"^wood_click_",
+         pitch="peak", peak_band=(900.0, 2000.0), peak_win=(0.0, 0.12), release=0.3, ref_db=-20,
+         layer_spread=14, width=0.3, body=0.1),
 ]}
 
 
@@ -171,8 +228,58 @@ def _read(path):
     return np.ascontiguousarray(x[:, :2].T)
 
 
+# VCSL dynamics are words in the file name; any order-preserving numbers do
+_DYN = {"ppp": 1, "pp": 2, "p": 3, "mp": 4, "mf": 5, "f": 6, "ff": 7, "fff": 8}
+
+
+def _parse_vcsl(inst: Inst, fname: str):
+    """-> (midi or None, layer, rr) for a VCSL file name: 'B3_mf_1.wav',
+    'StdOcarina_Sus_A#4.wav', 'gong_fff.wav', 'wood_click_pp_rr2.wav'.
+    pitch="peak" files get their pitch measured later."""
+    stem = fname[:-4]
+    midi = None
+    if inst.pitch == "name":
+        mt = re.search(r"(?:^|_)([A-Ga-g]#?)(-?\d)(?=_|$)", stem)
+        midi = float(12 * (int(mt.group(2)) + 1) + NOTE[mt.group(1).upper()] + inst.octave)
+    elif inst.pitch == "fixed":
+        midi = float(inst.fixed_midi)
+    toks = stem.lower().split("_")
+    layer, rrn = 1, 1
+    for tk in toks:
+        if tk in _DYN:
+            layer = _DYN[tk]
+        m_rr = re.fullmatch(r"rr(\d+)", tk)
+        if m_rr:
+            rrn = int(m_rr.group(1))
+    if re.fullmatch(r"\d+", toks[-1]):
+        rrn = int(toks[-1])
+    if inst.single_layer:
+        layer = 1
+    return midi, layer, rrn
+
+
+def _peak_midi(mono, info, band, win):
+    """Pitch (MIDI) of the strongest partial in `band` Hz, read `win` seconds
+    after the onset: names a gong, a cymbal or a woodblock."""
+    a = info["start"] + ns(0.004)
+    seg = mono[a + ns(win[0]): a + ns(win[1])]
+    if seg.size < 256:
+        seg = mono[a: a + ns(0.1)]
+    n_fft = 1 << 17
+    S = np.abs(np.fft.rfft(seg * np.hanning(seg.size), n_fft))
+    f = np.fft.rfftfreq(n_fft, 1 / SR)
+    S[(f < band[0]) | (f > band[1])] = 0
+    k = int(np.argmax(S))
+    if 0 < k < S.size - 1:
+        al, be, ga = np.log(S[k - 1] + 1e-12), np.log(S[k] + 1e-12), np.log(S[k + 1] + 1e-12)
+        k = k + 0.5 * (al - ga) / (al - 2 * be + ga)
+    return _hz2midi(k * SR / n_fft)
+
+
 def _parse(inst: Inst, fname: str):
     """-> (midi or None, layer, rr) from a file name."""
+    if inst.lib == "vcsl":
+        return _parse_vcsl(inst, fname)
     stem = fname[:-4]
     if inst.pitch == "organ":
         num = int(re.search(r"_(\d+)(?:_rr\d)?$", stem).group(1))
@@ -300,13 +407,13 @@ def _yin(seg, fmin=25.0, fmax=2500.0):
     return SR / t, float(cm[int(round(t))]) if int(round(t)) < taumax else 1.0
 
 
-def _tuning(mono, info, midi, kind):
+def _tuning(mono, info, midi, kind, t_from=0.04, n_win=1):
     """Cents this recording sits off its nominal note (0 if unsure)."""
     if midi is None:
         return 0.0
-    a = info["attack"] + (ns(0.3) if kind == "sus" else ns(0.04))
+    a = info["attack"] + (ns(0.3) if kind == "sus" else ns(t_from))
     devs = []
-    for k in range(4 if kind == "sus" else 1):
+    for k in range(4 if kind == "sus" else n_win):
         seg = mono[a + k * ns(0.6): a + k * ns(0.6) + ns(0.35)]
         if seg.size < ns(0.2):
             break
@@ -317,25 +424,53 @@ def _tuning(mono, info, midi, kind):
         dev = ((det - midi + 6) % 12) - 6
         if abs(dev) < 0.45:
             devs.append(dev * 100)
-    return float(np.median(devs)) if len(devs) >= (2 if kind == "sus" else 1) else 0.0
+    return float(np.median(devs)) if len(devs) >= (2 if (kind == "sus" or n_win > 1) else 1) else 0.0
+
+
+_CAT_MEM: dict = {}
 
 
 def build_catalog(force=False):
-    if not VSCO.exists():
-        raise SystemExit(f"VSCO samples not found in {VSCO} (see tools/audio/README.md)")
+    """The measured catalogue of every instrument: VSCO and VCSL are measured
+    and cached separately (adding a VCSL instrument never re-measures VSCO)."""
+    if _CAT_MEM and not force:
+        return _CAT_MEM["cat"]
+    inst_all = {}
+    for lib in LIBS:
+        inst_all.update(_build_lib(lib, force)["instruments"])
+    cat = dict(instruments=inst_all)
+    _CAT_MEM["cat"] = cat
+    return cat
+
+
+def _build_lib(lib, force=False):
+    root, path, version = LIBS[lib]
+    insts = [i for i in INSTRUMENTS.values() if i.lib == lib]
+    if not root.exists():
+        if lib == "vsco":
+            raise SystemExit(f"VSCO samples not found in {root} (see tools/audio/README.md)")
+        if path.exists():
+            return json.loads(path.read_text())
+        print(f"  (VCSL samples not found in {root}: its instruments are unavailable)", flush=True)
+        return dict(instruments={})
     sig = {}
-    for inst in INSTRUMENTS.values():
-        d = VSCO / inst.folder
+    for inst in insts:
+        d = root / inst.folder
         for p in sorted(d.glob("*.wav")):
             if re.search(inst.match, p.name):
-                sig[str(p.relative_to(VSCO))] = p.stat().st_size
-    if CATALOG.exists() and not force:
-        cat = json.loads(CATALOG.read_text())
-        if cat.get("sig") == sig and cat.get("version") == 9:
+                sig[str(p.relative_to(root))] = p.stat().st_size
+    if lib == "vcsl":
+        # the measuring options are part of the signature, so retuning re-measures
+        sig["__opts__"] = repr([(i.name, i.octave, i.pitch, i.tune_from, i.tune_n, i.peak_band, i.peak_win,
+                                 i.fixed_midi, i.body, i.ref_db, i.layer_spread, i.single_layer, i.kind)
+                                for i in insts])
+    if path.exists() and not force:
+        cat = json.loads(path.read_text())
+        if cat.get("sig") == sig and cat.get("version") == version:
             return cat
     entries = {}
-    for inst in INSTRUMENTS.values():
-        d = VSCO / inst.folder
+    for inst in insts:
+        d = root / inst.folder
         rows = []
         for p in sorted(d.glob("*.wav")):
             if not re.search(inst.match, p.name):
@@ -343,13 +478,18 @@ def build_catalog(force=False):
             midi, layer, rr = _parse(inst, p.name)
             x = _read(p)
             info = _measure(inst, x)
+            mono = x.mean(axis=0).astype(np.float64)
             tune = 0.0
-            if inst.kind in ("sus", "short", "oneshot") and inst.pitch == "name" and inst.name != "glock":
-                tune = _tuning(x.mean(axis=0).astype(np.float64), info, midi, inst.kind)
+            if inst.pitch == "peak":
+                midi = round(_peak_midi(mono, info, inst.peak_band, inst.peak_win), 3)
+            elif inst.kind in ("sus", "short", "oneshot") and inst.pitch == "name" and inst.name != "glock":
+                tune = _tuning(mono, info, midi, inst.kind, inst.tune_from, inst.tune_n)
             if inst.name == "glock":
                 tune = 12.0  # the glockenspiel bars sit ~12 cents sharp of their names (measured)
-            info.update(file=str(p.relative_to(VSCO)), midi=midi, layer=layer, rr=rr, n=int(x.shape[1]),
+            info.update(file=str(p.relative_to(root)), midi=midi, layer=layer, rr=rr, n=int(x.shape[1]),
                         tune=round(tune, 1))
+            if lib != "vsco":
+                info["lib"] = lib
             rows.append(info)
         # layer references: loudest layer at ref_db, softest layer_spread below
         layers = sorted({r["layer"] for r in rows})
@@ -362,9 +502,9 @@ def build_catalog(force=False):
             corr = -(r["body_db"] - med) * 0.75
             r["gain_db"] = float(np.clip(target - med + corr, -40, 40))
         entries[inst.name] = rows
-    cat = dict(version=9, sig=sig, instruments=entries)
-    CATALOG.parent.mkdir(parents=True, exist_ok=True)
-    CATALOG.write_text(json.dumps(cat))
+    cat = dict(version=version, sig=sig, instruments=entries)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(cat))
     return cat
 
 
@@ -395,10 +535,11 @@ _SHIFTED = _LRU(700 * 2 ** 20)
 
 
 def raw(entry):
-    k = entry["file"]
+    lib = entry.get("lib", "vsco")
+    k = entry["file"] if lib == "vsco" else f"{lib}:{entry['file']}"
     x = _RAW.get(k)
     if x is None:
-        x = _read(VSCO / k)
+        x = _read(LIBS[lib][0] / entry["file"])
         _RAW.put(k, x)
     return x
 
@@ -517,6 +658,44 @@ def extend(x, entry, need, xf=0.9):
 
 # ----------------------------------------------------------------- the sampler
 
+def pitch_curve(L, bend=None, vib=None, r=None):
+    """Semitone offsets for L output samples: `bend` is [(time_s, semis), ...]
+    (cosine-shaped between points: a guzheng press, a slide into the note, a
+    release); `vib` is a dict(depth=semis, rate=Hz, delay=s, rise=s, up=0..1)
+    for a pressed vibrato (up=1 only ever raises the pitch, as a finger
+    pressing behind the bridge does; up=0 is symmetric). None if neither."""
+    if not bend and not vib:
+        return None
+    t = np.arange(L) / SR
+    g = np.zeros(L)
+    if bend:
+        ts = np.array([b[0] for b in bend], float)
+        vs = np.array([b[1] for b in bend], float)
+        idx = np.clip(np.searchsorted(ts, t, side="right") - 1, 0, max(0, len(ts) - 2))
+        if len(ts) == 1:
+            g += vs[0]
+        else:
+            t0, t1 = ts[idx], ts[idx + 1]
+            u = np.clip((t - t0) / np.maximum(t1 - t0, 1e-9), 0, 1)
+            u = 0.5 - 0.5 * np.cos(np.pi * u)
+            seg = vs[idx] + (vs[idx + 1] - vs[idx]) * u
+            g += np.where(t < ts[0], vs[0], np.where(t > ts[-1], vs[-1], seg))
+    if vib:
+        depth = float(vib.get("depth", 0.25))
+        rate = float(vib.get("rate", 5.5))
+        delay = float(vib.get("delay", 0.3))
+        rise = float(vib.get("rise", 0.4))
+        up = float(vib.get("up", 0.7))
+        ph0 = float(r.uniform(0, 0.3)) if r is not None else 0.0
+        # a hand, not an LFO: the rate drifts a little
+        drift = 1 + 0.04 * np.sin(2 * np.pi * 0.7 * t + 1.3)
+        ph = 2 * np.pi * np.cumsum(rate * drift) / SR + ph0
+        ramp = smoothstep((t - delay) / max(rise, 1e-3))
+        osc = up * 0.5 * (1 - np.cos(ph)) + (1 - up) * 0.5 * np.sin(ph)
+        g += depth * ramp * osc
+    return g
+
+
 class Sampler:
     def __init__(self, name, seed=0):
         self.inst = INSTRUMENTS[name]
@@ -581,7 +760,7 @@ class Sampler:
             src, st = x, start
         key = None
         if glide is None and offset == 0 and src is x:
-            key = (entry["file"], round(semis, 4))
+            key = (entry.get("lib", "vsco"), entry["file"], round(semis, 4))
             cached = _SHIFTED.get(key)
             if cached is not None and cached.shape[1] >= length:
                 return cached[:, :length] * undb(entry["gain_db"])
@@ -592,7 +771,8 @@ class Sampler:
         return y * undb(entry["gain_db"])
 
     def note(self, midi, v, dur, *, dyn=None, legato_in=None, xf_in=None, release=None, tail=None,
-             start_jitter=0.006, detune=0.0, layer_bias=0.0, avoid=None, slide=0.06, shape=None, skip=0.0):
+             start_jitter=0.006, detune=0.0, layer_bias=0.0, avoid=None, slide=0.06, shape=None, skip=0.0,
+             bend=None, vib=None):
         """Render one note -> (stereo array, lead samples). `dyn` is an array of
         0..1 dynamics over the note's length (mod wheel) or None. `legato_in` is
         the previous pitch when this note is entered legato."""
@@ -607,7 +787,12 @@ class Sampler:
             e = self.pick(midi, lay, avoid)
             off = int(self.r.uniform(0, start_jitter) * SR)
             avail = int((raw(e).shape[1] - e["start"] - off) / 2 ** (((midi or 0) - (e["midi"] or 0)) / 12)) - 8
-            y = self._voice(e, midi, min(avail, L), offset=off, detune=detune)
+            pc = pitch_curve(min(avail, L), bend, vib, self.r) if (bend or vib) else None
+            if pc is not None:
+                # a pressed (raised) pitch reads the sample faster: keep inside it
+                avail = int(avail / 2 ** (max(0.0, float(np.max(pc))) / 12)) - 8
+                pc = pc[:max(1, min(avail, L))]
+            y = self._voice(e, midi, min(avail, L), offset=off, detune=detune, glide=pc)
             gain = undb(-22 * (1 - np.clip(v, 0, 1)) ** 1.3 + 6 * (mix - 0.5) * (len(self.layers) > 1) * 0.3)
             y = y * gain
             if inst.kind == "oneshot" or inst.kind == "short":
@@ -646,6 +831,9 @@ class Sampler:
             k = ns(slide)
             g[:k] = (legato_in - midi) * (1 - smoothstep(np.arange(k) / k))
             glide = g
+        if bend or vib:
+            pc = pitch_curve(L, bend, vib, self.r)
+            glide = pc if glide is None else glide + pc
         y = self._voice(e_lo, midi, L, offset=off, glide=glide, detune=detune)
         if hi != lo:
             e_hi = self.pick(midi, hi)
@@ -697,7 +885,8 @@ class Sampler:
 REBOW = {"violins": 5.5, "violas": 5.5, "cellos": 6.0, "basses": 6.0, "solo_violin": 6.0,
          "violins_trem": 6.0, "violas_trem": 6.0, "cellos_trem": 6.0,
          "horns": 7.0, "horns_mute": 7.0, "trombones": 7.0, "trombones_vib": 7.0, "tuba": 7.0,
-         "flute": 6.0, "flute_nv": 6.0, "clarinet": 7.0, "oboe": 6.0, "bassoon": 6.0}
+         "flute": 6.0, "flute_nv": 6.0, "clarinet": 7.0, "oboe": 6.0, "bassoon": 6.0,
+         "ocarina": 5.0, "ocarina_vib": 5.5}
 REBOW_OVERLAP = 0.35
 
 
@@ -786,7 +975,8 @@ def play(track: Track, notes, inst, *, seed=0, gain_db=0.0, pan=None, width=None
                 y, lead, _ = smp.note(nt.p if nt.p > 0 else None, v, dur, dyn=dy, legato_in=leg,
                                       xf_in=xf, release=rel_n, tail=tail_n, detune=det,
                                       layer_bias=layer_bias + lb_d + nt.x.get("layer_bias", 0.0), slide=slide,
-                                      shape=shape if I.kind == "sus" else None, skip=skip_d)
+                                      shape=shape if I.kind == "sus" else None, skip=skip_d,
+                                      bend=nt.x.get("bend"), vib=nt.x.get("vib"))
                 pn = pan + nt.x.get("pan", 0.0) + (r.uniform(-pan_spread, pan_spread) if pan_spread else 0.0) + \
                     (0.12 * (-1) ** d if d else 0.0)
                 stem.add(nt.t + dt - (0 if leg is not None else (nt.x.get("xf_pre", 0.0))) - lead / SR, y,

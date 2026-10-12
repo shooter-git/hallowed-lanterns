@@ -15,19 +15,36 @@ Each lobe: a cupped half-disc shell, teal-green outside with eight segments radi
 hinge (`trap_outer`, base colour + a dim emission), deep red inside (`glow_trap`), and along
 its rim a row of long pale teeth (`teeth`) curving across the gap; the two rows interlock.
 The lobes are modelled half-open, 13 deg each side of the closed plane (16 on the small traps).
+The big trap's lobes have three trigger hairs each on their inner faces.
+
+The big trap's stem is a chain of five rigid segments, so the engine can bend it (sway, recoil,
+lunge) without skinning: each segment is a child of the one below with its pivot on the stem's
+axis at the joint, and both segments end there in a dome centred on the joint, so the joint is
+a closed ball joint however it bends. Their axes are the model's (no rest rotation): rotate a
+segment about glTF +X to lean everything above it forward (toward +Z), about Z to lean it
+sideways. The trap head sits at the end of the chain, joined to the stem at one end of its hinge
+line, so it can also nod about its own hinge (local X) without coming apart.
 
 Nodes (axes below are glTF / three.js; the hinge is the same X axis in Blender):
-- `venus_flytrap` (root: main stem, small traps' stems, rosette leaves)
-  - `trap` (pivot at the middle of the hinge; midrib and the trailing vines)
-    - `lobe_upper`, `lobe_lower`: pivots on the hinge line. Rotating about their local X closes
-      them: lobe_upper by +13 deg, lobe_lower by -13 deg (opposite signs open them wider).
-    - `fly` (pivot in its thorax) -> `wing_L`, `wing_R` (pivots at the wing roots: flap them
-      about their local Z in glTF, which is the fly's body axis)
+- `venus_flytrap` (root: rosette leaves and the small traps' stems)
+  - `stem_0` (pivot at the ground) -> `stem_1` -> ... -> `stem_4` (pivots at the joints)
+    - `trap` (pivot at the middle of the hinge; the midrib)
+      - `vines_L`, `vines_R`: the vines trailing from each end of the hinge, two a side,
+        pivoting where they hang from (counter-rotate them to keep them hanging as the head moves)
+      - `lobe_upper`, `lobe_lower`: pivots on the hinge line. Rotating about their local X closes
+        them: lobe_upper by +13 deg, lobe_lower by -13 deg (opposite signs open them wider).
+        - `lobe_upper` -> empties `fly_land`, `fly_hair`: where a fly lands on the roof of the
+          mouth (the upper lobe's inner face, upside down) and where it stops, its head by the
+          outer trigger hair. Same axes as `fly`: the fly's thorax there, local +Y along the
+          surface normal (its back), local -Z the way it faces; copy their local transforms to a
+          `fly` parented to `lobe_upper`.
+      - `fly` (pivot in its thorax; head toward local -Z, back +Y) -> `wing_L`, `wing_R` (pivots
+        at the wing roots: flap them about their local Z in glTF, which is the fly's body axis)
   - `trap_small_1`, `trap_small_2` (pivots at their hinges) -> `trap_small_<n>_upper`,
     `trap_small_<n>_lower` (same rule: upper +X closes, lower -X closes, 16 deg each)
 
-Materials: `stem`, `leaf`, `trap_outer`, `glow_trap`, `teeth`, `fly_body`, `fly_wing` (alpha
-BLEND, double-sided), `vine` (alpha MASK, double-sided).
+Materials: `stem`, `leaf`, `trap_outer`, `glow_trap`, `teeth` (and the trigger hairs),
+`fly_body`, `fly_wing` (alpha BLEND, double-sided), `vine` (alpha MASK, double-sided).
 """
 
 import math
@@ -161,8 +178,29 @@ class Lobe:
                      mb, uvmap=uv_teeth, mat=TEETH)
         return out
 
+    def inner_frame(self, a, r):
+        """A point on the inner face and its normal there (pointing into the mouth)."""
+        e = 1e-3
+        p = self.point(a, r, inner=True)
+        da = self.point(a + e, r, inner=True) - self.point(a - e, r, inner=True)
+        dr = self.point(a, r + e, inner=True) - self.point(a, r - e, inner=True)
+        nrm = da.cross(dr).normalized()
+        return p, (nrm if nrm.dot(self.n) < 0 else -nrm)
 
-def build_trap(scale, phi, res):
+    def hair(self, mb, a, r, length, radius, lean):
+        """A trigger hair standing on the inner face: slender, a little bent, tapering to a point."""
+        p, nrm = self.inner_frame(a, r)
+        side = V((1, 0, 0)).cross(nrm).normalized()
+        pts = [p - nrm * radius, p + nrm * (length * 0.5) + side * (lean * 0.3), p + nrm * length + side * lean]
+        Loft(pts, lambda t: {"rx": radius * (1 - 0.7 * t), "ry": radius * (1 - 0.7 * t)}, n=5, seg=length / 3,
+             frame="up", up=V((1, 0, 0)), cap0="flat", cap1="point").build(mb, uvmap=uv_teeth, mat=TEETH)
+
+
+# trigger hairs on each of the big trap's lobes: (angle round the lobe / pi, r from the hinge)
+HAIRS = [(0.37, 0.50), (0.63, 0.50), (0.47, 0.70)]
+
+
+def build_trap(scale, phi, res, hairs=()):
     """The midrib and the two lobes of one trap, in its local frame (hinge on X through the
     origin, mouth toward -Y). Returns (midrib MB, upper MB, lower MB, lobes)."""
     HX, W, B, t = 1.30 * scale, 1.08 * scale, 0.72 * scale, 0.07 * scale
@@ -173,6 +211,8 @@ def build_trap(scale, phi, res):
         lb = Lobe(sgn, phi, HX, W, B, t)
         mb = MB()
         lb.build(mb, na, nr, nt, 0.36 * scale, 0.068 * scale, phase)
+        for k, (a, r) in enumerate(hairs):
+            lb.hair(mb, math.pi * a, r, 0.17 * scale, 0.012 * scale, (0.03 if k % 2 else -0.03) * scale)
         mbs.append(mb)
         lobes.append(lb)
     mid = MB()
@@ -234,13 +274,57 @@ def build_fly(s=0.92):
 # Plant
 # --------------------------------------------------------------------------------------------
 
-def stem_loft(mb, pts, r0, r1, flare=1.0):
+def stem_section(r0, r1, flare):
     def sec(t):
         r = r0 + (r1 - r0) * t
         r *= 1 + (flare - 1) * max(0.0, (t - 0.85) / 0.15) ** 2
         return {"rx": r, "ry": r * 0.88}
-    Loft([V(p) for p in pts], sec, n=12, seg=0.12, frame="rmf", up=V((1, 0, 0)), cap0="flat", cap1="dome",
-         cap1_len=r1 * 0.5).build(mb, uvmap=lambda s, a: uv_stem(s, a), mat=STEM)
+    return sec
+
+
+def stem_loft(mb, pts, r0, r1, flare=1.0):
+    Loft([V(p) for p in pts], stem_section(r0, r1, flare), n=12, seg=0.12, frame="rmf", up=V((1, 0, 0)), cap0="flat",
+         cap1="dome", cap1_len=r1 * 0.5).build(mb, uvmap=lambda s, a: uv_stem(s, a), mat=STEM)
+
+
+# where the big trap's stem is jointed (fractions of its length from the ground)
+JOINTS = (0.0, 0.2, 0.4, 0.58, 0.76, 1.0)
+
+
+def stem_chain(pts, r0, r1, flare, parent, mats):
+    """The big trap's stem as a chain of rigid segments `stem_0`... (see the module docstring):
+    the tube stem_loft() would make, cut at JOINTS, each piece ending in a dome centred on its
+    joint. Returns the segment objects, base first."""
+    sec = stem_section(r0, r1, flare)
+    whole = Loft([V(p) for p in pts], sec, n=12, seg=0.12, frame="rmf", up=V((1, 0, 0)), cap0="flat", cap1="dome",
+                 cap1_len=r1 * 0.5)
+    L, c0, total = whole.L, whole.nominal["c0"], whole.total()
+    objs = []
+    for k, (ta, tb) in enumerate(zip(JOINTS, JOINTS[1:])):
+        m = max(3, int(math.ceil((tb - ta) * L / 0.08)))
+        ctrl = [whole.path.at(L * (ta + (tb - ta) * j / m)) for j in range(m + 1)]
+        last = k == len(JOINTS) - 2
+        piece = Loft(ctrl, lambda t, ta=ta, tb=tb: sec(ta + (tb - ta) * t), n=12, seg=0.12, frame="rmf",
+                     up=whole.frame_at(ta)[2], cap0="flat" if k == 0 else "dome", cap1="dome",
+                     cap1_len=r1 * 0.5 if last else None, cap_rings=4)
+        # the texture runs on along the stem as if it were still one tube
+        off = c0 + ta * L - piece.nominal["c0"]
+        mb = MB()
+        piece.build(mb, uvmap=lambda s, a, piece=piece, off=off: uv_stem((off + s * piece.total()) / total, a), mat=STEM)
+        o = mb.object(f"stem_{k}", mats, origin=ctrl[0], auto_smooth=50)
+        lib.set_parent(o, objs[-1] if objs else parent)
+        objs.append(o)
+    return objs
+
+
+def fly_spot(lobe, a, r, toward, lift=0.24):
+    """A fly's frame standing on a lobe's inner face at (a, r) (trap-local): its thorax `lift`
+    off the surface, its back (+Z) along the surface normal and its head (+Y) toward `toward`."""
+    p, nrm = lobe.inner_frame(a, r)
+    head = toward - p
+    head = (head - nrm * head.dot(nrm)).normalized()
+    R = Matrix((head.cross(nrm), head, nrm)).transposed()
+    return Matrix.Translation(p + nrm * lift) @ R.to_4x4()
 
 
 def leaf_blade(mb, az, length, lift, width, rng):
@@ -383,24 +467,50 @@ def main():
         [V((0.10, -0.12, 0.0)), V((0.25, -0.30, 0.45)), V((0.45, -0.45, 0.80))],
     ]
     radii = [(0.22, 0.13), (0.075, 0.05), (0.06, 0.04)]
+    paths = []
     for p, ctrl, (r0, r1) in zip(traps, stems, radii):
         M = trap_matrix(p)
         HX = 1.30 * p["scale"]
         end = M @ V((p["end"] * HX * 1.0, 0.02 * p["scale"], 0))
         approach = M @ V((p["end"] * (HX + 0.35 * p["scale"] + 0.12), 0.06 * p["scale"], -0.05 * p["scale"]))
-        stem_loft(root_mb, ctrl + [approach, end], r0, r1, flare=1.25)
+        paths.append(ctrl + [approach, end])
+        if p is not BIG:
+            stem_loft(root_mb, paths[-1], r0, r1, flare=1.25)
     root = root_mb.object("venus_flytrap", mats, origin=(0, 0, 0), auto_smooth=50)
-    objs = [root]
-    # the big trap
+    # the big trap's stem, jointed, and the big trap at its end
+    chain = stem_chain(paths[0], *radii[0], 1.25, root, mats)
+    objs = [root] + chain
     M = trap_matrix(BIG)
-    mid, up_mb, lo_mb, lobes = build_trap(1.0, math.radians(BIG["phi"]), (36, 14, 16))
+    mid, up_mb, lo_mb, lobes = build_trap(1.0, math.radians(BIG["phi"]), (36, 14, 16), hairs=HAIRS)
     Minv = M.inverted()
-    for x in (1.18, 0.98, -1.02, -1.20):
-        vine(mid, M @ V((x, 0.06, -0.05)), rng.uniform(1.4, 2.3), rng, Minv)
-    trap = place(mid, "trap", mats, M, root)
+    trap = place(mid, "trap", mats, M, chain[-1])
     lu = place(up_mb, "lobe_upper", mats, M, trap, fix=True)
     ll = place(lo_mb, "lobe_lower", mats, M, trap, fix=True)
     objs += [trap, lu, ll]
+    # the vines, two from each end of the hinge: a node for each pair, pivoting where they hang
+    # from, so that they can go on hanging (and swing) as the head moves
+    vines = {"vines_R": MB(), "vines_L": MB()}
+    for x in (1.18, 0.98, -1.02, -1.20):
+        vine(vines["vines_R" if x > 0 else "vines_L"], M @ V((x, 0.06, -0.05)), rng.uniform(1.4, 2.3), rng, Minv)
+    for name, mb in vines.items():
+        top = V(((1.08 if name == "vines_R" else -1.11), 0.06, -0.05))
+        o = mb.object(name, mats, origin=top, auto_smooth=50)
+        o.matrix_world = M @ Matrix.Translation(top)
+        lib.set_parent(o, trap)
+        objs.append(o)
+    # where a fly lands on the roof of the mouth (the upper lobe's red inner face, which is what
+    # you see from the path below), upside down, and walks along to the outer trigger hair
+    upper = lobes[0]
+    ha, hr = HAIRS[2]
+    hair = upper.inner_frame(math.pi * ha, hr)[0]
+    stop = fly_spot(upper, math.radians(103), 0.72, hair)
+    land = fly_spot(upper, math.radians(119), 0.82, hair)
+    for name, F in (("fly_land", land), ("fly_hair", stop)):
+        e = lib.empty(name, size=0.2)
+        e.matrix_world = M @ F
+        lib.set_parent(e, lu)
+    print(f"  fly walk {(stop.translation - land.translation).length:.2f} m, "
+          f"to the hair {(hair - stop.translation).length:.2f} m")
     # the fly, caught at the top of the mouth, its head inside, wings and abdomen out
     body, wings = build_fly()
     FM = M @ Matrix.Translation((0.12, -0.90, 0.10)) @ Matrix.Rotation(math.radians(-8), 4, "X") @ \

@@ -58,7 +58,7 @@ def render():
 
     out = mix.render({"room": {"seed": 131}})
     out = eq(out, ("lp", 6000, 0.7), circular=True)
-    return finish_loop("ambience", "projector", out, LOOP, 3, -20.0, 96, glue=False, tilt_hs_db=-2.0)
+    return finish_loop("ambience", "projector", out, LOOP, 3, -20.0, 128, glue=False, tilt_hs_db=-2.0)
 
 
 if __name__ == "__main__":

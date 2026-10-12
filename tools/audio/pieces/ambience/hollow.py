@@ -1,7 +1,7 @@
 """Hollow ambience: an old oak at night, creaking slowly; its leaves; crickets;
 and now and then a faint twinkle, as if the candy were humming to itself."""
 from hlaudio.core import rng
-from hlaudio import nature as NA, mallets as ML
+from hlaudio import nature as NA, mallets as ML, recordings as RW
 from hlaudio.piece import Mix, finish_loop
 
 LOOP = 60.0
@@ -14,7 +14,8 @@ def render():
     r = rng("oak")
     for i, t in enumerate([6.0, 27.5, 44.0]):
         oak.add(t, NA.creak(seed=i, dur=r.uniform(0.8, 1.6)), gain=0.06, pan=float(r.uniform(-0.4, 0.4)))
-    NA.wind_leaves(oak, level=0.0108, seed=51, crackle=0.7, low=0.4, gust_rate=0.05)
+    # Recorded wind in the oak's leaves, under the creaks.
+    RW.wind(oak, "0907", 40.0, -46.0, bands=(("lp", 7000, 0.7),), swap=True)
     mix.add(oak, 1.0, {"forest": 0.3})
 
     crick = mix.track()
@@ -32,7 +33,7 @@ def render():
     mix.add(tw, 1.0, {"hall": 0.6})
 
     out = mix.render({"forest": {"seed": 51}, "hall": {"seed": 52}})
-    return finish_loop("ambience", "hollow", out, LOOP, 3, -24.6, 96, glue=False, tilt_hs_db=-1.5)
+    return finish_loop("ambience", "hollow", out, LOOP, 3, -24.6, 128, glue=False, tilt_hs_db=-1.5)
 
 
 if __name__ == "__main__":

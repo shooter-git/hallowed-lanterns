@@ -11,6 +11,13 @@ clarinet hold the cell's inversion high in two-bar notes. The lift stays in
 the key - G over B, C, then D - with the one low braam of the piece on G;
 the full organ and timpani bring it home to D, and the layers come off one
 by one until the fifths and the stars are left.
+
+The giants' footsteps: the build has a beat, and only the build. From bar 20
+low timpani and the concert bass drum walk in 3+3+2 (eighths: the long,
+long, short of a heavy gait), the drums following the bass (D, then G, C);
+at first only the downbeat, softly, then the syncopations, then the ghost
+notes and the grace-note pickups, growing with the swell to the top at bar
+24 (the braam) and falling away again by bar 31, where the fifths return.
 D Mixolydian, 4/4 at 60, 34 bars = 136 s.
 """
 import numpy as np
@@ -21,6 +28,7 @@ from hlaudio.sampler import Curve
 from hlaudio.orch import Stage, sustain_chords, roots
 from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
+from hlaudio.beats import groove, drum_pitch
 from hlaudio.piece import finish_loop
 
 TITLE = "Gentle Giants"
@@ -80,8 +88,18 @@ def score():
     P["org_full"] = sustain_chords(pr, 50, 74, 4, vel=0.6, start=bar(24), end=bar(31))
     P["org_full_ped"] = roots(pr, 26, vel=0.6, start=bar(24), end=bar(31))
     P["timp_roll"] = [N(bar(22), bar(2) + 0.3, 50.0, 0.6)]
-    P["timp"] = [N(bar(24), 3, 38.0, 0.8), N(bar(25), 2, 46.0, 0.65), N(bar(26), 3, 48.0, 0.6),
-                 N(bar(28), 3, 38.0, 0.7), N(bar(30), 4, 38.0, 0.55)]
+    # the giants' gait (bars 20-31): timpani on the bass and its fifth, the bass drum,
+    # 3+3+2 eighths with sixteenth ghosts and pickups, born and gone with the swell
+    swell = Curve([(bar(20), 0.1), (bar(21), 0.24), (bar(22), 0.4), (bar(23), 0.56), (bar(23.8), 0.68),
+                   (bar(24), 1.0), (bar(26), 0.95), (bar(28), 0.9), (bar(29), 0.72), (bar(30), 0.42),
+                   (bar(30.75), 0.15), (bar(31), 0.0)])
+    lo, hi = drum_pitch(pr, 38, 49), drum_pitch(pr, 38, 49, fifth=True)
+    fig = [(0, "bd", 0, 1.0, 0.0), (0, "timp", lo, 0.9, 0.0),
+           (1.25, "timp", hi, 0.3, 0.6), (1.5, "timp", hi, 0.72, 0.22),
+           (2.75, "timp", lo, 0.32, 0.62), (3.0, "timp", lo, 0.78, 0.38), (3.0, "bd", 0, 0.5, 0.72),
+           (3.5, "timp", lo, 0.3, 0.75), (3.75, "timp", lo, 0.4, 0.5)]
+    P["drums"] = groove(bar(20), bar(31) + 1, BAR, fig, swell, vel=(0.2, 0.86), dur=3.0)
+    P["timp"] = [N(bar(31), 4, 38.0, 0.45)]
     r = rng("stars")
     st, t = [], 1.0
     while t < BARS * BAR:
@@ -126,6 +144,9 @@ def render():
     st.play("timpani", S(P["timp_roll"], 16, 0.0), "timpani_roll", seed=16,
             dyn=Curve([(sec(22), 0.02), (sec(24), 0.75), (sec(24.05), 0.3)]), gain_db=-5, release=0.4)
     st.play("timpani", S(P["timp"], 17, 0.004), "timpani", seed=17, gain_db=-2)
+    D = P["drums"]
+    st.play("timpani", S(D.get("timp", []), 22, 0.004), "timpani", seed=22, gain_db=5)
+    st.play("drums", S(D.get("bd", []), 23, 0.003), "bass_drum", seed=23, gain_db=4, seat="bass_drum")
     # the braam on the G (bar 25): low brass and a sub
     t_b = sec(25) - 0.05
     bdyn = Curve([(t_b, 0.35), (t_b + 1.0, 0.95), (t_b + 2.6, 0.75), (t_b + 4.0, 0.3)])

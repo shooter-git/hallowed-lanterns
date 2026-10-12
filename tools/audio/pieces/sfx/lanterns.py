@@ -1,13 +1,15 @@
 """Lantern and candle sounds: pumpkin-flare-1..3 (a warm wooden knock, a
 candle whoosh and a small chime), lantern-swing-1..2 (soft creak and tassel
-swish), lantern-light (soft magical ignite), candle-light (match strike, flame
-bloom, soft bell)."""
+swish), lantern-light (soft magical ignite), candle-light-1..3 (a real match
+struck and catching: Joseph Sardin's "Match #1" and "Match #2", BigSoundBank,
+CC0)."""
 import numpy as np
 
 from hlaudio.core import SR, ns, rng, tvec, Track
 from hlaudio.effects import chain, filt, reverb
 from hlaudio import mallets as ML, perc as PC, nature as NA, nb
-from hlaudio.piece import finish_sfx
+from hlaudio.piece import OUT, finish_sfx, update_manifest
+from hlaudio.recordings import entry, lock_cc0, original
 
 
 def place(n_s, *parts):
@@ -84,20 +86,26 @@ def lantern_light():
     return with_room(y, "hall", 0.25, 1.0)
 
 
-def candle_light():
-    r = rng("match")
-    n = ns(0.14)
-    t = tvec(n)
-    # strike: granular friction across the box
-    hits = r.uniform(size=n) < 0.12
-    strike = filt(hits * r.uniform(-1, 1, n), chain(("bp", 2600, 1.2), ("lp", 5000, 0.7)))
-    strike += filt(r.standard_normal(n), chain(("bp", 2200, 1.0))) * 0.3
-    strike *= np.sin(np.pi * t / 0.14) ** 0.5
-    flare = whoosh(0.5, 500, 2200, seed=9, low=0.2)
-    bloom = whoosh(1.0, 180, 700, seed=10, low=0.6)
-    bell = ML.bell(79, 0.55, seed=3, tone="hand")  # G5: the marigold key
-    y = place(2.6, (0.0, strike, 0.35), (0.1, flare, 0.3), (0.3, bloom, 0.3), (0.55, bell, 0.3))
-    return with_room(y, "room", 0.2, 0.8)
+# The ofrenda's candles are lit with a real match: (recording, page, title, where a strike begins).
+MATCHES = [
+    ("0004", "https://bigsoundbank.com/match-s0004.html", "Match #1", 0.2),
+    ("0004", "https://bigsoundbank.com/match-s0004.html", "Match #1", 24.3),
+    ("1271", "https://bigsoundbank.com/match-2-s1271.html", "Match #2", 4.15),
+]
+
+
+def candle_light(i):
+    """A match struck, catching and burning a moment, a little way off in a quiet room."""
+    sid, _, _, at = MATCHES[i]
+    x = original(sid)
+    seg = x[ns(at): ns(at) + ns(1.8)]
+    # start right at the strike (the tap lights it), keeping a breath before it
+    lvl = np.convolve(seg ** 2, np.ones(ns(0.005)) / ns(0.005), "same")
+    start = max(0, int(np.argmax(lvl > lvl.max() * 1e-3)) - ns(0.01))
+    y = filt(seg[start: start + ns(1.5)], chain(("hp", 120, 0.7), ("lp", 9000, 0.7)))
+    k = ns(0.45)
+    y[-k:] *= np.cos(np.linspace(0, np.pi / 2, k)) ** 2
+    return with_room(y, "room", 0.16, 0.5)
 
 
 def render():
@@ -106,7 +114,16 @@ def render():
     for i in range(2):
         finish_sfx("lantern-swing", f"lantern-swing-{i + 1}", lantern_swing(i), -5.0, max_s=1.2)
     finish_sfx("lantern-light", "lantern-light", lantern_light(), -4.0, max_s=1.4)
-    finish_sfx("candle-light", "candle-light", candle_light(), -3.0, max_s=1.8)
+    old = OUT / "sfx" / "candle-light.mp3"  # the synthesised one this replaced
+    if old.exists():
+        old.unlink()
+    update_manifest("sfx", "candle-light", [])
+    entries = []
+    for i, (_, page, title, _) in enumerate(MATCHES):
+        name = f"candle-light-{i + 1}"
+        finish_sfx("candle-light", name, candle_light(i), -4.0, max_s=2.0, kbps=128)
+        entries.append(entry(name, page, f"{title} (a match struck and catching)"))
+    lock_cc0(entries, ("candle-light",))
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 """Grove ambience (blue hour): wind moving through the leaves overhead,
 crickets near and far, the soft breathy hush of the ankle-deep fog, and once
-in a while a far-off owl."""
-from hlaudio import nature as NA
+in a while a far-off owl. The wind and the fog's hush are real recordings."""
+from hlaudio import nature as NA, recordings as RW
 from hlaudio.piece import Mix, finish_loop
 
 LOOP = 60.0
@@ -9,14 +9,14 @@ LOOP = 60.0
 
 def render():
     mix = Mix(LOOP, circular=True)
-    # The wind sits under the details now (it was louder than everything else, and levelling
-    # the whole ambience pushed it up): the rest stays where it was, the wind comes down.
+    # Recorded wind in leaves, a little softened by distance (it's overhead), under the details.
     air = mix.track()
-    NA.wind_leaves(air, level=0.014, seed=21, crackle=1.0, low=0.5, gust_rate=0.06)
+    RW.wind(air, "0907", 0.0, -44.5, bands=(("lp", 6500, 0.7), ("hs", 4000, 0.7, -2.0)))
     mix.add(air, 1.0, {"forest": 0.25})
 
+    # The fog's hush: a soft recorded wind, muffled.
     fog = mix.track()
-    NA.fog_hush(fog, level=0.0034, seed=22, cutoff=1800, rate=0.04)
+    RW.wind(fog, "0595", 6.0, -49.0, bands=(("lp", 1800, 0.7),), gust=0.04, seed=22)
     mix.add(fog, 1.0)
 
     crick = mix.track()
@@ -30,7 +30,7 @@ def render():
     mix.add(owl, 1.0, {"forest": 0.9})
 
     out = mix.render({"forest": {"seed": 21}})
-    return finish_loop("ambience", "grove", out, LOOP, 3, -26.3, 96, glue=False, tilt_hs_db=-1.5)
+    return finish_loop("ambience", "grove", out, LOOP, 3, -26.3, 128, glue=False, tilt_hs_db=-1.5)
 
 
 if __name__ == "__main__":

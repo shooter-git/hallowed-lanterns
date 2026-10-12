@@ -84,7 +84,7 @@
       "meter": "4/4",
       "beat": "quarter",
       "key": "F# dorian / A lydian",
-      "instrument": "synth arpeggio and glass"
+      "instrument": "analog synths and glass"
     },
     "ember-born": {
       "file": "music/ember-born.mp3",
@@ -112,8 +112,8 @@
       "bpm": 96,
       "meter": "4/4",
       "beat": "quarter",
-      "key": "G mixolydian",
-      "instrument": "organ and harp"
+      "key": "G pentatonic",
+      "instrument": "zither, harp and organ"
     },
     "grove": {
       "file": "music/grove.mp3",
@@ -137,24 +137,16 @@
       "key": "D lydian",
       "instrument": "marimba and pizzicato"
     },
-    "keeper-rises": {
-      "file": "music/keeper-rises.mp3",
-      "oneShot": true,
-      "seconds": 14.0,
-      "title": "The Keeper Rises",
-      "key": "F# dorian -> A lydian",
-      "stinger": true
-    },
     "marigold": {
       "file": "music/marigold.mp3",
-      "loopSeconds": 133.333333,
+      "loopSeconds": 186.666667,
       "tailSeconds": 4,
       "title": "Remember Me",
       "bpm": 72,
       "meter": "4/4",
       "beat": "quarter",
       "key": "G major",
-      "instrument": "piano"
+      "instrument": "guitar"
     },
     "pasture": {
       "file": "music/pasture.mp3",
@@ -181,14 +173,14 @@
     },
     "snow": {
       "file": "music/snow.mp3",
-      "loopSeconds": 136.0,
+      "loopSeconds": 133.333333,
       "tailSeconds": 4,
       "title": "First Snow",
-      "bpm": 60,
+      "bpm": 72,
       "meter": "4/4",
       "beat": "quarter",
       "key": "A lydian",
-      "instrument": "harp and glass"
+      "instrument": "piano, solo violin, harp and glockenspiel"
     },
     "title": {
       "file": "music/title.mp3",
@@ -261,7 +253,9 @@
       "sfx/butterflies.mp3"
     ],
     "candle-light": [
-      "sfx/candle-light.mp3"
+      "sfx/candle-light-1.mp3",
+      "sfx/candle-light-2.mp3",
+      "sfx/candle-light-3.mp3"
     ],
     "chest-open": [
       "sfx/chest-open.mp3"
@@ -303,13 +297,32 @@
       "sfx/fly-buzz-3.mp3",
       "sfx/fly-buzz-4.mp3"
     ],
+    "fly-buzz-trapped": [
+      "sfx/fly-buzz-trapped-1.mp3",
+      "sfx/fly-buzz-trapped-2.mp3",
+      "sfx/fly-buzz-trapped-3.mp3"
+    ],
+    "flytrap-digest": [
+      "sfx/flytrap-digest-1.mp3",
+      "sfx/flytrap-digest-2.mp3",
+      "sfx/flytrap-digest-3.mp3"
+    ],
+    "flytrap-lunge": [
+      "sfx/flytrap-lunge-1.mp3",
+      "sfx/flytrap-lunge-2.mp3"
+    ],
+    "flytrap-reopen": [
+      "sfx/flytrap-reopen-1.mp3",
+      "sfx/flytrap-reopen-2.mp3"
+    ],
     "flytrap-snap": [
       "sfx/flytrap-snap-1.mp3",
       "sfx/flytrap-snap-2.mp3"
     ],
-    "fog-swirl": [
-      "sfx/fog-swirl-1.mp3",
-      "sfx/fog-swirl-2.mp3"
+    "flytrap-stir": [
+      "sfx/flytrap-stir-1.mp3",
+      "sfx/flytrap-stir-2.mp3",
+      "sfx/flytrap-stir-3.mp3"
     ],
     "giant-low": [
       "sfx/giant-low-1.mp3",
@@ -327,6 +340,9 @@
       "sfx/gummy-squeak-1.mp3",
       "sfx/gummy-squeak-2.mp3",
       "sfx/gummy-squeak-3.mp3"
+    ],
+    "keeper-rise": [
+      "sfx/keeper-rise.mp3"
     ],
     "kraken-groan": [
       "sfx/kraken-groan.mp3"
@@ -347,6 +363,21 @@
     "owl-hoot": [
       "sfx/owl-hoot-1.mp3",
       "sfx/owl-hoot-2.mp3"
+    ],
+    "passage-a": [
+      "sfx/passage-a.mp3"
+    ],
+    "passage-b": [
+      "sfx/passage-b.mp3"
+    ],
+    "passage-d": [
+      "sfx/passage-d.mp3"
+    ],
+    "passage-fs": [
+      "sfx/passage-fs.mp3"
+    ],
+    "passage-g": [
+      "sfx/passage-g.mp3"
     ],
     "puffer-puff": [
       "sfx/puffer-puff.mp3"
@@ -431,8 +462,10 @@
       "sfx/well-coin-2.mp3",
       "sfx/well-coin-3.mp3"
     ],
-    "wings-flutter": [
-      "sfx/wings-flutter.mp3"
+    "wing-beat": [
+      "sfx/wing-beat-1.mp3",
+      "sfx/wing-beat-2.mp3",
+      "sfx/wing-beat-3.mp3"
     ],
     "wish-hang": [
       "sfx/wish-hang.mp3"

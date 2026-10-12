@@ -4,7 +4,7 @@
     {
       "path": "public/audio/ambience/arbor.mp3",
       "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+      "source": "Made with tools/audio (Hallowed Lanterns), with wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind in shrub\" (https://bigsoundbank.com/wind-in-shrub-s0907.html)"
     },
     {
       "path": "public/audio/ambience/deep.mp3",
@@ -14,32 +14,32 @@
     {
       "path": "public/audio/ambience/garden.mp3",
       "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+      "source": "Made with tools/audio (Hallowed Lanterns), with wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind in shrub\" (https://bigsoundbank.com/wind-in-shrub-s0907.html)"
     },
     {
       "path": "public/audio/ambience/grove.mp3",
       "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+      "source": "Made with tools/audio (Hallowed Lanterns), with wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind in shrub\" (https://bigsoundbank.com/wind-in-shrub-s0907.html), \"Wind\" (https://bigsoundbank.com/wind-s0595.html)"
     },
     {
       "path": "public/audio/ambience/hollow.mp3",
       "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+      "source": "Made with tools/audio (Hallowed Lanterns), with wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind in shrub\" (https://bigsoundbank.com/wind-in-shrub-s0907.html)"
     },
     {
       "path": "public/audio/ambience/marigold.mp3",
       "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+      "source": "Made with tools/audio (Hallowed Lanterns), with wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind in shrub\" (https://bigsoundbank.com/wind-in-shrub-s0907.html)"
     },
     {
       "path": "public/audio/ambience/pasture.mp3",
       "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+      "source": "Made with tools/audio (Hallowed Lanterns), with wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind in Tall Grass\" (https://bigsoundbank.com/wind-in-tall-grass-s0908.html)"
     },
     {
       "path": "public/audio/ambience/snow.mp3",
       "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
+      "source": "Made with tools/audio (Hallowed Lanterns), with wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind\" (https://bigsoundbank.com/wind-s0595.html)"
     },
     {
       "path": "public/audio/music/arbor.mp3",
@@ -64,7 +64,7 @@
     {
       "path": "public/audio/music/garden.mp3",
       "license": "own",
-      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios)"
+      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios) and Versilian Community Sample Library samples (CC0, Versilian Studios: https://github.com/sgossner/VCSL)"
     },
     {
       "path": "public/audio/music/grove.mp3",
@@ -77,14 +77,9 @@
       "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios)"
     },
     {
-      "path": "public/audio/music/keeper-rises.mp3",
-      "license": "own",
-      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios)"
-    },
-    {
       "path": "public/audio/music/marigold.mp3",
       "license": "own",
-      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios)"
+      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios) and Versilian Community Sample Library samples (CC0, Versilian Studios: https://github.com/sgossner/VCSL)"
     },
     {
       "path": "public/audio/music/pasture.mp3",
@@ -118,11 +113,6 @@
     },
     {
       "path": "public/audio/sfx/butterflies.mp3",
-      "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
-    },
-    {
-      "path": "public/audio/sfx/candle-light.mp3",
       "license": "own",
       "source": "Synthesised with tools/audio (Hallowed Lanterns)"
     },
@@ -165,16 +155,6 @@
       "path": "public/audio/sfx/ember-chime-snow.mp3",
       "license": "own",
       "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios)"
-    },
-    {
-      "path": "public/audio/sfx/fog-swirl-1.mp3",
-      "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
-    },
-    {
-      "path": "public/audio/sfx/fog-swirl-2.mp3",
-      "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
     },
     {
       "path": "public/audio/sfx/giant-low-1.mp3",
@@ -672,11 +652,6 @@
       "source": "Synthesised with tools/audio (Hallowed Lanterns)"
     },
     {
-      "path": "public/audio/sfx/wings-flutter.mp3",
-      "license": "own",
-      "source": "Synthesised with tools/audio (Hallowed Lanterns)"
-    },
-    {
       "path": "public/models/kraken-tentacle-a.glb",
       "license": "own",
       "source": "Modelled procedurally with tools/blender/kraken.py (Hallowed Lanterns)"
@@ -1004,6 +979,185 @@
       "path": "public/audio/sfx/ember-chime-grove-3.mp3",
       "license": "own",
       "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios)"
+    },
+    {
+      "path": "public/audio/sfx/fly-buzz-trapped-1.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/fly-and-glass-s0759.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Fly and glass (the fly against the glass, muffled, in bursts)"
+    },
+    {
+      "path": "public/audio/sfx/fly-buzz-trapped-2.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/fly-and-glass-s0759.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Fly and glass (the fly against the glass, muffled, in bursts)"
+    },
+    {
+      "path": "public/audio/sfx/fly-buzz-trapped-3.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/fly-and-glass-s0759.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Fly and glass (the fly against the glass, muffled, in bursts)"
+    },
+    {
+      "path": "public/audio/sfx/flytrap-stir-1.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/bones-cracking-3-s1409.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Bones cracking #3 (a celery's tick and creak, slowed)"
+    },
+    {
+      "path": "public/audio/sfx/flytrap-stir-2.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/bones-cracking-3-s1409.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Bones cracking #3 (a celery's tick and creak, slowed)"
+    },
+    {
+      "path": "public/audio/sfx/flytrap-stir-3.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/bones-cracking-3-s1409.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Bones cracking #3 (a celery's tick and creak, slowed)"
+    },
+    {
+      "path": "public/audio/sfx/flytrap-lunge-1.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/wind-s0595.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Wind, Wind in shrub and Bones cracking (a rush of air, leaves and a creak)",
+      "also": [
+        "https://bigsoundbank.com/wind-in-shrub-s0907.html",
+        "https://bigsoundbank.com/bones-cracking-3-s1409.html"
+      ]
+    },
+    {
+      "path": "public/audio/sfx/flytrap-lunge-2.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/wind-s0595.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Wind, Wind in shrub and Bones cracking (a rush of air, leaves and a creak)",
+      "also": [
+        "https://bigsoundbank.com/wind-in-shrub-s0907.html",
+        "https://bigsoundbank.com/bones-cracking-3-s1409.html"
+      ]
+    },
+    {
+      "path": "public/audio/sfx/flytrap-digest-1.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-mud-s0495.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the mud (a squelch, slowed)"
+    },
+    {
+      "path": "public/audio/sfx/flytrap-digest-2.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-mud-s0495.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the mud (a squelch, slowed)"
+    },
+    {
+      "path": "public/audio/sfx/flytrap-digest-3.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-mud-s0495.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the mud (a squelch, slowed)"
+    },
+    {
+      "path": "public/audio/sfx/flytrap-reopen-1.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/bones-cracking-3-s1409.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Bones cracking #3 and Wind in shrub (a creak slowed right down, with leaves)",
+      "also": "https://bigsoundbank.com/wind-in-shrub-s0907.html"
+    },
+    {
+      "path": "public/audio/sfx/flytrap-reopen-2.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/bones-cracking-3-s1409.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Bones cracking #3 and Wind in shrub (a creak slowed right down, with leaves)",
+      "also": "https://bigsoundbank.com/wind-in-shrub-s0907.html"
+    },
+    {
+      "path": "public/audio/sfx/candle-light-1.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/match-s0004.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Match #1 (a match struck and catching)"
+    },
+    {
+      "path": "public/audio/sfx/candle-light-2.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/match-s0004.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Match #1 (a match struck and catching)"
+    },
+    {
+      "path": "public/audio/sfx/candle-light-3.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/match-2-s1271.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Match #2 (a match struck and catching)"
+    },
+    {
+      "path": "public/audio/sfx/keeper-rise.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/wind-s0595.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Wind and Bones cracking #3 (slowed into the sea's surge and a groan)",
+      "also": "https://bigsoundbank.com/bones-cracking-3-s1409.html"
+    },
+    {
+      "path": "public/audio/sfx/wing-beat-1.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/wind-s0595.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Wind and Wind in shrub (a giant wing's beat: air and feathers)",
+      "also": "https://bigsoundbank.com/wind-in-shrub-s0907.html"
+    },
+    {
+      "path": "public/audio/sfx/wing-beat-2.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/wind-s0595.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Wind and Wind in shrub (a giant wing's beat: air and feathers)",
+      "also": "https://bigsoundbank.com/wind-in-shrub-s0907.html"
+    },
+    {
+      "path": "public/audio/sfx/wing-beat-3.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/wind-s0595.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Wind and Wind in shrub (a giant wing's beat: air and feathers)",
+      "also": "https://bigsoundbank.com/wind-in-shrub-s0907.html"
+    },
+    {
+      "path": "public/audio/sfx/passage-a.mp3",
+      "license": "own",
+      "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios), and wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind\" (https://bigsoundbank.com/wind-s0595.html)"
+    },
+    {
+      "path": "public/audio/sfx/passage-b.mp3",
+      "license": "own",
+      "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios), and wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind\" (https://bigsoundbank.com/wind-s0595.html)"
+    },
+    {
+      "path": "public/audio/sfx/passage-d.mp3",
+      "license": "own",
+      "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios), and wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind\" (https://bigsoundbank.com/wind-s0595.html)"
+    },
+    {
+      "path": "public/audio/sfx/passage-fs.mp3",
+      "license": "own",
+      "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios), and wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind\" (https://bigsoundbank.com/wind-s0595.html)"
+    },
+    {
+      "path": "public/audio/sfx/passage-g.mp3",
+      "license": "own",
+      "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios), and wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind\" (https://bigsoundbank.com/wind-s0595.html)"
     }
   ]
 }

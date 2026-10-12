@@ -49,7 +49,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const scene = new Scene();
   const bounds: Bounds = [-40, -90, 80, 105];
 
-  // The magical well, just off the path on the bend, where the grove's red fog comes from.
+  // The magical well, just off the path on the bend, where the grove's red fog comes from. The
+  // woods open round it into a little clearing, with a gap in the canopy above.
   const WELL = new Vector3(-1.2, 0, -20.5);
   const path = new Path(
     [
@@ -89,7 +90,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   // The woods.
   // Dense woods: trees right at the path's edge, bare trunks behind, a closed canopy overhead.
-  const byWell = (t: { x: number; z: number }) => Math.hypot(t.x - WELL.x, t.z - WELL.z) > 2.6;
+  const byWell = (t: { x: number; z: number }) => Math.hypot(t.x - WELL.x, t.z - WELL.z) > 4.6;
   const trees = lineThePath(path.points, 3.4, { spacing: tier === 'low' ? 4.5 : 3.4, depth: 1, seed: 7 }).filter(byWell);
   const back = lineThePath(path.points, 6.5, { spacing: tier === 'low' ? 5 : 3.6, depth: tier === 'low' ? 2 : 3, seed: 8 }).filter(byWell);
   const woods = forest(
@@ -101,7 +102,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     { leafTint: new Color(0.42, 0.5, 0.4) },
   );
   scene.add(woods.group);
-  const canopy = woodland(path, { canopy: [5.5, 10], reach: 10, skyGap: 0.55, density: tier === 'low' ? 1.4 : 2.4, wallFrom: 3.4, wallTo: 13, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 5, tint: new Color(0.42, 0.5, 0.42), seed: 11, clear: (x, z, y) => Math.hypot(x - WELL.x, z - WELL.z) < 2.4 && y < 3.6 });
+  const canopy = woodland(path, { canopy: [5.5, 10], reach: 10, skyGap: 0.55, density: tier === 'low' ? 1.4 : 2.4, wallFrom: 3.4, wallTo: 13, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 5, tint: new Color(0.42, 0.5, 0.42), seed: 11, clear: (x, z, y) => Math.hypot(x - WELL.x, z - WELL.z) < 4.4 && y < 8 });
   scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 120, height: 18, color: new Color(0.006, 0.008, 0.02), under: new Color(0.04, 0.02, 0.02) }));
 
@@ -175,14 +176,14 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     mask: mask.texture(),
     slices: tier === 'low' ? 5 : 10,
     height: 1.1,
-    tint: new Color(0.02, 0.022, 0.04),
-    density: 0.38,
-    glow: 1.1,
+    tint: new Color(0.008, 0.01, 0.022),
+    density: 0.24,
+    glow: 0.6,
     wind: new Vector2(0.12, -0.2),
   });
   scene.add(fog.mesh);
 
-  const hemi = new HemisphereLight(0x3b55a8, 0x0a0606, 0.32);
+  const hemi = new HemisphereLight(0x3b55a8, 0x0a0606, 0.2);
   scene.add(hemi);
 
   const blueHour = skyState({
@@ -201,23 +202,24 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     sunDir: new Vector3(0.4, -0.2, -1).normalize(),
     stars: 0.6,
   });
+  // Deep blue shadows and rich candlelight: blacks kept down, contrast and colour up.
   const gradeA: Grade = {
     ...defaultGrade(),
-    exposure: 1.0,
-    bloom: 0.1,
-    saturation: 1.2,
-    power: 1.12,
+    exposure: 0.98,
+    bloom: 0.11,
+    saturation: 1.38,
+    power: 1.24,
     tint: new Color(0.97, 0.98, 1.06),
-    lift: new Color(0.004, 0.008, 0.03),
+    lift: new Color(0.001, 0.002, 0.012),
   };
-  const gradeB: Grade = { ...gradeA, exposure: 1.1, lift: new Color(0.004, 0.006, 0.026) };
-  const fogA = new Color(0.05, 0.07, 0.15);
-  const fogB = new Color(0.025, 0.035, 0.08);
+  const gradeB: Grade = { ...gradeA, exposure: 1.04, lift: new Color(0.001, 0.002, 0.01) };
+  const fogA = new Color(0.026, 0.038, 0.09);
+  const fogB = new Color(0.012, 0.018, 0.046);
 
   const sources: LightSource[] = specs.filter((_, i) => i % 2 === 0).map((s) => ({
     position: s.position.clone().add(new Vector3(0, -0.1, 0)),
-    color: new Color(1, 0.6, 0.22),
-    intensity: 0.45,
+    color: new Color(1, 0.56, 0.18),
+    intensity: 0.6,
     distance: 4.5,
     phase: s.phase as number,
   }));
@@ -248,6 +250,19 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   let chimeClock = 0;
   let phase: 'lead' | 'flying' | 'hidden' | 'done' = 'lead';
   let time = 0;
+  // The well: noticed as you come near, and when you toss a coin in, the Ember dives in after it
+  // and comes back up on the fog.
+  let wellNoticed = 0;
+  let wellHinted = false;
+  let coins = 0;
+  let diving = 0;
+  const DIVE = 3.4;
+  theWell.hooks.onCoin = () => {
+    coins++;
+    ctx.ui.hideHint();
+    if (phase === 'lead' || phase === 'done') diving = DIVE;
+    if (coins === 1) setTimeout(() => ctx.ui.say('A long way down… and the well breathes out.', 5), 2600);
+  };
   const lines = ['Where did it go?', 'There! And off again…', 'Found it again. One more time.', 'It wants to show you something.'];
 
   const chapter: Chapter = {
@@ -263,9 +278,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       ctx.glow.setLights(glowLights);
       ctx.glow.wave = 1e9;
       ctx.lights.sources = sources;
-      shared.uFogDensity.value = 0.03;
+      shared.uFogDensity.value = 0.024;
       shared.uFogHeight.value = 6;
-      shared.uFogGlow.value = 0.8;
+      shared.uFogGlow.value = 0.7;
       ctx.ember.presence = 1;
       ctx.ember.place(new Vector3(0, 1.7, 3));
       ctx.audio.preload('garden');
@@ -283,7 +298,23 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       theWell.update(dt, time);
 
       const e = ctx.ember;
-      if (phase === 'lead') {
+      const toWell = Math.hypot(WELL.x - w.position.x, WELL.z - w.position.z);
+      if (!wellNoticed && toWell < 10 && phase !== 'flying') {
+        wellNoticed = time;
+        ctx.ui.say('An old stone well, breathing red fog.', 5);
+      }
+      if (wellNoticed && !wellHinted && !coins && time - wellNoticed > 4 && toWell < 5.5) {
+        wellHinted = true;
+        ctx.ui.showHint(ctx.portal.viewport.touch ? 'Tap the well to toss in a coin' : 'Click the well to toss in a coin', 8);
+      }
+      if (diving > 0) {
+        // Down into the shaft after the coin, then up again on the fog as the well breathes out.
+        diving = Math.max(0, diving - dt);
+        const k = DIVE - diving;
+        const m = theWell.mouth;
+        e.target.set(m.x, m.y + (k < 0.6 ? 1.1 : k < 1.6 ? -0.6 : 2.3), m.z);
+        e.presence = k > 0.9 && k < 1.7 ? Math.max(0.15, e.presence - dt * 2) : Math.min(1, e.presence + dt * 2);
+      } else if (phase === 'lead') {
         // Floats ahead until you near the next hiding place, then dives into it.
         path.at(Math.min(path.length, w.s + 4), tmp);
         e.target.set(tmp.x, 1.7 + Math.sin(time) * 0.2, tmp.y);

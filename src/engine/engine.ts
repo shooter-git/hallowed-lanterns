@@ -66,6 +66,7 @@ export class Engine {
     const glow = new GlowField(tier === 'low' ? 256 : 512);
     const lights = new LightPool(tier === 'low' ? 2 : tier === 'mid' ? 4 : 6);
     const sky = new Sky();
+    sky.tier = tier;
     const ember = new Ember();
     const ui = new UI(portal.viewport.touch);
     const walker = new Walker(portal, camera, renderer.domElement);
@@ -251,6 +252,9 @@ export class Engine {
     walker.setPath(chapter.path, 0);
     if (chapter.startYaw !== undefined) walker.yaw = chapter.startYaw;
     walker.autoTarget = null;
+    // The passage on to the next chapter, ready before it's needed (it lands on a beat).
+    const next = CHAPTERS[this.index + 1];
+    if (next) audio.preload('', [`passage-${next.key}`]);
     if (run) chapter.enter();
   }
 
@@ -283,7 +287,11 @@ export class Engine {
     this.transition = { t: 0, phase: 'out', target: index };
     // Whatever the chapter you're leaving was offering goes with it.
     this.ctx.ui.clearOffers();
-    void this.ctx.audio.sfx('fog-swirl', { volume: 0.45 });
+    // The passage: a bar that swells to the moment the next chapter appears, in its key. The
+    // music you're leaving steps back to let it through.
+    const info = CHAPTERS[index];
+    if (info) void this.ctx.audio.sfx(`passage-${info.key}`, { volume: 0.7 });
+    this.ctx.audio.musicLevel(0.35, 2.4);
   }
 
   private frame(dt: number) {

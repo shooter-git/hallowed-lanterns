@@ -2,7 +2,7 @@
 off), the first crickets, a breeze through the pergola and a faint, happy
 murmur of people far down the lane (formant babble, never words)."""
 from hlaudio.core import Track
-from hlaudio import nature as NA, effects as FX
+from hlaudio import nature as NA, effects as FX, recordings as RW
 from hlaudio.piece import Mix, finish_loop
 
 LOOP = 60.0
@@ -26,11 +26,12 @@ def render():
     mix.add(crowd, 1.0, {"field": 0.8})
 
     air = mix.track()
-    NA.wind_leaves(air, level=0.022, seed=7, crackle=0.5, low=0.6, gust_rate=0.05)
+    # Recorded wind in the leaves of the arbor.
+    RW.wind(air, "0907", 60.0, -38.5)
     mix.add(air, 1.0, {"forest": 0.2})
 
     out = mix.render({"forest": {"seed": 11}, "field": {"seed": 12}})
-    return finish_loop("ambience", "arbor", out, LOOP, 3, -20.0, 96, glue=False, tilt_hs_db=-1.5)
+    return finish_loop("ambience", "arbor", out, LOOP, 3, -20.0, 128, glue=False, tilt_hs_db=-1.5)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ import numpy as np
 
 from hlaudio.core import rng, ns, tvec
 from hlaudio.effects import chain, filt
-from hlaudio import nature as NA, mallets as ML
+from hlaudio import nature as NA, mallets as ML, recordings as RW
 from hlaudio.piece import Mix, finish_loop
 
 LOOP = 60.0
@@ -12,14 +12,10 @@ LOOP = 60.0
 
 def render():
     mix = Mix(LOOP, circular=True)
-    # The wind sits under the details now (it was louder than everything else, and levelling
-    # the whole ambience pushed it up): the rest stays where it was, the wind comes down.
-    hush = mix.track()
-    NA.snow_hush(hush, level=0.011, seed=61)
-    mix.add(hush, 1.0)
-
+    # The hush of the snow and its faint wind: a soft recorded wind, muffled as snow muffles
+    # everything, swelling and easing slowly.
     wind = mix.track()
-    NA.wind_whoosh(wind, level=0.0092, seed=62, cutoff=650, rate=0.035, whistle=0.15)
+    RW.wind(wind, "0595", 20.0, -38.5, bands=(("lp", 1200, 0.7),), gust=0.035, seed=62)
     mix.add(wind, 1.0, {"hall": 0.2})
 
     ev = mix.track()
@@ -33,7 +29,7 @@ def render():
     mix.add(ev, 1.0, {"hall": 0.6})
 
     out = mix.render({"hall": {"seed": 61}})
-    return finish_loop("ambience", "snow", out, LOOP, 3, -27.7, 96, glue=False, tilt_hs_db=-2.0)
+    return finish_loop("ambience", "snow", out, LOOP, 3, -27.7, 128, glue=False, tilt_hs_db=-2.0)
 
 
 if __name__ == "__main__":

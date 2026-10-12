@@ -66,5 +66,7 @@ export interface ChapterInfo {
   numeral: string;
   name: string;
   subtitle: string;
+  /** The key its music is in: the passage into the chapter is played in it (sfx passage-<key>). */
+  key: 'd' | 'b' | 'g' | 'a' | 'fs';
   load: () => Promise<{ build: (ctx: ChapterContext) => Promise<Chapter> }>;
 }

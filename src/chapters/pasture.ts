@@ -216,11 +216,13 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     distance: 14,
   }))];
 
+  // Out in the open, far from the lights: the heavens as a long exposure sees them.
   const night = skyState({
     zenith: new Color(0.003, 0.006, 0.03),
     horizon: new Color(0.018, 0.026, 0.07),
     stars: 1.3,
     lightPollution: new Color(0.03, 0.015, 0.01),
+    milkyWay: 1,
   });
   const grade: Grade = { ...defaultGrade(), exposure: 1.05, bloom: 0.12, saturation: 1.1, power: 1.08, tint: new Color(0.98, 1.0, 1.05), lift: new Color(0.004, 0.006, 0.018) };
 
@@ -252,7 +254,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       shared.uFogGlow.value = 0.9;
       ctx.ember.presence = 1;
       ctx.ember.place(new Vector3(0, 1.8, 4));
-      ctx.audio.preload('hollow', ['giant-low', 'step-leaves', 'fly-buzz', 'flytrap-snap']);
+      ctx.audio.preload('hollow', ['giant-low', 'step-leaves', 'fly-buzz', 'flytrap-snap', 'flytrap-stir', 'flytrap-lunge', 'fly-buzz-trapped']);
     },
 
     update(dt) {

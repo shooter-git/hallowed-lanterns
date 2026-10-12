@@ -31,7 +31,7 @@ import type { SetPiece } from './types.ts';
  * of fog as the echo comes back up.
  */
 
-const PUFFS = 28;
+const PUFFS = 36;
 
 /** Soft, slowly turning billows of fog, lit red from below. */
 function plumeMaterial(): ShaderMaterial {
@@ -84,7 +84,8 @@ function plumeMaterial(): ShaderMaterial {
   });
 }
 
-export async function well(ctx: ChapterContext, at: Vector3, yaw: number): Promise<SetPiece> {
+export async function well(ctx: ChapterContext, at: Vector3, yaw: number): Promise<SetPiece & { mouth: Vector3; hooks: { onCoin: (() => void) | null } }> {
+  const hooks: { onCoin: (() => void) | null } = { onCoin: null };
   const objects: Object3D[] = [];
   const toWorld = (v: Vector3) => v.clone().applyAxisAngle(new Vector3(0, 1, 0), yaw).add(at);
   const group = new Group();
@@ -165,20 +166,23 @@ export async function well(ctx: ChapterContext, at: Vector3, yaw: number): Promi
 
   let surge = 0;
   let time = 0;
-  const glow: GlowLight = { x: mouth.x, z: mouth.z, radius: 2.6, color: new Color(1, 0.12, 0.08), intensity: 0.3, flicker: 0.15 };
+  // Its red light reaches out across the clearing, so you see it from down the path.
+  const glow: GlowLight = { x: mouth.x, z: mouth.z, radius: 3.6, color: new Color(1, 0.12, 0.08), intensity: 0.42, flicker: 0.15 };
   const coinAt = model?.node('coin_drop')?.getWorldPosition(new Vector3()) ?? mouth.clone().setY(mouth.y + 0.5);
 
   return {
     objects,
+    mouth,
+    hooks,
     glow: [glow],
     sources: [
-      { position: mouth.clone().setY(mouth.y + 0.4), color: new Color(1, 0.15, 0.1), intensity: 3, distance: 4, phase: 0.7 },
+      { position: mouth.clone().setY(mouth.y + 0.4), color: new Color(1, 0.15, 0.1), intensity: 4.5, distance: 6, phase: 0.7 },
       { position: toWorld(new Vector3(0, 1.4, -1.6)), color: new Color(0.6, 0.2, 1), intensity: 2, distance: 4 },
     ],
     update(dt) {
       time += dt;
       surge = Math.max(0, surge - dt / 4);
-      glow.intensity = 0.3 + surge * 0.6;
+      glow.intensity = 0.42 + surge * 0.8;
       // the windlass turns as the well breathes out (both about their axle, along x)
       if (crank) crank.rotation.x -= dt * surge * 6;
       if (drum) drum.rotation.x -= dt * surge * 6;
@@ -210,6 +214,7 @@ export async function well(ctx: ChapterContext, at: Vector3, yaw: number): Promi
         void ctx.audio.sfx('well-coin', { at: pointOnGround(coinAt), volume: 0.9 });
         // The fog breathes out as the echo comes back up.
         setTimeout(() => (surge = 1), 1300);
+        hooks.onCoin?.();
       };
     },
     dispose() {

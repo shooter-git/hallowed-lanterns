@@ -34,7 +34,7 @@ def render():
     mix.add(bub, 1.0, {"underwater": 0.4})
 
     out = mix.render({"underwater": {"seed": 71}})
-    return finish_loop("ambience", "deep", out, LOOP, 3, -20.0, 96, glue=False, tilt_hs_db=-2.0)
+    return finish_loop("ambience", "deep", out, LOOP, 3, -20.0, 128, glue=False, tilt_hs_db=-2.0)
 
 
 if __name__ == "__main__":

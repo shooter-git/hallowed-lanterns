@@ -1,22 +1,39 @@
-"""VII. The Deep — "Where the Lanterns Swim" (rescored, Martinez / Glass).
+"""VII. The Deep — "Where the Lanterns Swim" (rescored, Martinez / Glass, with
+the analog synths of a 1980s night-drive score).
 
-Underwater, hypnotic, in straight time. A soft synth arpeggio repeats the
+Underwater, hypnotic, in straight time. An analog arpeggio repeats the
 Ember's cell (F# D# C# A C#) in eighths - five notes against the eight of a
 4/4 bar, so it slides across the bar line and only realigns every five
-bars - through a low-pass filter that opens and closes like a tide, with a
-dotted-eighth echo. Later a glass voice plays the same figure INVERTED a
-sixteenth behind it and the two interlock. The pitch collection never
-changes (E major's notes), but the pedal under it does: F# (Dorian, dark
-blue water) and then A (Lydian, the sea opening into light) - modal
+bars - through a resonant ladder filter that opens and closes like a tide,
+with a dotted-eighth echo. Later a glass voice plays the same figure
+INVERTED a sixteenth behind it and the two interlock. The pitch collection
+never changes (E major's notes), but the pedal under it does: F# (Dorian,
+dark blue water) and then A (Lydian, the sea opening into light) - modal
 ambiguity instead of key changes. A gliding glass voice sings the cell
 augmented, like whale song; low strings and the organ's quiet stops swell
 like tides far back; in the light the horns state the cell and a solo
-violin answers with its inversion in canon. A soft sub pulses under it in 3+3+2.
+violin answers with its inversion in canon. A soft sub pulses under it in
+3+3+2.
+
+The 1980s colour (the synth scores of Carpenter, Tangerine Dream, Dixon and
+Stein - their sound, none of their tunes): real-analog-style voices
+(polyBLEP saws and pulses, two or three drifting oscillators per voice, a
+4-pole ladder filter with its own envelope per note, gentle saturation,
+stereo chorus and a touch of tape) in the plate and the underwater hall.
+A dark bass pulses in sixteenths on the pedal (accents in 3+3+2, a hiccup
+up the octave at the end of each group) from the whale's entry; a sixteenth
+sequencer walks the cell up and down the mode (the cell from F#, from A,
+from C#, from A again: it rises and falls, five notes at a time against the
+beat) while its filter sweeps slowly open and shut with the tide; in the
+light, brassy pad swells bloom on each chord and the low drums are born
+with the swell (timpani on A and a bass drum in 3+3+2, ghost notes joining
+as it grows) and leave before the water darkens again.
 4/4, quarter = 100, 56 bars = 134.4 s.
 
   bars  0-7   pad, filtered arpeggio, sub, organ pedal on F#
-  bars  8-23  the whale voice (cell augmented); the mirror arpeggio; tides
-  bars 24-39  the pedal moves to A: horns' cell, violins' canon, the filter opens
+  bars  8-23  the whale voice; the mirror arpeggio; the bass pulse; the sequencer (16)
+  bars 24-39  the pedal moves to A: horns' cell, violins' canon, the filter opens;
+              pad swells; the drums (22-38)
   bars 40-55  back onto F#, layers falling away to the arpeggio
 """
 import numpy as np
@@ -26,6 +43,8 @@ from hlaudio.sampler import Curve
 from hlaudio.orch import Stage, sustain_chords, roots
 from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
+from hlaudio import analog as AN
+from hlaudio.beats import groove
 from hlaudio.piece import finish_loop
 
 TITLE = "Where the Lanterns Swim"
@@ -93,6 +112,45 @@ def score():
     P["timp_roll"] = [N(bar(22), bar(2) + 0.5, 45.0, 0.5)]
     P["sub"] = [N(bar(b) + pos, 2.0, 30.0 if not (24 <= b < 40) else 33.0, 0.7 if pos == 0 else 0.5)
                 for b in range(BARS) for pos in (0, 3, 6)]
+    # the analog bass: sixteenths on the pedal (F#2, A2 in the light), accents in 3+3+2
+    # (eighths), the last sixteenth of each group hops up the octave
+    acc = [1.0, .42, .55, .45, .58, .5, .92, .42, .55, .45, .58, .5, .88, .45, .6, .52]
+    hop = {5, 11, 15}
+    bass = []
+    for b in range(8, 48):
+        root = 45.0 if 24 <= b < 40 else 42.0
+        for k in range(16):
+            bass.append(N(bar(b) + k * 0.5, 0.42, root + (12 if k in hop else 0), 0.62 * acc[k]))
+    P["bass"] = bass
+    # the sequencer: the cell walked up and down the mode in sixteenths (from the 1st,
+    # 3rd, 5th and 3rd degrees), five notes at a time against the beat (bars 16-43)
+    seq = []
+    starts = [0, 2, 4, 2]
+    i = 0
+    t = bar(16)
+    while t < bar(44) - 1e-6:
+        light = bar(24) <= t < bar(40)
+        md, base = (MA, 7) if light else (MF, 7)          # A4 / F#4
+        k = (i // 5) % 4
+        p = md.p(base + starts[k] + PR.cell("P")[i % 5])
+        v = 0.5 * (1.12 if i % 5 == 0 else 0.92 if i % 5 == 1 else 0.8)
+        seq.append(N(t, 0.42, float(p), v))
+        t += 0.5
+        i += 1
+    P["seq"] = seq
+    # brassy pad swells in the light, one per chord
+    P["swell"] = sustain_chords(pr, 57, 76, 4, vel=0.6, overlap=0.0, start=bar(24), end=bar(40))
+    # the drums in the light (22-38): timpani on A, a bass drum, 3+3+2 with ghost notes
+    swell = Curve([(bar(22), 0.1), (bar(23), 0.25), (bar(23.9), 0.45), (bar(24), 0.7), (bar(26), 0.8),
+                   (bar(28), 0.92), (bar(33), 0.95), (bar(35), 0.8), (bar(36.5), 0.5), (bar(37.5), 0.2),
+                   (bar(38), 0.0)])
+    A2, E2 = 45.0, 40.0
+    fig = [(0, "bd", 0, 1.0, 0.0), (0, "timp", A2, 0.85, 0.0), (3, "timp", A2, 0.7, 0.25),
+           (5.5, "timp", A2, 0.3, 0.6), (6, "timp", E2, 0.75, 0.4), (7.5, "timp", A2, 0.34, 0.55),
+           (8, "timp", A2, 0.8, 0.12), (11, "timp", A2, 0.68, 0.3), (13.5, "timp", A2, 0.3, 0.65),
+           (14, "bd", 0, 0.7, 0.35), (14, "timp", E2, 0.75, 0.35), (15, "timp", A2, 0.32, 0.6),
+           (15.5, "timp", A2, 0.4, 0.5)]
+    P["drums"] = groove(bar(22), bar(38), 16, fig, swell, vel=(0.2, 0.82))
     return pr, P
 
 
@@ -119,16 +177,48 @@ def render():
     sb = st.stem("sub", {}, depth=0.3)
     subs = S(P["sub"], 2, 0.0)
     for n in subs:
-        n.v = float(n.v * (0.6 + 0.5 * tide(n.t)))
+        n.v = float(n.v * (0.6 + 0.5 * tide(n.t)) * (0.72 if sec(8) <= n.t < sec(48) else 1.0))
     EL.sub_pulse(sb, subs, gain=0.55, seed=2, decay=0.5, drive=1.2)
     pd.buf = FX.duck(pd.buf, [n.t for n in subs], depth=0.22, release=0.35, circular=True).astype("float32")
 
-    ar = st.stem("arp", {"underwater": 0.45, "concert": 0.25}, depth=0.6)
+    ar = st.stem("arp", {"underwater": 0.4, "plate": 0.18, "concert": 0.2}, depth=0.6)
     arp = S(P["arp"], 3, 0.0)
     for n in arp:
         n.v = float(n.v * (0.6 + 0.5 * tide(n.t)))
-    EL.arp(ar, arp, gain=1.0, seed=3, cutoff=cutoff, res=2.0, decay=0.22, shape=0.3, pan=-0.15, pan_wobble=0.25)
+        n.x["pan"] = 0.25 * np.sin(n.t * 0.9)
+    AN.play(ar, arp, AN.ARP, gain=2.5, seed=3, sweep=lambda t: 0.7 * cutoff(t) / AN.ARP.cutoff, pan=-0.15)
+    ar.buf = FX.chorus(ar.buf, rate=0.3, depth_ms=2.5, mix=0.35, circular=True, seed=3)
     ar.buf = (ar.buf + FX.echo(ar.buf, clk.s(1.5), fb=0.42, mix=0.32, lp=2200, circular=True)).astype("float32")
+
+    # the 1980s colour: the bass pulse, the sequencer, the pad swells (chorus, tape, plate)
+    def swp(lo, hi, per_bars):
+        def f(t):
+            t = np.asarray(t, dtype=np.float64) % LOOP
+            sl = 0.5 - 0.5 * np.cos(2 * np.pi * t / sec(per_bars))
+            return lo + (hi - lo) * tide(t) ** 1.5 * (0.45 + 0.55 * sl)
+        return f
+    bs = st.stem("bass", {"underwater": 0.18, "plate": 0.08}, depth=0.35)
+    bn = S(P["bass"], 40, 0.0)
+    for n in bn:
+        n.v = float(n.v * (0.55 + 0.55 * tide(n.t)))
+    AN.play(bs, bn, AN.BASS, gain=0.7, seed=40, sweep=swp(0.7, 2.2, 8))
+    bs.buf = FX.chorus(bs.buf, rate=0.2, depth_ms=1.5, mix=0.2, circular=True, seed=40)
+    sq = st.stem("seq", {"plate": 0.35, "underwater": 0.35}, depth=0.62)
+    qn = S(P["seq"], 41, 0.0)
+    for n in qn:
+        n.v = float(n.v * (0.6 + 0.5 * tide(n.t)))
+        n.x["pan"] = 0.35 * np.sin(n.t * 0.37)
+    AN.play(sq, qn, AN.SEQ, gain=1.0, seed=41, sweep=swp(0.45, 2.6, 8))
+    sq.buf = FX.chorus(sq.buf, rate=0.33, depth_ms=3.0, mix=0.45, circular=True, seed=41)
+    sq.buf = (sq.buf + FX.echo(sq.buf, clk.s(3), fb=0.3, mix=0.22, lp=1800, circular=True)).astype("float32")
+    sw = st.stem("swell", {"plate": 0.3, "underwater": 0.45, "shimmer:cathedral": 0.08}, depth=0.72)
+    swn = S(P["swell"], 42, 0.0)
+    AN.play(sw, swn, AN.SWELL, gain=0.6, seed=42, sweep=lambda t: 0.8 + 0.6 * tide(np.asarray(t) % LOOP),
+            pan_spread=0.3)
+    sw.buf = FX.chorus(sw.buf, rate=0.25, depth_ms=3.5, mix=0.5, circular=True, seed=42)
+    for nm in ("bass", "seq", "swell", "arp"):
+        st.stems[nm].buf = FX.wow_flutter(st.stems[nm].buf, wow=0.0009, flutter=0.00025, circular=True,
+                                          seed=nm).astype("float32")
     mr = st.stem("mirror", {"underwater": 0.5, "shimmer:cathedral": 0.2}, depth=0.7)
     mir = S(P["mirror"], 4, 0.0)
     for n in mir:
@@ -157,13 +247,18 @@ def render():
             shape=shape, lag=0.03, layer_bias=-0.2, depth=0.65, legato=True, slide=0.12)
     st.play("timpani", S(P["timp_roll"], 13, 0.0), "timpani_roll", seed=13,
             dyn=Curve([(sec(22), 0.02), (sec(24.2), 0.55), (sec(24.3), 0.2)]), gain_db=-8, release=0.6)
+    D = P["drums"]
+    st.play("timpani", S(D.get("timp", []), 14, 0.004), "timpani", seed=14, gain_db=2,
+            sends={"underwater": 0.45, "concert": 0.5})
+    st.play("drums", S(D.get("bd", []), 15, 0.003), "bass_drum", seed=15, gain_db=3, seat="bass_drum",
+            sends={"underwater": 0.45, "concert": 0.55})
 
-    out = st.render({"underwater": {"seed": 71}, "concert": {"seed": 73},
+    out = st.render({"underwater": {"seed": 71}, "concert": {"seed": 73}, "plate": {"seed": 74},
                      "shimmer:cathedral": {"seed": 72, "gens": 2, "fb": 0.45}}, warmth=0.35)
     out = FX.eq(out, ("lp", 6000, 0.6), ("ls", 120, 0.7, 1.0), circular=True)
     return finish_loop("music", "deep", out, LOOP, 4, -16.0, 192, tilt_hs_db=-1.5,
                        meta={"title": TITLE, "bpm": 100, "meter": "4/4", "beat": "quarter",
-                             "key": "F# dorian / A lydian", "instrument": "synth arpeggio and glass"})
+                             "key": "F# dorian / A lydian", "instrument": "analog synths and glass"})
 
 
 if __name__ == "__main__":

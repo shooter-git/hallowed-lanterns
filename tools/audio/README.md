@@ -5,9 +5,19 @@ Everything in `public/audio/` is made by this folder (our own work:
 and the instrument-like sound effects (xylophone notes, the big guitar's
 strings, the Ember's chimes, snowflakes, sprinkle-burst, wish-hang) are
 composed here and played by real orchestral samples from **VSCO 2 Community
-Edition** (see *Samples* below); everything else (ambiences, creatures, magic)
-is synthesised from scratch. Python + numpy/scipy, with a few sample-by-sample
+Edition**, with a few instruments from the **Versilian Community Sample
+Library** (see *Samples* below); everything else (ambiences, creatures, magic)
+is synthesised from scratch, and so are the Deep's analog synths. Python + numpy/scipy, with a few sample-by-sample
 kernels compiled by numba; ffmpeg (libmp3lame) encodes and measures.
+
+**Wind** in the outdoor ambiences is recorded too (`hlaudio/recordings.py`,
+`wind()`): stretches of Joseph Sardin's CC0 field recordings, "Wind in shrub"
+(the leafy chapters, each from a different stretch), "Wind in Tall Grass" (the
+Pasture) and his foley "Wind" (the Snow, the Grove's fog), cross-faded round so
+they loop without a seam, with twig-snap clicks taken down, and set to the same
+loudness the synthesised wind had. ("Wind in the Trees" was fetched too, but has
+birdsong in it, so it isn't used.) The **passage between chapters**
+(`pieces/sfx/passage.py`) is played by the orchestra with a rush of that wind.
 
 **Footsteps** (`pieces/sfx/footsteps.py`) are cut from real studio foley by
 Joseph Sardin at [BigSoundBank](https://bigsoundbank.com), released under CC0:
@@ -73,6 +83,53 @@ presence tamed, the top rolled off; the piano is made "felt", the glockenspiel
 soft) and is seated at a depth in a generated concert hall (`orch.SEAT`:
 further = less and darker dry signal, more hall), the organ in a cathedral.
 
+## Samples: VCSL (the Versilian Community Sample Library)
+
+A few colours come from **VCSL** by Versilian Studios (Sam Gossner and
+contributors), also **CC0 1.0** (public domain):
+<https://github.com/sgossner/VCSL>. Credit, as for VSCO: "using the
+Versilian Community Sample Library (CC0, Versilian Studios)". Sparse-checked
+out into `tools/audio/.cache/vcsl/` (git-ignored, about 300 MB):
+
+```sh
+git clone --filter=blob:none --no-checkout https://github.com/sgossner/VCSL.git tools/audio/.cache/vcsl
+cd tools/audio/.cache/vcsl
+git sparse-checkout set --no-cone "/LICENSE*" "/README*" "/Chordophones/Zithers/Dan Tranh/" \
+  "/Idiophones/Struck Idiophones/Gong 1/" "/Idiophones/Struck Idiophones/Gong 2/" \
+  "/Idiophones/Struck Idiophones/Finger Cymbals/" "/Idiophones/Struck Idiophones/Woodblock/" \
+  "/Aerophones/Edge-blown Aerophones/Ocarina, Typical/"
+git checkout master
+```
+
+| instrument (`sampler.INSTRUMENTS`) | VCSL folder | used in |
+|---|---|---|
+| `zither`, `zither_trem`, `zither_gliss_up`, `zither_gliss_down` | Dan Tranh: Normal (mf/f/ff), Tremolo, Gliss (Up/Dwn Med mf) | the Lantern Garden (played as a guzheng) |
+| `ocarina` (`ocarina_vib`) | Ocarina, Typical: Sustains/Sus (SusVib) | the Garden (as a xun), the Marigold Garden (a clay flute) |
+| `gong` | Gong 1 (p, mf, f, fff) | the Garden (two strokes); the Marigold's far bell |
+| `finger_cymbal` | Finger Cymbals | the Garden (phrase starts) |
+| `woodblock` | Woodblock (`wood_click_*`: pp, mp, f, ff) | the Garden (the temple block) |
+
+VCSL is catalogued separately (`.cache/vcsl-catalog.json`), so adding a VCSL
+instrument never re-measures VSCO. Its names follow other conventions, and
+some pitches are measured rather than read:
+
+* the dan tranh and the ocarina name their notes an octave low (B1 is B2);
+* the dan tranh's strings are B C# D# F# G# (B pentatonic) from B2 to B5, so
+  any G-pentatonic note is at most a semitone from a string, and the
+  glissandi, played a major third down, sweep exactly G A B D E;
+* a hard pluck starts sharp, so the zither's tuning is read 0.6–1.6 s after
+  the pluck (its C# strings sit 37–42 cents sharp and are corrected; plucks
+  land within ±6 cents);
+* the gong (fundamental ~143.5 Hz, played as D3), the finger cymbal (~3.1 kHz,
+  G7) and the woodblock (~1.37 kHz, played at E6) are pitched by their
+  strongest partial;
+* plucked and struck notes can carry a pitch curve, `x["bend"]` (time,
+  semitone breakpoints) and `x["vib"]` (a pressed vibrato): the guzheng's
+  slides, presses and left-hand vibrato (`hlaudio/festival.py`).
+
+The zither's own vibrato samples are not used (their vibrato rises ~30 cents
+above the note); the vibrato is drawn on the plain plucks instead.
+
 ## Rendering
 
 ```sh
@@ -134,19 +191,32 @@ sounds in tune with what is playing:
 | title    | Hallowed Lanterns | D (Lydian colours), 4/4 3+3+2 | felt-piano cycle, the theme emerging as its top voice; solo violin + clarinet canon; pizzicato pedal; glass pulse, swell | — |
 | arbor    | Sundown        | D, 4/4                            | piano figure phasing against the bar; clarinet/bassoon/flute/solo-violin canon of the augmented cell; pizzicato bass and canon; organ pedal; horns | felt piano + glass halo, D |
 | grove    | Blue Hour      | B aeolian, 7/8 (2+2+3)            | glass arpeggio + mirror; pizzicato pedal; clarinet cell; stretto (solo violin, flute, bassoon); spiccato ticking | three variations: harp, high harp, felt piano + bell tree; D B A F# A |
-| garden   | Lantern Song   | G mixolydian, 4/4 3+3+2           | harp additive process; organ cycling; woodwind hocket; fugue on winds, horn and solo violin; pizzicato harmony; pedal augmentation | harp + glass halo, G E D B D |
-| pasture  | Gentle Giants  | D mixolydian, 4/4                 | brass canon/stretto; dotted spiccato ostinato; solo violin + clarinet inversion; one braam on G | felt piano + harp, D |
+| garden   | Lantern Song   | G major pentatonic, 4/4 3+3+2     | a lantern festival: the zither (dan tranh as a guzheng) sings the cell with sweeps, slides and pressed vibrato over a low harp additive process and the organ's cycling; ocarina (as a xun) augmentation; fugue (winds, zither, ocarina, horn, solo violin), temple block, finger cymbals; drums and gong at the top; zither tremolo canon over the pedal augmentation | harp + glass halo, G E D B D |
+| pasture  | Gentle Giants  | D mixolydian, 4/4                 | brass canon/stretto; dotted spiccato ostinato; solo violin + clarinet inversion; one braam on G; the giants' gait (drums, bars 20–31) | felt piano + harp, D |
 | hollow   | Sugar Rush     | D lydian, 4/4 (3+3+2)             | marimba cycling; pizzicato hocket of the diminished cell; woodwind additive; relative-minor lift | marimba + glass halo, D |
-| snow     | First Snow     | A lydian, 4/4                     | harp quarters against glass dotted quarters (3:4); clarinet + solo violin canon; flute inversion; pizzicato drops | harp + soft glock, A |
-| deep     | Where the Lanterns Swim | F# dorian / A lydian, 4/4 | five-note synth arp phasing through a tidal filter; mirror glass; whale glass; horn + solo violin canon | harp under water + glass, A F# E C# E |
-| marigold | Remember Me    | G with borrowed C minor, 4/4      | upright-piano cycle (Cmaj7→Cm6 inside the figure); cell in RH, clarinet canon, flute counterline; pizzicato | big guitar, G |
-| finale   | Hallowed Lanterns | D, 4/4 (one-shot)              | the title grown: theme emerging, three-voice canon, Zimmer build, a prepared A-pedal lift, coda | — |
+| snow     | First Snow     | A lydian, 4/4 3+3+2               | a theme to hum, grown from the cell (A F# E C# E, answered a step lower with the Lydian D#, then climbing to B): felt piano, then solo violin (piano echoes, clarinet augmentation), a rising sequence over the horns' augmented cell, the full theme with flute and horns at the one swell (the Lydian B/A, soft drums 24–33); a glittering additive snowfall of harp eighths, glockenspiel and violin pizzicati, glass 3:4 above; the snow rises at the end (voicings climbing, a suspended B over A) | harp + soft glock, A |
+| deep     | Where the Lanterns Swim | F# dorian / A lydian, 4/4 | a 1980s analog-synth colour (`analog.py`): the five-note arp phasing through a resonant ladder filter on the tide; a sixteenth bass pulse; a sixteenth sequencer walking the cell; pad swells in the light; mirror glass; whale glass; horn + solo violin canon; drums in the light (22–38) | harp under water + glass, A F# E C# E |
+| marigold | Remember Me    | G with borrowed C minor, 4/4 (186.7 s) | a vigil at the ofrenda that becomes the walk's yearning swell: the guitar's cycle (harp through a guitar body; Cmaj7→Cm6 inside the figure, sixteenths added as it grows) over an organ pedal on G; ocarina: cell augmented; solo violin canon an octave down; the cell grown into a long line (violin, ocarina canon), then the swell in the bridge (violin + flute: D-B over Em9 up to E6, E-flat over the borrowed Cm6, C aching over D sus, resolving late), horns, organ opening up, marimba tremolo, a soft timpani heartbeat; afterglow, the horns' E-flat-to-D sigh, the ocarina's last leap left hanging; one far bell; no string pads | big guitar, G |
+| finale   | Hallowed Lanterns | D, 4/4 (one-shot)              | the title grown: theme emerging, three-voice canon, Zimmer build with drums (24–37), a prepared A-pedal lift, coda | — |
 | picture show | The Picture Show | F, 3/4 waltz (on purpose)   | upright piano, solo violin over pizzicato, clarinet, flute | — |
 
 Harmonic colour comes from voicing, pedal points and modal mixture inside
 the key; no piece jumps to a remote key.
 
-Ember-born and keeper-rises are short stingers (D major; F# dorian → A).
+**Beats** belong to the swells, and only to them: the Garden's top (bars
+28–40, a Chinese drum's weight under the gong), the Pasture's build (20–31,
+the giants' gait), the Deep's turn into the light (22–38), First Snow's one
+swell (24–33, soft), the finale's build and statement (24–37), and, barely,
+a timpani heartbeat under the height of the Marigold Garden's swell
+(34–39). `hlaudio/beats.py` writes them as a
+groove whose hits each have a weight and a gate on the swell: low timpani
+following the bass and the concert bass drum, in the piece's 3+3+2, the
+downbeats first, then the syncopations, then ghost notes and pickups as the
+swell grows, dropping out in reverse - never a drum loop, never a pop kick.
+Everywhere else there is none.
+
+Ember-born is a short stinger (D major). (The Keeper of the Deep rises to a sound, not a
+stinger: `pieces/sfx/keeper.py`.)
 
 ## Files
 
@@ -157,12 +227,20 @@ hlaudio/             the library
   core.py            sample rate, note names, envelopes, noise, Track (circular stereo buffer)
   score.py           notes, a tiny text notation, chords, voice-leading, tempo clocks (rubato)
   arrange.py         arranging helpers (pads by rank, comping, dynamics shapes, augmentation)
-  sampler.py         the VSCO 2 CE sampler (catalogue, tuning, layers, loops, legato, divisi)
+  sampler.py         the VSCO 2 CE + VCSL sampler (catalogues, tuning, layers, loops, legato,
+                     re-bowing, pitch curves for bends and vibrato)
+  festival.py        the Garden's festival instruments on the stage (seats, tone chains) and the
+                     guzheng's idioms: slide_in, vibrato, press, glissandi landing on the beat
+  beats.py           grooves born and gone with a swell (weights and gates), drum pitches that
+                     follow the bass
+  analog.py          vintage analog voices for the Deep: polyBLEP saws/pulses, drifting
+                     oscillators, a 4-pole ladder filter with per-note envelopes, saturation;
+                     bass, sequencer, swell and arp patches
   orch.py            the orchestra on a stage: seats (pan/width/depth), per-instrument tone
                      chains, hall sends, stem loudness/D-R/brightness report, tape, air
   process.py         compositional processes: modes, the motif as a cell (P/I/R/RI, fragments),
                      additive and cycling figures, canon, hocket, ticking, fitting to harmony
-  electro.py         the only synthesised music layers: glass tones, filtered arps, pads,
+  electro.py         synthesised music layers: glass tones, filtered arps, pads,
                      sub pulse, braam half, gliding glass line
   sfxkit.py          sampled instrument sfx (close, ~15% of the music's reverb)
   theme.py           THE MOTIF and the full theme (melody + harmony), manifest entry
@@ -187,11 +265,14 @@ hlaudio/             the library
   piece.py           Mix (dry bus + reverb sends), finish_loop / finish_oneshot / finish_sfx,
                      manifest writing
   qa.py              stats (LUFS, peaks, DC, HF share), spectrogram pictures, pitch check
+  recordings.py      CC0 recordings (BigSoundBank): fetch once, de-click, seamless loops,
+                     recorded wind for the ambiences, assets.lock.json entries
 pieces/music/        title arbor grove garden pasture hollow snow deep marigold   (loops)
-                     picture_show (the shadow-puppet waltz, loop)
-                     finale ember_born keeper_rises                           (one-shots)
+                     picture_show (the shadow-puppet film's cue, loop)
+                     finale ember_born                                        (one-shots)
 pieces/ambience/     arbor grove garden pasture hollow snow deep marigold projector
-pieces/sfx/          footsteps ember_chimes lanterns creatures sparkles extras well_and_flytrap
+pieces/sfx/          footsteps ember_chimes lanterns creatures sparkles extras well_and_flytrap passage
+                     keeper wings
 ```
 
 Each piece script documents its form at the top (bars, sections, who plays).
@@ -204,7 +285,8 @@ Each piece script documents its form at the top (bars, sections, who plays).
   state of the piece playing forever. Files are `loopSeconds + tailSeconds`
   long and the tail is literally the first `tailSeconds` again (seam
   correlation = 1.000000, printed on every render). Music: whole bars of
-  about 133–136 s + 4 s (the title 72 s + 4 s, picture show 120 s + 4 s);
+  about 133–136 s + 4 s (the title 72 s + 4 s, picture show 120 s + 4 s,
+  the Marigold Garden 186.7 s + 4 s, so its swell has room to build);
   `loopSeconds` is written to 6 decimals. Ambience: 60 s + 3 s.
 * **Mastering**: music −16 LUFS integrated (First Snow −17, it is meant to be
   hushed), ambience −20 LUFS, true peak ≤ −2 dBTP before encoding; every MP3

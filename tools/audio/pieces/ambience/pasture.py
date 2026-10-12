@@ -4,7 +4,7 @@ field itself breathing) and a far owl."""
 import numpy as np
 
 from hlaudio.core import tvec, ns, SR
-from hlaudio import nature as NA
+from hlaudio import nature as NA, recordings as RW
 from hlaudio.piece import Mix, finish_loop
 
 LOOP = 60.0
@@ -17,10 +17,9 @@ def render():
     NA.tree_crickets(crick, 0, LOOP, count=3, level=0.009, seed=42, pan=1.0)
     mix.add(crick, 1.0, {"field": 0.6})
 
-    # The wind sits under the details now (it was louder than everything else, and levelling
-    # the whole ambience pushed it up): the rest stays where it was, the wind comes down.
+    # Recorded wind in the tall grass, its hiss softened for the night; it sits under the crickets.
     air = mix.track()
-    NA.wind_whoosh(air, level=0.0087, seed=43, cutoff=900, rate=0.04)
+    RW.wind(air, "0908", 5.0, -42.5, bands=(("lp", 7000, 0.7), ("hs", 4000, 0.7, -4.0)))
     mix.add(air, 1.0)
 
     hum = mix.track()
@@ -39,7 +38,7 @@ def render():
     mix.add(owl, 1.0, {"field": 1.0})
 
     out = mix.render({"field": {"seed": 41}})
-    return finish_loop("ambience", "pasture", out, LOOP, 3, -22.4, 96, glue=False, tilt_hs_db=-1.5)
+    return finish_loop("ambience", "pasture", out, LOOP, 3, -22.4, 128, glue=False, tilt_hs_db=-1.5)
 
 
 if __name__ == "__main__":

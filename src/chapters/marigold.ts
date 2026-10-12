@@ -514,8 +514,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   // Leaves: hundreds of coral and teal wish tags on the branches (more along each anchor).
   const leafPositions: { p: Vector3; color: Color; spin: number }[] = [];
-  const coral = new Color(1, 0.42, 0.38).multiplyScalar(0.62);
-  const teal = new Color(0.25, 0.82, 0.72).multiplyScalar(0.55);
+  const coral = new Color(1, 0.36, 0.3).multiplyScalar(0.86);
+  const teal = new Color(0.16, 0.86, 0.74).multiplyScalar(0.78);
   const perAnchor = Math.max(1, Math.round((tier === 'low' ? 320 : 700) / Math.max(1, anchors.length)));
   for (const a of anchors) {
     for (let k = 0; k < perAnchor; k++) {
@@ -581,13 +581,13 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const glowLights: GlowLight[] = [...marigolds.lights, ...theGuitar.glow];
   candleSpots.forEach((p) => glowLights.push({ x: p.x, z: p.z, radius: 1.2, color: new Color(1, 0.6, 0.25), intensity: 0.1, flicker: 1, phase: Math.random() }));
   glowLights.push({ x: OFRENDA.x, z: OFRENDA.z + 1, radius: 7, color: new Color(0.2, 0.9, 0.75), intensity: 0.35, flicker: 0 });
-  glowLights.push({ x: TREE.x, z: TREE.z + 2, radius: 6, color: new Color(1, 0.92, 0.82), intensity: 0.5, flicker: 0 });
+  glowLights.push({ x: TREE.x, z: TREE.z + 2, radius: 6, color: new Color(1, 0.9, 0.78), intensity: 0.62, flicker: 0 });
   glowLights.push({ x: TABLE.x, z: TABLE.z, radius: 2.2, color: new Color(0.85, 0.9, 1), intensity: 0.6, flicker: 0 });
   const sources: LightSource[] = [
     ...theGuitar.sources,
     { position: OFRENDA.clone().add(new Vector3(0, 4.2, 1.2)), color: new Color(0.3, 1, 0.85), intensity: 5, distance: 9 },
     { position: OFRENDA.clone().add(new Vector3(0, 0.9, 2.2)), color: new Color(1, 0.65, 0.3), intensity: 4, distance: 6 },
-    { position: TREE.clone().add(new Vector3(0, 2.5, 3.5)), color: new Color(1, 0.95, 0.85), intensity: 7, distance: 10 },
+    { position: TREE.clone().add(new Vector3(0, 2.5, 3.5)), color: new Color(1, 0.93, 0.8), intensity: 8.5, distance: 10 },
     { position: TABLE.clone().add(new Vector3(0, 1.1, 0)), color: new Color(0.85, 0.9, 1), intensity: 2.5, distance: 3.5 },
   ];
   scene.add(new HemisphereLight(0x284050, 0x080604, 0.3));

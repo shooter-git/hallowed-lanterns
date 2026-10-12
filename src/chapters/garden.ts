@@ -46,19 +46,32 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const scene = new Scene();
   const bounds: Bounds = [-40, -85, 80, 100];
 
+  // Out of the tunnel, past the lounge (outside its lantern hooks), then round behind the owl's
+  // fence through the gap between it and the fence before the Lantern Sky. The way is as wide as
+  // the fences allow: narrow past the lounge's corner and through the gap, open beyond it.
+  const widths: [number, number][] = [[33, 2.6], [37, 4], [39, 2.8], [44, 2.8], [46.5, 3.6], [48.5, 2.6], [55, 2.6], [58, 4.4], [61, 6]];
   const path = new Path(
     [
       [0, 9],
       [0, 0],
       [0, TUNNEL_END],
-      [2.5, -30],
-      [7, -32.5],
-      [4, -37],
-      [-4, -39],
-      [-12, -38],
+      [1.6, -28.8],
+      [3, -31],
+      [0.9, -34.1],
+      [-2.6, -36.3],
+      [-5.6, -37.55],
+      [-10.5, -37.9],
+      [-15, -36],
       [-19, -33],
     ],
-    (s) => (s < 34 ? 2.6 : 6),
+    (s) => {
+      const i = widths.findIndex(([at]) => at >= s);
+      if (i === 0) return 2.6;
+      if (i < 0) return 6;
+      const [s0, w0] = widths[i - 1] as [number, number];
+      const [s1, w1] = widths[i] as [number, number];
+      return w0 + ((w1 - w0) * (s - s0)) / (s1 - s0);
+    },
   );
   const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => (s < 25 ? 0 : 0.028 * (s - 25)) + 0.12 * Math.sin(s / 7), bank: 0.03, rough: 0.25, seed: 58 }));
 
@@ -329,7 +342,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       }
 
       // Near the lounge: an invitation to sit.
-      if (!sitPrompted && w.position.distanceTo(SEAT) < 5) {
+      if (!sitPrompted && w.position.distanceTo(SEAT) < 7) {
         sitPrompted = true;
         ctx.ui.say('There’s room on the sofa. Tap it to sit for a while.', 6);
       }

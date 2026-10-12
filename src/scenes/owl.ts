@@ -23,7 +23,8 @@ import type { SetPiece } from './types.ts';
 /**
  * The giant owl: a pumpkin head with huge round eyes, a body of glowing pumpkins carved with
  * feathers, and enormous wings of hundreds of pale blue-teal feathers, in front of a reed fence
- * strung with fairy lights. Tap it: it hoots, blinks and ruffles its wings.
+ * strung with fairy lights. Tap it: it hoots, blinks, turns its head to you and, slowly, as
+ * something so big would, raises its wings and gives two great beats.
  */
 export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promise<SetPiece> {
   const objects: Object3D[] = [];
@@ -116,10 +117,17 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
   const pumpkins = new PumpkinField(specs, ctx.atlas, { detail: [32, 14], simple: [16, 8] });
   objects.push(pumpkins.group);
 
-  let ruffle = 0;
+  // The display, in seconds since the tap (-1 when at rest).
+  let display = -1;
+  let beats = 0;
   let blink = 0;
   let look = 0;
   const rest = wings.map((w) => w.rotation.z);
+  const restX = wings.map((w) => w.rotation.x);
+  const RAISE = 0.8; // wings up
+  const BEAT = 1.05; // each beat
+  const FOLD = 1.3; // folding back
+  const UP = 0.3; // how far the wings rise (rad)
   const headRest = headNode?.rotation.y ?? 0;
   const centre = toWorld(new Vector3(0, 2.2, 0));
 
@@ -131,11 +139,41 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
     ],
     sources: [{ position: toWorld(new Vector3(0, 2.5, 3)), color: new Color(0.45, 0.8, 1), intensity: 5, distance: 9 }],
     update(dt, time) {
-      ruffle = Math.max(0, ruffle - dt * 0.8);
+      // Wings: + lowers both tips, - raises them; the twist turns the leading edge down.
+      let lift = 0;
+      let twist = 0;
+      if (display >= 0) {
+        display += dt;
+        const t = display;
+        const smooth = (u: number) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
+        if (t < RAISE) lift = -UP * smooth(t / RAISE);
+        else if (t < RAISE + 2 * BEAT) {
+          // Two slow beats, the second smaller: a quick, heavy downstroke and a slower recovery.
+          const k = (t - RAISE) / BEAT;
+          const n = Math.floor(k);
+          const p = k - n;
+          const depth = n === 0 ? 1 : 0.65;
+          const down = p < 0.4 ? smooth(p / 0.4) : 1 - smooth((p - 0.4) / 0.6);
+          lift = -UP + (UP + 0.1) * depth * down;
+          twist = p < 0.4 ? 0.14 * Math.sin((Math.PI * p) / 0.4) * depth : -0.08 * Math.sin((Math.PI * (p - 0.4)) / 0.6) * depth;
+          if (n + 1 > beats) {
+            beats = n + 1;
+            void ctx.audio.sfx('wing-beat', { at: pointOnGround(centre), volume: 0.8 * depth });
+          }
+        } else if (t < RAISE + 2 * BEAT + FOLD) {
+          // Folding back, settling with a little overshoot.
+          const u = (t - RAISE - 2 * BEAT) / FOLD;
+          lift = -UP * (1 - smooth(u)) + 0.03 * Math.sin(Math.PI * smooth(u));
+        } else display = -1;
+      }
       wings.forEach((w, i) => {
         const side = i === 0 ? 1 : -1;
-        w.rotation.z = (rest[i] ?? 0) + side * (Math.sin(time * 0.8) * 0.02 + Math.sin(time * 14) * 0.08 * ruffle);
+        w.rotation.z = (rest[i] ?? 0) + side * (Math.sin(time * 0.8) * 0.02 + lift);
+        w.rotation.x = (restX[i] ?? 0) + twist;
       });
+      // The body rises a touch with each downstroke.
+      const beating = display >= RAISE && display < RAISE + 2 * BEAT;
+      if (model) model.root.position.y = beating ? Math.max(0, lift + UP) * 0.12 : 0;
       if (blink > 0) {
         blink -= dt;
         if (head >= 0) pumpkins.setCarve(head, blink > 0 ? -1 : 100 + CARVE.owlEyes);
@@ -149,11 +187,14 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
     pick(ray: Ray) {
       if (ray.distanceSqToPoint(pointOnGround(centre)) > 6) return null;
       return () => {
-        ruffle = 1;
         blink = 0.25;
         look = 1;
         void ctx.audio.sfx('owl-hoot', { at: pointOnGround(centre), volume: 0.9 });
-        void ctx.audio.sfx('wings-flutter', { at: pointOnGround(centre), volume: 0.7 });
+        // Its wings, once it's done the last display.
+        if (display < 0) {
+          display = 0;
+          beats = 0;
+        }
       };
     },
     dispose() {

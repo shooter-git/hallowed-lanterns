@@ -1,8 +1,9 @@
 """Small magic: xylo-1..8 (the pumpkin xylophone, D pentatonic, contains the
-motif), sprinkle-burst, snowflake-1..5, bubble-1..4, wish-hang, fog-swirl-1..2
-and ui-tap. The instrument-like ones (xylo, sprinkle-burst, snowflakes,
-wish-hang) are sampled (VSCO 2 CE marimba, glockenspiel, harp, strings) and
-fairly dry; render_instruments() renders just those."""
+motif), sprinkle-burst, snowflake-1..5, bubble-1..4, wish-hang and ui-tap (the
+chapter change is pieces/sfx/passage.py). The instrument-like ones (xylo,
+sprinkle-burst, snowflakes, wish-hang) are sampled (VSCO 2 CE marimba,
+glockenspiel, harp, strings) and fairly dry; render_instruments() renders just
+those."""
 import numpy as np
 
 from hlaudio.core import SR, ns, rng, tvec, Track, smoothstep
@@ -93,32 +94,6 @@ def wish_hang():
     return K.finish(st)
 
 
-def fog_swirl(i):
-    """Chapter-change whoosh: soft noise that swirls across the stereo field,
-    a faint glass glissando inside it, and a shimmer tail."""
-    r = rng("fog", i)
-    dur = 2.0
-    n = ns(dur)
-    t = tvec(n)
-    u = t / dur
-    env = np.sin(np.pi * u) ** 1.6
-    fc = 300 + 1500 * np.sin(np.pi * u) ** 2 * (1.0 if i == 0 else 0.8)
-    out = np.zeros((2, n))
-    for ch in range(2):
-        x = nb.svf(rng("fog", i, ch).standard_normal(n), fc * (1 + 0.1 * ch), 1.6, 1)
-        x = filt(x, chain(("lp", 3000, 0.7), ("lp", 3800, 0.7)))
-        pan = 0.5 + 0.5 * np.sin(2 * np.pi * (0.6 if i == 0 else -0.6) * u + ch * np.pi)
-        out[ch] = x * env * (0.35 + 0.65 * pan)
-    # glass glissando up (i=0) or down (i=1)
-    p0, p1 = (74.0, 93.0) if i == 0 else (93.0, 74.0)
-    f = 440 * 2 ** ((p0 + (p1 - p0) * smoothstep(u) - 69) / 12)
-    gl = np.sin(2 * np.pi * np.cumsum(f) / SR) * env * 0.08
-    out += np.vstack([gl, gl])
-    wet = shimmer(out, "cathedral", gens=1, fb=0.3)
-    y = np.pad(out, ((0, 0), (0, wet.shape[1] - n))) + 0.35 * wet
-    return eq(y, ("hp", 80, 0.7), ("hs", 5000, 0.7, -4))[:, : ns(4.0)]
-
-
 def ui_tap():
     n = ns(0.12)
     t = tvec(n)
@@ -142,8 +117,6 @@ def render():
     render_instruments()
     for i in range(4):
         finish_sfx("bubble", f"bubble-{i + 1}", bubble(i), -5.0)
-    for i in range(2):
-        finish_sfx("fog-swirl", f"fog-swirl-{i + 1}", fog_swirl(i), -4.0, stereo=True, max_s=1.9)
     finish_sfx("ui-tap", "ui-tap", ui_tap(), -9.0)
 
 

@@ -5,7 +5,6 @@ guitar-1..6      a big magical guitar's open strings, D3 A3 D4 F#4 A4 B4 (stereo
                  VSCO 2 CE harp through a guitar body, fairly dry
                  (render_instruments() renders just these)
 owl-hoot-1..2    a soft, friendly great horned owl with a little shimmer
-wings-flutter    a big flurry of feathers (stereo)
 web-stretch-1..2 a cobweb stretched and plucked: a soft elastic twang and silk rustle
 spider-scurry    many tiny feet pattering (light and cute)
 mantis-click     a few soft insect clicks
@@ -80,33 +79,6 @@ def owl_hoot(i):
     y = filt(y, chain(("hp", 120, 0.7), ("lp", 3500, 0.7)))
     return _wet(y, "forest", 0.4, 3.2)
 
-
-def wings_flutter():
-    r = rng("wings")
-    tr = Track(2.6)
-    t = 0.02
-    k = 0
-    while t < 1.5:
-        rate = 7.5 - 3.0 * t / 1.5
-        pan = -0.7 + 1.3 * t / 1.5
-        L = ns(0.11)
-        u = np.linspace(0, 1, L)
-        env = np.sin(np.pi * u ** 0.6) ** 2
-        whomp = filt(r.standard_normal(L), chain(("lp", 700, 0.7), ("hp", 90, 0.7))) * env * 1.4
-        feath = filt(r.standard_normal(L), chain(("bp", r.uniform(1200, 2200), 1.4), ("lp", 3200, 0.7),
-                                                 ("lp", 3800, 0.7))) * env * 0.25
-        g = 0.9 * (1 - 0.45 * t / 1.5) * r.uniform(0.8, 1.0)
-        tr.add(t, whomp + feath, gain=g, pan=float(np.clip(pan + r.normal(0, 0.1), -1, 1)))
-        # loose feathers rustling between beats
-        Lr = ns(0.06)
-        rust = filt(r.standard_normal(Lr), chain(("bp", 2400, 1.8), ("lp", 3500, 0.7))) * np.hanning(Lr) * 0.1
-        tr.add(t + 0.07, rust, gain=g, pan=float(np.clip(-pan, -1, 1)))
-        t += 1.0 / rate * r.uniform(0.9, 1.1)
-        k += 1
-    return _wet(tr.buf, "forest", 0.3, 2.4)
-
-
-# ----------------------------------------------------------------- spiders and mantis
 
 def web_stretch(i):
     """Silk drawn tight (a rising elastic tone), then let go: a soft twang."""
@@ -299,7 +271,6 @@ def render():
     render_instruments()
     for i in range(2):
         finish_sfx("owl-hoot", f"owl-hoot-{i + 1}", owl_hoot(i), -4.0, max_s=3.0)
-    finish_sfx("wings-flutter", "wings-flutter", wings_flutter(), -4.0, stereo=True, max_s=2.3)
     for i in range(2):
         finish_sfx("web-stretch", f"web-stretch-{i + 1}", web_stretch(i), -5.0, max_s=1.3)
     finish_sfx("spider-scurry", "spider-scurry", spider_scurry(), -6.0, max_s=1.3)

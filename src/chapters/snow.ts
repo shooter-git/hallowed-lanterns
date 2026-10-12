@@ -77,7 +77,18 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(floor);
 
   // Snowy woods: pale, flocked canopies.
-  const treeAt = lineThePath(path.points, 4.4, { spacing: tier === 'low' ? 5.5 : 4, depth: 2, seed: 21 });
+  // Nothing grows between the path and the snowman: he should be seen as you come up the path
+  // (clear of him, and of the lines of sight to him from the way in).
+  const sightFrom = [6, 10, 14].map((s) => path.at(s));
+  const offSight = (x: number, z: number, r: number) =>
+    sightFrom.every((p) => {
+      const dx = SNOWMAN.x - p.x;
+      const dz = SNOWMAN.z - p.y;
+      const u = Math.max(0, Math.min(1, ((x - p.x) * dx + (z - p.y) * dz) / (dx * dx + dz * dz)));
+      return Math.hypot(x - (p.x + u * dx), z - (p.y + u * dz)) > r;
+    });
+  const bySnowman = (t: { x: number; z: number }, r: number) => Math.hypot(t.x - SNOWMAN.x, t.z - SNOWMAN.z) > r && offSight(t.x, t.z, 1.6);
+  const treeAt = lineThePath(path.points, 4.4, { spacing: tier === 'low' ? 5.5 : 4, depth: 2, seed: 21 }).filter((t) => bySnowman(t, 3.2));
   const woods = forest(
     [
       { species: 'young', at: treeAt.filter((_, i) => i % 3 === 0) },
@@ -88,8 +99,16 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   );
   scene.add(woods.group);
   // Dense, snow-laden undergrowth close to the path and behind the snowman, as in the photo.
-  const bushAt = lineThePath(path.points, 2.4, { spacing: tier === 'low' ? 2.6 : 1.7, depth: 2, seed: 23, jitter: 1.4 });
-  for (let k = 0; k < 9; k++) bushAt.push({ x: SNOWMAN.x - 3 + k * 0.8 + (rnd() - 0.5) * 0.4, z: SNOWMAN.z - 1.8 - rnd() * 1.4, scale: 0.9 + rnd() * 0.6, yaw: rnd() * 6 });
+  const bushAt = lineThePath(path.points, 2.4, { spacing: tier === 'low' ? 2.6 : 1.7, depth: 2, seed: 23, jitter: 1.4 }).filter((t) => bySnowman(t, 2.4));
+  // ... and the backdrop behind him, on the side away from the path (and off it).
+  const offPath = (x: number, z: number) => path.points.every((p) => Math.hypot(p.x - x, p.y - z) > 2.6);
+  for (let k = 0; k < 9; k++) {
+    const x = SNOWMAN.x - 0.8 + k * 0.55 + (rnd() - 0.5) * 0.4;
+    const z = SNOWMAN.z - 1.7 - rnd() * 1.2 + k * 0.12;
+    const scale = 0.9 + rnd() * 0.6;
+    const yaw = rnd() * 6;
+    if (offPath(x, z)) bushAt.push({ x, z, scale, yaw });
+  }
   const bushes = forest([{ species: 'bush', at: bushAt }], { leafTint: new Color(0.75, 0.82, 0.8), bark: new Color(0.05, 0.04, 0.04) });
   scene.add(bushes.group);
   const canopy = woodland(path, {

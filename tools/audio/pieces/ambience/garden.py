@@ -3,7 +3,7 @@ soft wind chimes tuned to the garden's G pentatonic, crickets, a warm breeze."""
 import numpy as np
 
 from hlaudio.core import rng
-from hlaudio import nature as NA, mallets as ML
+from hlaudio import nature as NA, mallets as ML, recordings as RW
 from hlaudio.piece import Mix, finish_loop
 
 LOOP = 60.0
@@ -13,11 +13,12 @@ CHIME_NOTES = [79, 81, 83, 86, 88, 91, 93]  # G5 A5 B5 D6 E6 G6 A6
 def render():
     mix = Mix(LOOP, circular=True)
     reed = mix.track()
-    NA.reeds(reed, level=0.05, seed=31, swishes=0.35, knocks=0.06)
+    NA.reeds(reed, level=0.05, seed=31, swishes=0.35, knocks=0.06, hiss=0.0)
     mix.add(reed, 1.0, {"forest": 0.2})
 
     air = mix.track()
-    NA.wind_leaves(air, level=0.02, seed=32, crackle=0.4, low=0.6, gust_rate=0.05)
+    # Recorded wind in the trees and the reed fences.
+    RW.wind(air, "0907", 116.0, -39.5, bands=(("hs", 4000, 0.7, -1.5),))
     mix.add(air, 1.0)
 
     ch = mix.track()
@@ -41,7 +42,7 @@ def render():
     mix.add(crick, 1.0, {"forest": 0.35})
 
     out = mix.render({"forest": {"seed": 31}, "hall": {"seed": 32}})
-    return finish_loop("ambience", "garden", out, LOOP, 3, -20.0, 96, glue=False, tilt_hs_db=-1.5)
+    return finish_loop("ambience", "garden", out, LOOP, 3, -20.0, 128, glue=False, tilt_hs_db=-1.5)
 
 
 if __name__ == "__main__":

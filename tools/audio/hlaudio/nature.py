@@ -293,16 +293,17 @@ def fog_hush(track: Track, level=0.02, seed=0, cutoff=2200.0, rate=0.05):
     return track
 
 
-def reeds(track: Track, level=0.04, seed=0, swishes=0.25, knocks=0.08):
-    """Rustling reed fence: dry swishes in gusts and an occasional reed tap."""
+def reeds(track: Track, level=0.04, seed=0, swishes=0.25, knocks=0.08, hiss=1.0):
+    """Rustling reed fence: dry swishes in gusts and an occasional reed tap (and, with `hiss`,
+    a gusting hiss under them; leave it out when a recorded wind is already doing that)."""
     n = track.n
     r = rng("reeds", seed)
     gust = _gust(n, r, 0.06, circular=track.circular)
     out = np.zeros((2, n))
     for ch in range(2):
         rc = rng("reeds", seed, ch)
-        hiss = colored(n, rc, -2.0, lo=1000, hi=4500)
-        out[ch] += hiss * gust ** 2 * 0.35
+        noise = colored(n, rc, -2.0, lo=1000, hi=4500)
+        out[ch] += hiss * noise * gust ** 2 * 0.35
     track.mix(out * level)
     secs = track.seconds
     t = 0.0

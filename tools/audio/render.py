@@ -83,15 +83,37 @@ SYNTH = "Synthesised with tools/audio (Hallowed Lanterns)"
 VSCO_MUSIC = ("Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples "
               "(CC0, Versilian Studios)")
 VSCO_SFX = "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios)"
+VCSL_MUSIC = (VSCO_MUSIC + " and Versilian Community Sample Library samples (CC0, Versilian Studios: "
+              "https://github.com/sgossner/VCSL)")
+# The music that also plays VCSL instruments (zither, gong, finger cymbals, temple block, ocarina).
+USES_VCSL = ("garden", "marigold")
 SAMPLED_SFX = ("xylo-", "guitar-", "ember-chime-", "snowflake-", "sprinkle-burst", "wish-hang")
+# The ambiences with recorded wind in them, and the recordings they use (hlaudio/recordings.py).
+RECORDED_WIND = {"arbor": ("0907",), "garden": ("0907",), "grove": ("0907", "0595"), "hollow": ("0907",),
+                 "marigold": ("0907",), "pasture": ("0908",), "snow": ("0595",)}
+
+
+def _passage_source():
+    from hlaudio.recordings import WIND
+    title, page = WIND["0595"]
+    return (VSCO_SFX + f", and wind recorded by Joseph Sardin (BigSoundBank, CC0): \"{title}\" ({page})")
+
+
+def _wind_source(name):
+    from hlaudio.recordings import ambience_source
+    return ambience_source(RECORDED_WIND[name])
 
 
 def source_for(path):
     name = path.rsplit("/", 1)[-1]
     if "/audio/music/" in path:
-        return VSCO_MUSIC
+        return VCSL_MUSIC if name.removesuffix(".mp3") in USES_VCSL else VSCO_MUSIC
+    if "/audio/sfx/" in path and name.startswith("passage-"):
+        return _passage_source()
     if "/audio/sfx/" in path and name.startswith(SAMPLED_SFX):
         return VSCO_SFX
+    if "/audio/ambience/" in path and name.removesuffix(".mp3") in RECORDED_WIND:
+        return _wind_source(name.removesuffix(".mp3"))
     return SYNTH
 
 
@@ -108,7 +130,7 @@ def update_lock():
     for e in entries:
         e["source"] = source_for(e["path"])
     lock = root / "assets.lock.json"
-    ours = {SYNTH, VSCO_MUSIC, VSCO_SFX}
+    ours = {SYNTH, VSCO_MUSIC, VCSL_MUSIC, VSCO_SFX, _passage_source(), *(_wind_source(k) for k in RECORDED_WIND)}
 
     def merged(data):
         assets = data.setdefault("assets", [])

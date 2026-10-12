@@ -10,15 +10,20 @@ pumpkin-spider (body ~2.9 m tall, legs spanning ~7 m): a dark maroon pumpkin abd
 with neon lightning patches, a second pumpkin for the head with two domed pink spiral eyes and
 pale fangs, eight wooden-looking legs (dark femur, a dark knee segment with cream polka dots,
 a pale mustard lower leg and a round foot) and a little green baby spider on its back.
-Nodes: `spider` (root: both pumpkins, eyes, fangs) -> `leg_0` ... `leg_7` (pivots at the leg
-roots in the body; 0-3 on the spider's right = viewer's left... see README) and `baby` (pivot
-where it sits). Materials: `glow_uvpaint` (base 2048 + emission 1024: the neon paint, the pale
-legs), `glow_eyes` (the spirals).
+Nodes: `spider` (root: both pumpkins, eyes, fangs) -> `leg_0` ... `leg_7` (the femurs, pivots at
+the leg roots in the body; 0-3 on the spider's right = viewer's left... see README) -> `tibia_<k>`
+(the rest of the leg, pivot at the knee) -> empty `foot_<k>` (the foot's centre); and `baby`
+(pivot where it sits). Materials: `glow_uvpaint` (base 2048 + emission 1024: the neon paint,
+the pale legs), `glow_eyes` (the spirals).
 
 praying-mantis (~3.2 m with its antennae): a neon lime foam-tube mantis sitting up on its
 mid and hind legs, forelegs raised and folded, an orange gourd abdomen resting on the ground,
-big orange eyes. Nodes: `mantis` (root) -> `head` (pivot at the neck: head, eyes, antennae,
-palps). Materials `glow_uv` (lime and the orange abdomen; emission = base) and `glow_eyes`.
+big orange eyes. Nodes: `mantis` (root: the mesothorax and the four legs it stands on) ->
+`abdomen` (pivot where it joins the thorax), `thorax` (the prothorax, pivot at its base) ->
+`foreleg_L/_R` (coxa, pivot at the shoulder) -> `femur_L/_R` (pivot at the elbow) -> `tibia_L/_R`
+(the claw, pivot at the knee); `thorax` -> `head` (pivot at the neck: head, eyes, palps) ->
+`antenna_L/_R` (pivots at their roots). Materials `glow_uv` (lime and the orange abdomen;
+emission = base) and `glow_eyes`.
 
 web-pumpkin (0.5 m): a tan pumpkin wrapped in stretched cobweb strands, threads rising to a
 `hang_point`, and two tiny neon-green spiders. Materials `pumpkin_skin`, `glow_web`, `glow_uv`.
@@ -132,26 +137,25 @@ def leg_points(az, lift, reach):
 
 
 def build_leg(az, lift, reach, mat):
+    """Two parts so the leg can bend: the femur (hip to knee) and the rest (knee to foot)."""
     R, K, Q, F, o = leg_points(az, lift, reach)
-    mb = MB()
+    femur = MB()
+    lower = MB()
     up = o.cross(V((0, 0, 1))).normalized()
 
     def sq(r0, r1, p=3.0):
         return lambda t: {"rx": r0 + (r1 - r0) * t, "ry": (r0 + (r1 - r0) * t) * 0.85, "p": p}
     Loft([R - o * 0.25, R.lerp(K, 0.5) + V((0, 0, 0.12)), K], sq(0.11, 0.095), n=8, seg=0.12, frame="up", up=up,
-         cap0="flat", cap1="dome", cap1_len=0.06).build(mb, uvmap=strip_uv(S2, R_LEG, 0.0, 0.42), mat=mat)
+         cap0="flat", cap1="dome", cap1_len=0.06).build(femur, uvmap=strip_uv(S2, R_LEG, 0.0, 0.42), mat=mat)
     Loft([K - (Q - K).normalized() * 0.05, Q], sq(0.095, 0.09), n=8, seg=0.1, frame="up", up=up,
-         cap0="dome", cap1="dome", cap0_len=0.05, cap1_len=0.05).build(mb, uvmap=strip_uv(S2, R_LEG, 0.42, 0.62), mat=mat)
+         cap0="dome", cap1="dome", cap0_len=0.05, cap1_len=0.05).build(lower, uvmap=strip_uv(S2, R_LEG, 0.42, 0.62), mat=mat)
     Loft([Q + (F - Q).normalized() * -0.04, Q.lerp(F, 0.5) + o * 0.03, F + V((0, 0, 0.05))], sq(0.08, 0.072, 2.0),
          n=10, seg=0.12, frame="up", up=up, cap0="dome", cap1="flat", cap0_len=0.05).build(
-             mb, uvmap=strip_uv(S2, R_LEG, 0.62, 1.0), mat=mat)
-    lib.lump(mb, F + V((0, 0, 0.0)), 1.0, scale=(0.11, 0.11, 0.09), seed=int(az) % 7, rough=0.06, nu=10, nv=6,
+             lower, uvmap=strip_uv(S2, R_LEG, 0.62, 1.0), mat=mat)
+    lib.lump(lower, F + V((0, 0, 0.0)), 1.0, scale=(0.11, 0.11, 0.09), seed=int(az) % 7, rough=0.06, nu=10, nv=6,
              uvmap=strip_uv(S2, R_LEG, 0.97, 1.0), mat=mat, flat_bottom=True)
-    lo = min(v[2] for v in mb.verts)
-    for i, v in enumerate(mb.verts):
-        if v[2] < 0.0:
-            mb.verts[i] = (v[0], v[1], 0.0)
-    return mb, R
+    lower.clamp_z(0.0)
+    return femur, lower, R, K, F
 
 
 def build_spider():
@@ -188,10 +192,13 @@ def build_spider():
     body = mb.object("spider", [skin, eyes], origin=(0, 0, 0), auto_smooth=60)
     total = lib.tri_count(body)
     for k, (az, lift, reach) in enumerate(LEGS):
-        lm, R = build_leg(az, lift, reach, 0)
-        o = lm.object(f"leg_{k}", [skin], origin=R, auto_smooth=50)
-        lib.set_parent(o, body)
-        total += lib.tri_count(o)
+        fm, lm, R, K, F = build_leg(az, lift, reach, 0)
+        leg = fm.object(f"leg_{k}", [skin], origin=R, auto_smooth=50)
+        lib.set_parent(leg, body)
+        tibia = lm.object(f"tibia_{k}", [skin], origin=K, auto_smooth=50)
+        lib.set_parent(tibia, leg)
+        lib.empty(f"foot_{k}", location=F, parent=tibia)
+        total += lib.tri_count(leg) + lib.tri_count(tibia)
     # the baby on the abdomen's front-left shoulder
     u, v = 0.66, 0.80
     base = pa(u, v)
@@ -232,6 +239,7 @@ M_SPINE = (0, 256, 1024, 256)
 M_ANT = (0, 512, 1024, 128)
 M_ABD = (0, 640, 1024, 384)
 NECK = V((0, -0.30, 2.12))
+PRO = V((0, -0.08, 1.30))   # the base of the prothorax, where it sits in the mesothorax
 
 
 def tube(mb, pts, r0, r1, rect=M_TUBE, mat=0, n=10, caps=("dome", "dome"), up=None):
@@ -258,29 +266,36 @@ def build_mantis():
     eyes = lib.material("glow_eyes", base_tex=eye_t, emission_tex=eye_t, roughness=0.3, specular=0.5)
     mb = MB()
     # abdomen: an orange segmented gourd resting on the ground behind
+    abm = MB()
     ab = [V((0, 0.22, 1.08)), V((0, 0.62, 0.92)), V((0, 1.05, 0.62)), V((0, 1.45, 0.34)), V((0, 1.72, 0.22))]
     Loft(ab, lambda t: {"rx": lerp_keys([(0, 0.20), (0.3, 0.33), (0.6, 0.31), (1, 0.12)], t),
                         "ry": lerp_keys([(0, 0.20), (0.3, 0.30), (0.6, 0.28), (1, 0.11)], t)},
          n=16, seg=0.05, frame="up", up=V((0, 0, 1)), cap0="dome", cap1="dome", cap0_len=0.12, cap1_len=0.1,
          offset=lambda t, a, s: 0.035 * math.cos(math.tau * 6 * t) if 0.05 < t < 0.95 else 0.0).build(
-             mb, uvmap=strip_uv(S1, M_ABD), mat=0)
-    mb.clamp_z(0.0)
-    # thorax: a short mesothorax and the long prothorax rising to the neck
+             abm, uvmap=strip_uv(S1, M_ABD), mat=0)
+    abm.clamp_z(0.0)
+    # thorax: a short mesothorax (with the legs) and the long prothorax rising to the neck, which
+    # rocks and lunges on its own
     tube(mb, [V((0, 0.25, 1.10)), V((0, 0.02, 1.20)), V((0, -0.10, 1.32))], 0.15, 0.13)
-    tube(mb, [V((0, -0.08, 1.30)), V((0, -0.18, 1.72)), NECK + V((0, 0.02, -0.04))], 0.12, 0.10)
-    # forelegs: coxa down to the elbow, the spined femur back up, the tibia folded down in front
+    thm = MB()
+    tube(thm, [PRO, V((0, -0.18, 1.72)), NECK + V((0, 0.02, -0.04))], 0.12, 0.10)
+    # forelegs: coxa down to the elbow, the spined femur back up, the tibia folded down in front;
+    # each joint its own node so the strike can open and snap shut
+    forelegs = []
     for sx in (-1, 1):
         S = V((sx * 0.10, -0.20, 1.86))
         K1 = V((sx * 0.30, -0.58, 1.12))
         K2 = V((sx * 0.20, -0.66, 1.86))
         K3 = V((sx * 0.17, -0.82, 1.36))
         T = V((sx * 0.15, -0.86, 1.20))
-        tube(mb, [S, K1], 0.075, 0.08)
-        knob(mb, K1, 0.10)
-        tube(mb, [K1, K2], 0.10, 0.075, rect=M_SPINE, up=V((sx, 0, 0)))
-        knob(mb, K2, 0.08)
-        tube(mb, [K2, K3], 0.06, 0.05, rect=M_SPINE, up=V((sx, 0, 0)))
-        tube(mb, [K3, T], 0.045, 0.03)
+        cm, fm, tm = MB(), MB(), MB()
+        tube(cm, [S, K1], 0.075, 0.08)
+        knob(cm, K1, 0.10)
+        tube(fm, [K1, K2], 0.10, 0.075, rect=M_SPINE, up=V((sx, 0, 0)))
+        knob(fm, K2, 0.08)
+        tube(tm, [K2, K3], 0.06, 0.05, rect=M_SPINE, up=V((sx, 0, 0)))
+        tube(tm, [K3, T], 0.045, 0.03)
+        forelegs.append((sx, (cm, S), (fm, K1), (tm, K2)))
     # mid legs: out and up to a high knee, then down to the ground; hind legs the same, further back
     for sx in (-1, 1):
         for (root, knee, foot, toe, r) in (
@@ -292,9 +307,22 @@ def build_mantis():
             knob(mb, foot, r * 0.95)
             tube(mb, [foot, toe], r * 0.7, r * 0.5, caps=("dome", "dome"))
     body = mb.object("mantis", [uvm], origin=(0, 0, 0), auto_smooth=50)
-    total = lib.tri_count(body)
+    abdomen = abm.object("abdomen", [uvm], origin=ab[0], auto_smooth=50)
+    lib.set_parent(abdomen, body)
+    thorax = thm.object("thorax", [uvm], origin=PRO, auto_smooth=50)
+    lib.set_parent(thorax, body)
+    parts = [body, abdomen, thorax]
+    for sx, *joints in forelegs:
+        parent = thorax
+        for (jm, at), name in zip(joints, ("foreleg", "femur", "tibia")):
+            o = jm.object(f"{name}_{'R' if sx > 0 else 'L'}", [uvm], origin=at, auto_smooth=50)
+            lib.set_parent(o, parent)
+            parts.append(o)
+            parent = o
+    total = sum(lib.tri_count(o) for o in parts)
     # head: a downward triangle, wide at the eyes, a pointed mouth, antennae, palps and a fuzzy collar
     hm = MB()
+    antennae = []
     hpath = [NECK + V((0, -0.13, -0.04)), NECK + V((0, -0.12, 0.16)), NECK + V((0, -0.10, 0.36))]
 
     def hsec(t):
@@ -309,12 +337,14 @@ def build_mantis():
         lib.pumpkin(hm, c, 0.17, 0.175, ry=0.15, ribs=1, groove=0.0, top_dimple=0.0, bottom_dimple=0.0, nu=18, nv=10,
                     fullness=1.0, uvmap=lambda u, v: (0.5 + 0.45 * math.cos(math.tau * u) * math.sin(math.pi * v),
                                                        0.5 + 0.45 * math.cos(math.pi * v)), mat=1)
-        # antenna: up from between the eyes, arching out
+        # antenna: up from between the eyes, arching out (its own node, pivot at its root)
         a0 = NECK + V((sx * 0.06, -0.16, 0.44))
         pts = [a0, a0 + V((sx * 0.06, 0.02, 0.25)), a0 + V((sx * 0.22, 0.06, 0.55)), a0 + V((sx * 0.48, 0.10, 0.75)),
                a0 + V((sx * 0.74, 0.12, 0.80))]
+        am = MB()
         Loft(pts, lambda t: {"rx": 0.026 - 0.01 * t, "ry": 0.026 - 0.01 * t}, n=6, seg=0.06, frame="up", up=V((0, -1, 0)),
-             cap0="dome", cap1="dome", cap0_len=0.02, cap1_len=0.015).build(hm, uvmap=strip_uv(S1, M_ANT), mat=0)
+             cap0="dome", cap1="dome", cap0_len=0.02, cap1_len=0.015).build(am, uvmap=strip_uv(S1, M_ANT), mat=0)
+        antennae.append((sx, am, a0))
         # fuzzy palps at the mouth
         lib.lump(hm, NECK + V((sx * 0.08, -0.22, -0.02)), 0.075, scale=(1, 1, 0.9), seed=sx + 11, rough=0.35, nu=10, nv=6,
                  uvmap=lambda u, v: strip_uv(S1, M_TUBE)(0.5, u), mat=0, flat_bottom=False)
@@ -323,9 +353,13 @@ def build_mantis():
              uvmap=lambda u, v: strip_uv(S1, M_TUBE)(0.5, u), mat=0, flat_bottom=False)
     # a dark mouth dot is the shadow under the palps
     head = hm.object("head", [uvm, eyes], origin=NECK, auto_smooth=50)
-    lib.set_parent(head, body)
+    lib.set_parent(head, thorax)
     total += lib.tri_count(head)
-    hi = max(v[2] for v in hm.verts)
+    for sx, am, a0 in antennae:
+        o = am.object(f"antenna_{'R' if sx > 0 else 'L'}", [uvm], origin=a0, auto_smooth=50)
+        lib.set_parent(o, head)
+        total += lib.tri_count(o)
+    hi = max(max(v[2] for v in hm.verts), max(v[2] for _, am, _ in antennae for v in am.verts))
     print(f"  praying-mantis: {total} tris, top {hi:.2f} m")
     return lib.export("praying-mantis")
 

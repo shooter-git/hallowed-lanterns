@@ -24,6 +24,14 @@ say the Ember's motif once more over a held D major ninth, and stops.
   bars 28-29  the A pedal (E minor 9 over A, A sus): the braam and the timpani
   bars 30-37  the full statement in D
   bars 38-41  coda: the piano's motif over D major ninth, and silence
+
+The beat belongs to the build and the statement only: from bar 24 low
+timpani (on the bass) and the concert bass drum lock to the 3+3+2 of the
+spiccato, the downbeats first, then the syncopations, the ghost notes and a
+sixteenth pickup into each second bar as the build grows; on the A pedal
+(28-29) they hold back to the downbeats under the braam, then come in full
+with the statement (30) and fall away through bars 36-37, so the coda is
+the piano alone.
 """
 import numpy as np
 
@@ -33,6 +41,7 @@ from hlaudio.sampler import Curve
 from hlaudio.orch import Stage, sustain_chords, roots
 from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
+from hlaudio.beats import groove, drum_pitch
 from hlaudio.piece import finish_oneshot
 
 TITLE = "Hallowed Lanterns"
@@ -173,8 +182,20 @@ def score():
         [N(bar(38), bar(4) + 4, 38.0, 0.45)]
     P["timp_roll"] = [N(bar(18), bar(2) + 0.3, 45.0, 0.5), N(bar(29), bar(1) + 0.3, 45.0, 0.7),
                       N(bar(36), bar(2) + 0.3, 45.0, 0.6)]
-    P["timp"] = [N(bar(20), 3, 38.0, 0.62), N(bar(24), 3, 45.0, 0.6), N(bar(28), 3, 45.0, 0.7),
-                 N(bar(30), 3, 38.0, 0.85), N(bar(34), 3, 45.0, 0.7), N(bar(38), 4, 38.0, 0.6)]
+    P["timp"] = [N(bar(20), 3, 38.0, 0.62), N(bar(38), 4, 38.0, 0.6)]
+    # the beat (bars 24-37): timpani on the bass and its fifth, the bass drum, 3+3+2 with
+    # ghost notes and a sixteenth pickup, held back to the downbeats on the A pedal
+    swell = Curve([(bar(24), 0.12), (bar(25), 0.26), (bar(26), 0.42), (bar(27), 0.56), (bar(27.9), 0.64),
+                   (bar(28), 0.36), (bar(29), 0.42), (bar(29.85), 0.66), (bar(30), 1.0), (bar(34), 0.95),
+                   (bar(36), 0.8), (bar(37), 0.5), (bar(37.7), 0.2), (bar(38), 0.0)])
+    lo, hi = drum_pitch(pr, 38, 49), drum_pitch(pr, 38, 49, fifth=True)
+    fig = [(0, "bd", 0, 1.0, 0.0), (0, "timp", lo, 0.88, 0.0),
+           (3, "timp", lo, 0.7, 0.22), (5.5, "timp", hi, 0.3, 0.6),
+           (6, "timp", hi, 0.76, 0.38), (7, "timp", lo, 0.3, 0.66), (7.5, "timp", lo, 0.36, 0.52),
+           (8, "timp", lo, 0.84, 0.1), (10.5, "timp", lo, 0.3, 0.64), (11, "timp", lo, 0.68, 0.28),
+           (14, "bd", 0, 0.7, 0.32), (14, "timp", hi, 0.78, 0.32),
+           (15, "timp", lo, 0.32, 0.5), (15.5, "timp", lo, 0.4, 0.45), (15.75, "timp", lo, 0.46, 0.7)]
+    P["drums"] = groove(bar(24), bar(38), 16, fig, swell, vel=(0.2, 0.86))
     gp = []
     for b in range(0, 40):
         for pos, p in ((0, 74.0), (3, 81.0), (6, 76.0)):
@@ -257,6 +278,9 @@ def render():
                        (sec(30.05), 0.1), (sec(36), 0.1), (sec(38), 0.6), (sec(38.05), 0.1)]),
             gain_db=-6, release=0.4)
     st.play("timpani", S(P["timp"], 25, 0.004), "timpani", seed=25, gain_db=-3)
+    D = P["drums"]
+    st.play("timpani", S(D.get("timp", []), 32, 0.004), "timpani", seed=32, gain_db=4)
+    st.play("drums", S(D.get("bd", []), 33, 0.003), "bass_drum", seed=33, gain_db=3, seat="bass_drum")
     # the braam on the A pedal
     t_b = sec(28) - 0.05
     bdyn = Curve([(t_b, 0.4), (t_b + 1.2, 0.95), (t_b + 3.6, 0.8), (t_b + 5.8, 0.4)])

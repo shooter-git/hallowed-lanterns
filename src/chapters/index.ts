@@ -7,6 +7,7 @@ export const CHAPTERS: ChapterInfo[] = [
     numeral: 'I',
     name: 'The Arbor of Faces',
     subtitle: 'Sunset, and the lanterns are waking',
+    key: 'd',
     load: () => import('./arbor.ts'),
   },
   {
@@ -14,6 +15,7 @@ export const CHAPTERS: ChapterInfo[] = [
     numeral: 'II',
     name: 'The Candle Grove',
     subtitle: 'Blue hour, and something is hiding',
+    key: 'b',
     load: () => import('./grove.ts'),
   },
   {
@@ -21,6 +23,7 @@ export const CHAPTERS: ChapterInfo[] = [
     numeral: 'III',
     name: 'The Lantern Garden',
     subtitle: 'Nightfall, under a sky of lanterns',
+    key: 'g',
     load: () => import('./garden.ts'),
   },
   {
@@ -28,6 +31,7 @@ export const CHAPTERS: ChapterInfo[] = [
     numeral: 'IV',
     name: 'The Pasture of Giants',
     subtitle: 'Deep night, and something enormous is breathing',
+    key: 'd',
     load: () => import('./pasture.ts'),
   },
   {
@@ -35,6 +39,7 @@ export const CHAPTERS: ChapterInfo[] = [
     numeral: 'V',
     name: 'Sweet Hollow',
     subtitle: 'Where the candy grows',
+    key: 'd',
     load: () => import('./hollow.ts'),
   },
   {
@@ -42,6 +47,7 @@ export const CHAPTERS: ChapterInfo[] = [
     numeral: 'VI',
     name: 'October Snow',
     subtitle: 'Then, impossibly, it begins to snow',
+    key: 'a',
     load: () => import('./snow.ts'),
   },
   {
@@ -49,6 +55,7 @@ export const CHAPTERS: ChapterInfo[] = [
     numeral: 'VII',
     name: 'The Deep',
     subtitle: 'Where the lanterns swim',
+    key: 'fs',
     load: () => import('./deep.ts'),
   },
   {
@@ -56,6 +63,7 @@ export const CHAPTERS: ChapterInfo[] = [
     numeral: 'VIII',
     name: 'The Marigold Garden',
     subtitle: 'Remember, and make a wish',
+    key: 'g',
     load: () => import('./marigold.ts'),
   },
 ];

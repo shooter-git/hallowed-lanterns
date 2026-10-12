@@ -268,8 +268,9 @@ export class Walker {
     this.position.x += (mx * cos - my * sin) * v;
     this.position.z += (-mx * sin - my * cos) * v;
 
-    // Stay on the path.
-    if (this.path) {
+    // Stay on the path (not while sitting somewhere just off it). Brushing its edge, you stop at
+    // it; well off it (having just stood up from a seat), you step back onto it.
+    if (this.path && !this.seated) {
       const p2 = new Vector2(this.position.x, this.position.z);
       const n = this.path.nearest(p2, this.index);
       this.index = n.index;
@@ -277,7 +278,8 @@ export class Walker {
       const half = n.width / 2;
       if (Math.abs(n.lateral) > half) {
         const t = this.path.tangents[n.index] as Vector2;
-        const push = Math.abs(n.lateral) - half;
+        const off = Math.abs(n.lateral) - half;
+        const push = off > 0.6 ? Math.min(off, 3 * dt) : off;
         const sign = Math.sign(n.lateral);
         this.position.x -= -t.y * push * sign;
         this.position.z -= t.x * push * sign;

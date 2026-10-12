@@ -1,6 +1,7 @@
 import {
   AdditiveBlending,
   BufferGeometry,
+  type Camera,
   Color,
   DoubleSide,
   Float32BufferAttribute,
@@ -18,7 +19,7 @@ import {
 import type { ChapterContext } from '../chapters/types.ts';
 import { CARVE } from '../engine/carvings.ts';
 import { stringLights } from '../engine/lanterns.ts';
-import { instanceModel, loadModel } from '../engine/models.ts';
+import { instanceModel, type LoadedModel, loadModel } from '../engine/models.ts';
 import { PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { hallow, SHADER_PARS, shared, VERTEX_TERRAIN } from '../engine/shared.ts';
 import { pointOnGround } from '../engine/terrain.ts';
@@ -94,6 +95,479 @@ function webMaterial(strength: number): ShaderMaterial {
   });
 }
 
+const UP = new Vector3(0, 1, 0);
+const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+const smooth = (x: number) => {
+  const t = clamp01(x);
+  return t * t * (3 - 2 * t);
+};
+const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+/** A dash: up to speed over the first `a` of the way, flat out, then braking over the last `b`. */
+function dash(u: number, a: number, b: number): number {
+  if (u <= 0) return 0;
+  if (u >= 1) return 1;
+  const all = 1 - a / 2 - b / 2;
+  if (u < a) return (u * u) / (2 * a) / all;
+  if (u < 1 - b) return (a / 2 + u - a) / all;
+  return (all - ((1 - u) * (1 - u)) / (2 * b)) / all;
+}
+/** Keyframes [seconds, value…]: column `c` at time t, eased in and out between keys. */
+function keyed(keys: number[][], c: number, t: number): number {
+  let i = 0;
+  while (i < keys.length - 2 && t >= (keys[i + 1]?.[0] as number)) i++;
+  const a = keys[i] as number[];
+  const b = keys[i + 1] as number[];
+  return (a[c] as number) + ((b[c] as number) - (a[c] as number)) * smooth((t - (a[0] as number)) / ((b[0] as number) - (a[0] as number)));
+}
+
+interface Pose {
+  x: number;
+  z: number;
+  yaw: number;
+}
+
+interface SpiderLeg {
+  femur: Object3D;
+  tibia: Object3D;
+  /** The hip, the leg's outward (level) direction and the axis that lifts it: in the body's frame. */
+  hip: Vector3;
+  out: Vector3;
+  axis: Vector3;
+  upper: number;
+  lower: number;
+  /** At rest: the femur's angle above level and the lower leg's angle to the femur. */
+  rise: number;
+  bend: number;
+  /** Where the foot stands (body frame) and where it is now (world, on the ground). */
+  home: Vector3;
+  foot: Vector3;
+  step: { from: Vector3; to: Vector3; t: number; time: number; height: number } | null;
+  /** Poses on top of standing: the femur raised, the knee opened, the leg turned. */
+  raise: number;
+  open: number;
+  turn: number;
+  /** Which set of four it steps with, the step it's on, and which way is forward for its turn. */
+  set: number;
+  cycle: number;
+  fore: number;
+}
+
+interface Walk {
+  from: Pose;
+  to: Pose;
+  t: number;
+  time: number;
+  period: number;
+  swing: number;
+  height: number;
+  low: number;
+  bob: number;
+  ease: (u: number) => number;
+}
+
+/** Legs 0-3 run down the spider's right (+x) front to back, 4-7 its left: L1 R2 L3 R4 step together, then R1 L2 R3 L4. */
+const TETRAPOD = [1, 0, 1, 0, 0, 1, 0, 1];
+
+/**
+ * The pumpkin spider. Like a real one it is mostly perfectly still: now and then it shifts a foot
+ * or feels about with a front leg. Tapped, it bolts a short way on the alternating gait, stops dead,
+ * rears its front legs at you and, a while later, creeps back to its place. Its feet stay where
+ * they're planted: each leg reaches its foot with a hip that swings and lifts and a knee that bends.
+ */
+function pumpkinSpider(model: LoadedModel, home: Pose, away: (from: Pose) => Pose) {
+  const root = model.root;
+  const legs: SpiderLeg[] = [];
+  for (let k = 0; k < 8; k++) {
+    const femur = model.node(`leg_${k}`);
+    const tibia = model.node(`tibia_${k}`);
+    const foot = model.node(`foot_${k}`);
+    if (!femur || !tibia || !foot) continue;
+    const knee = tibia.position.clone();
+    const toe = knee.clone().add(foot.position);
+    const out = new Vector3(toe.x, 0, toe.z).normalize();
+    const along = (v: Vector3) => v.x * out.x + v.z * out.z;
+    const rise = Math.atan2(knee.y, along(knee));
+    legs.push({
+      femur,
+      tibia,
+      hip: femur.position.clone(),
+      out,
+      axis: out.clone().cross(UP),
+      upper: knee.length(),
+      lower: foot.position.length(),
+      rise,
+      bend: Math.atan2(toe.y - knee.y, along(toe) - along(knee)) - rise,
+      home: femur.position.clone().add(toe),
+      foot: new Vector3(),
+      step: null,
+      raise: 0,
+      open: 0,
+      turn: 0,
+      set: TETRAPOD[k] as number,
+      cycle: 0,
+      fore: out.x > 0 ? -1 : 1,
+    });
+  }
+  const front = legs.filter((l) => l.home.z > 1.5);
+  const second = legs.filter((l) => l.home.z > 0.5 && l.home.z <= 1.5);
+  const baby = model.node('baby');
+  const babyRest = baby?.position.clone();
+
+  // Where the body is (x, z, yaw from walking; height and tilt from the gait and the rearing).
+  const body = { ...home, y: 0, pitch: 0, roll: 0 };
+  root.position.set(body.x, 0, body.z);
+  root.rotation.set(0, body.yaw, 0, 'YXZ');
+  const standAt = (l: SpiderLeg, p: Pose, out = new Vector3()) =>
+    out.copy(l.home).applyAxisAngle(UP, p.yaw).add(new Vector3(p.x, 0, p.z));
+  for (const l of legs) standAt(l, body, l.foot);
+  const stepTo = (l: SpiderLeg, to: Vector3, time: number, height: number) => {
+    l.step = { from: l.foot.clone(), to, t: 0, time, height };
+  };
+
+  // Idle: a foot shifted, or a front leg feeling about and tapping the ground.
+  let fidget = 2 + Math.random() * 4;
+  let feel: { leg: SpiderLeg; t: number; time: number; taps: number[] } | null = null;
+  let state: 'home' | 'bolt' | 'rear' | 'wait' | 'creep' = 'home';
+  let clock = 0;
+  let wait = 0;
+  let walk: Walk | null = null;
+  const walkAt = (w: Walk, t: number): Pose => {
+    const u = w.ease(clamp01(t / w.time));
+    return { x: w.from.x + (w.to.x - w.from.x) * u, z: w.from.z + (w.to.z - w.from.z) * u, yaw: w.from.yaw + wrap(w.to.yaw - w.from.yaw) * u };
+  };
+  const setOff = (to: Pose, fast: boolean) => {
+    const from = { x: body.x, z: body.z, yaw: body.yaw };
+    const dist = Math.hypot(to.x - from.x, to.z - from.z);
+    // Bolting: crouched, quick short steps, flat out and stopping dead, about as long as its
+    // scurrying sound (1 s). Creeping home: slow, careful steps.
+    walk = fast
+      ? { from, to, t: 0, time: Math.min(1.05, Math.max(0.7, 0.55 + dist * 0.3)), period: 0.26, swing: 0.48, height: 0.3, low: 0.08, bob: 0.03, ease: (u) => dash(u, 0.14, 0.05) }
+      : { from, to, t: 0, time: Math.max(3, dist / 0.32), period: 1.15, swing: 0.4, height: 0.2, low: 0.03, bob: 0.015, ease: (u) => dash(u, 0.25, 0.25) };
+    // The set that steps first goes at once, the other half a stride later.
+    for (const l of legs) l.cycle = l.set ? 0 : -1;
+    feel = null;
+  };
+
+  // Lag from the body's starts and stops (a tilt), for the body and, looser, for the baby.
+  const lag = { x: 0, z: 0, vx: 0, vz: 0 };
+  const babyLag = { x: 0, z: 0, vx: 0, vz: 0 };
+  let last = { x: body.x, z: body.z, vx: 0, vz: 0 };
+  const q = new Quaternion();
+  const d = new Vector3();
+  const local = new Vector3();
+  const inverse = new Matrix4();
+
+  return {
+    get position() {
+      return root.position;
+    },
+    /** Tapped: bolts (unless it's already running or rearing). Returns whether it did. */
+    tap(): boolean {
+      if (state === 'bolt' || state === 'rear') return false;
+      setOff(away({ x: body.x, z: body.z, yaw: body.yaw }), true);
+      state = 'bolt';
+      clock = 0;
+      return true;
+    },
+    update(dt: number) {
+      dt = Math.min(dt, 0.1);
+      clock += dt;
+      // What it's doing.
+      if (state === 'bolt' || state === 'creep') {
+        const w = walk as Walk;
+        w.t += dt;
+        const phase = w.t / w.period;
+        for (const l of legs) {
+          const n = Math.floor(phase + (l.set ? 0.5 : 0));
+          if (n <= l.cycle) continue;
+          l.cycle = n;
+          if (w.t >= w.time) continue;
+          // Plant where its spot will be halfway through the coming stance.
+          const time = w.period * w.swing;
+          const to = standAt(l, walkAt(w, w.t + time + (w.period - time) / 2));
+          if (to.distanceTo(l.foot) > 0.03) stepTo(l, to, time, w.height);
+        }
+        Object.assign(body, walkAt(w, w.t));
+        if (w.t >= w.time && legs.every((l) => !l.step)) {
+          walk = null;
+          clock = 0;
+          if (state === 'bolt') {
+            state = 'rear';
+          } else {
+            state = 'home';
+            fidget = 1.5 + Math.random() * 2;
+          }
+        }
+      } else if (state === 'rear' && clock > 2.3) {
+        state = 'wait';
+        clock = 0;
+        wait = 2.5 + Math.random() * 2;
+      } else if (state === 'wait' && clock > wait && !feel && legs.every((l) => !l.step)) {
+        state = 'creep';
+        clock = 0;
+        setOff(home, false);
+      }
+      // Fidgets, when it's standing about.
+      if ((state === 'home' || (state === 'wait' && clock > 0.8)) && !feel && legs.every((l) => !l.step)) {
+        fidget -= dt;
+        if (fidget <= 0) {
+          fidget = 2.5 + Math.random() * 5;
+          const off = legs.map((l) => standAt(l, body).distanceTo(l.foot));
+          const worst = off.indexOf(Math.max(...off));
+          if (Math.random() < 0.45 && front.length) {
+            // Feel about with a front leg: up, a slow reach, two or three taps.
+            const leg = front[Math.floor(Math.random() * front.length)] as SpiderLeg;
+            const time = 2.6 + Math.random() * 1.6;
+            const taps = Math.random() < 0.5 ? [0.4, 0.6] : [0.33, 0.5, 0.67];
+            feel = { leg, t: 0, time, taps };
+          } else {
+            // Shift a foot: the one furthest from where it would stand, or any but the front pair.
+            const others = legs.filter((l) => !front.includes(l));
+            const leg = (off[worst] as number) > 0.09 ? (legs[worst] as SpiderLeg) : (others[Math.floor(Math.random() * others.length)] as SpiderLeg);
+            const to = standAt(leg, body).add(new Vector3((Math.random() - 0.5) * 0.16, 0, (Math.random() - 0.5) * 0.16));
+            stepTo(leg, to, 0.32, 0.14);
+          }
+        }
+      }
+
+      // The feet in the air.
+      for (const l of legs) {
+        const s = l.step;
+        if (!s) continue;
+        s.t = Math.min(1, s.t + dt / s.time);
+        l.foot.lerpVectors(s.from, s.to, smooth(s.t));
+        l.foot.y += Math.sin(Math.PI * Math.pow(s.t, 0.8)) * s.height;
+        if (s.t >= 1) l.step = null;
+      }
+
+      // Extra poses: rearing up at you, or feeling about.
+      const rear = state === 'rear' ? smooth((clock - 0.18) / 0.3) * (1 - smooth((clock - 1.75) / 0.5)) : 0;
+      if (feel) {
+        feel.t += dt;
+        if (feel.t >= feel.time) feel = null;
+      }
+      for (const l of legs) {
+        let raise = 0;
+        let open = 0;
+        let turn = 0;
+        if (rear > 0 && front.includes(l)) {
+          // Front legs up and toward you, waving slowly; the next pair braced a little higher.
+          const wave = Math.sin(clock * 2.4 + l.fore * 1.3) * 0.08;
+          raise = rear * (0.7 + wave);
+          open = rear * (0.55 - wave * 0.5);
+          turn = rear * 0.3 * l.fore;
+        } else if (rear > 0 && second.includes(l)) {
+          raise = rear * 0.1;
+          turn = rear * 0.1 * l.fore;
+        }
+        if (feel && feel.leg === l) {
+          const u = feel.t / feel.time;
+          const up = smooth(u / 0.18) * (1 - smooth((u - 0.8) / 0.2));
+          const tap = Math.min(1, 1.6 * Math.max(...feel.taps.map((c) => Math.exp(-(((u - c) / 0.05) ** 2)))));
+          raise += up * 0.13 * (1 - tap);
+          open += up * 0.12 * (1 - tap);
+          turn += up * l.fore * (0.04 + 0.06 * Math.sin(u * 4.5));
+        }
+        const k = 1 - Math.exp(-dt * 24);
+        l.raise += (raise - l.raise) * k;
+        l.open += (open - l.open) * k;
+        l.turn += (turn - l.turn) * k;
+      }
+
+      // The body: low and bobbing with the steps as it runs, up and back as it rears, and a lurch
+      // as it sets off and stops dead.
+      const w = walk as Walk | null;
+      const going = w ? smooth(w.t / 0.12) * (1 - smooth((w.t - w.time + 0.05) / 0.08)) : 0;
+      const phase = w ? w.t / w.period : 0;
+      body.y = w ? going * (-w.low + w.bob * Math.sin(Math.PI * 2 * phase) ** 2) : 0;
+      body.y += rear * 0.07;
+      const vx = (body.x - last.x) / Math.max(dt, 1e-4);
+      const vz = (body.z - last.z) / Math.max(dt, 1e-4);
+      // The change in velocity, turned into the body's frame.
+      const cos = Math.cos(body.yaw);
+      const sin = Math.sin(body.yaw);
+      const dvx = vx - last.vx;
+      const dvz = vz - last.vz;
+      const ax = dvx * cos - dvz * sin;
+      const az = dvx * sin + dvz * cos;
+      last = { x: body.x, z: body.z, vx, vz };
+      for (const [s, f, damp] of [
+        [lag, 15, 11],
+        [babyLag, 9, 4],
+      ] as const) {
+        s.vx += (-f * f * s.x - damp * s.vx) * dt - ax;
+        s.vz += (-f * f * s.z - damp * s.vz) * dt - az;
+        s.x += s.vx * dt;
+        s.z += s.vz * dt;
+      }
+      body.pitch = Math.max(-0.12, Math.min(0.12, lag.z * 1.1)) - rear * 0.08;
+      body.roll = Math.max(-0.1, Math.min(0.1, -lag.x * 1.1)) + (w ? going * Math.sin(Math.PI * 2 * phase) * 0.02 : 0);
+
+      root.position.set(body.x, body.y, body.z);
+      root.rotation.set(body.pitch, body.yaw, body.roll, 'YXZ');
+      root.updateMatrix();
+      inverse.copy(root.matrix).invert();
+
+      // Each leg reaches its foot: turn the hip toward it, then hip and knee as a two-bone reach.
+      for (const l of legs) {
+        local.copy(l.foot).applyMatrix4(inverse);
+        d.subVectors(local, l.hip);
+        const reach = Math.hypot(d.x, d.z);
+        const yaw = wrap(Math.atan2(-d.z, d.x) - Math.atan2(-l.out.z, l.out.x));
+        const far = Math.min(l.upper + l.lower - 0.01, Math.max(Math.abs(l.upper - l.lower) + 0.01, Math.hypot(reach, d.y)));
+        const a1 = Math.atan2(d.y, reach) + Math.acos(Math.min(1, Math.max(-1, (l.upper * l.upper + far * far - l.lower * l.lower) / (2 * l.upper * far))));
+        const a2 = Math.atan2(d.y - l.upper * Math.sin(a1), reach - l.upper * Math.cos(a1));
+        l.femur.quaternion.setFromAxisAngle(UP, yaw + l.turn).multiply(q.setFromAxisAngle(l.axis, a1 - l.rise + l.raise));
+        l.tibia.quaternion.setFromAxisAngle(l.axis, a2 - a1 - l.bend + l.open);
+      }
+
+      // The baby holds on: it rocks with the starts and stops and bobs with the steps.
+      if (baby && babyRest) {
+        baby.rotation.x = Math.max(-0.25, Math.min(0.25, babyLag.z * 2.2));
+        baby.rotation.z = Math.max(-0.25, Math.min(0.25, -babyLag.x * 2.2));
+        baby.position.y = babyRest.y + (w ? going * Math.abs(Math.sin(Math.PI * 2 * phase)) * 0.025 : 0);
+      }
+    },
+  };
+}
+
+/**
+ * The mantis sits praying. Now and then it rocks from side to side like a leaf in a breeze; it
+ * watches you, with a tilt of the head now and then. Tapped, it strikes: a twitch back, the
+ * forelegs whip out, the claws snap shut (with the click), it holds its catch to its mouth for a
+ * nibble, then folds back to praying.
+ */
+function prayingMantis(model: LoadedModel, camera: Camera, click: () => void) {
+  const thorax = model.node('thorax');
+  const abdomen = model.node('abdomen');
+  const head = model.node('head');
+  const arms = ['L', 'R'].map((s) => ({ coxa: model.node(`foreleg_${s}`), femur: model.node(`femur_${s}`), tibia: model.node(`tibia_${s}`) }));
+  const antennae = ['L', 'R'].map((s, i) => ({ node: model.node(`antenna_${s}`), kick: 0, flick: 0, side: i ? 1 : -1 }));
+  if (head) head.rotation.order = 'YXZ';
+  if (thorax) thorax.rotation.order = 'YXZ';
+  // The strike, in seconds from the tap: [t, lean, coxa, femur, tibia, nod]. The forelegs are
+  // modelled folded (all 0): the coxa swings forward with -, the femur opens away from it with +,
+  // the claw (tibia) opens with - and shuts with +.
+  // A deliberate wind-up you can see, a quarter-second reach, then the snap.
+  const STRIKE = [
+    [0, 0, 0, 0, 0, 0],
+    [0.35, -0.08, 0.2, -0.12, -0.35, -0.08],
+    [0.6, 0.2, -0.95, 1.85, -1.5, 0.14],
+    [0.72, 0.15, -0.55, 0.62, 0.16, 0.12],
+    [0.8, 0.13, -0.5, 0.52, -0.07, 0.1],
+    [0.9, 0.12, -0.48, 0.5, 0.03, 0.1],
+    [1.01, 0.1, -0.45, 0.48, 0, 0.12],
+    [1.65, 0.08, -0.42, 0.45, 0, 0.12],
+    [2.85, 0, 0, 0, 0, 0],
+  ];
+  const SNAP = 0.72;
+  const HELD = 1.7; // past the hold: a tap now strikes again as it lets go
+  const now = [0, 0, 0, 0, 0];
+  let strike = -1;
+  let clicked = false;
+  let queued = false;
+  let time = 0;
+  // Rocking: bouts of a few slow sways, now and then.
+  let rock = 0;
+  let rockPhase = 0;
+  let rockFor = 0;
+  let nextRock = 2 + Math.random() * 4;
+  let tilt = 0;
+  let tiltTo = 0;
+  let nextTilt = 3 + Math.random() * 4;
+  let nextFlick = 1 + Math.random() * 3;
+  const begin = () => {
+    // From wherever it is now (it may still be folding back from the last one).
+    STRIKE[0] = [0, ...now];
+    strike = 0;
+    clicked = false;
+    queued = false;
+  };
+  return {
+    /** Tapped: strikes; tapped again once it's past the snap, it strikes again as it lets go. */
+    tap() {
+      if (strike < 0 || strike > HELD) begin();
+      else if (strike > SNAP + 0.1) queued = true;
+    },
+    update(dt: number) {
+      dt = Math.min(dt, 0.1);
+      time += dt;
+      if (strike >= 0) {
+        strike += dt;
+        if (!clicked && strike >= SNAP) {
+          clicked = true;
+          click();
+        }
+        if (strike >= (STRIKE[STRIKE.length - 1]?.[0] as number)) strike = -1;
+      }
+      if (queued && strike > HELD) begin();
+      const s = Math.max(strike, 0);
+      for (let c = 0; c < 5; c++) now[c] = strike >= 0 ? keyed(STRIKE, c + 1, s) : 0;
+      // A nibble at what it caught: the claws grip twice and the head dips.
+      const pulse = (at: number, width: number) => (strike >= 0 ? Math.exp(-(((s - at) / width) ** 2)) : 0);
+      const grip = (pulse(SNAP + 0.15, 0.025) + pulse(SNAP + 0.225, 0.025)) * 0.07;
+      const nibble = pulse(SNAP + 0.5, 0.06) * 0.14;
+      // Still while it strikes (settling out of a sway as it winds up), back to itself as it folds.
+      const calm = strike >= 0 ? Math.max(1 - smooth(s / 0.3), smooth((s - 1.75) / 1.1)) : 1;
+
+      // Rocking like a leaf, now and then.
+      nextRock -= dt;
+      if (nextRock <= 0 && rockFor <= 0 && strike < 0) {
+        rockFor = 2 + Math.random() * 2.5;
+        nextRock = rockFor + 3 + Math.random() * 6;
+      }
+      rockFor -= dt;
+      rock += ((rockFor > 0 ? 1 : 0) - rock) * (1 - Math.exp(-dt * 2.2));
+      rockPhase += dt * Math.PI * 2 * (1.05 + 0.25 * Math.sin(time * 0.7));
+      const sway = rock * calm * (Math.sin(rockPhase) + 0.2 * Math.sin(rockPhase * 2 + 0.6));
+      if (thorax) thorax.rotation.set(now[0] as number, sway * 0.025, sway * 0.07);
+      if (abdomen) {
+        abdomen.rotation.x = Math.max(0, now[0] as number) * 0.2;
+        abdomen.rotation.y = -sway * 0.035;
+      }
+      arms.forEach((a, i) => {
+        // The forelegs sway a touch behind the body.
+        const side = i ? 1 : -1;
+        if (a.coxa) a.coxa.rotation.set(now[1] as number, 0, -sway * 0.02 * side);
+        if (a.femur) a.femur.rotation.x = now[2] as number;
+        if (a.tibia) a.tibia.rotation.x = (now[3] as number) + grip;
+      });
+
+      // The head follows you, with a curious tilt now and then.
+      nextTilt -= dt;
+      if (nextTilt <= 0) {
+        tiltTo = tiltTo ? 0 : (Math.random() < 0.5 ? -1 : 1) * (0.2 + Math.random() * 0.15);
+        nextTilt = tiltTo ? 1 + Math.random() * 1.8 : 3 + Math.random() * 6;
+      }
+      tilt += (tiltTo - tilt) * (1 - Math.exp(-dt * 5));
+      if (head && thorax) {
+        const at = thorax.worldToLocal(camera.position.clone()).sub(head.position);
+        const want = Math.max(-0.7, Math.min(0.7, Math.atan2(at.x, at.z)));
+        head.rotation.y += (want - head.rotation.y) * (1 - Math.exp(-dt * 1.5));
+        head.rotation.x = (now[4] as number) + nibble;
+        head.rotation.z = tilt - sway * 0.04;
+      }
+
+      // Antennae: a slow drift, a flick now and then, swept back as it strikes.
+      nextFlick -= dt;
+      if (nextFlick <= 0) {
+        nextFlick = 0.8 + Math.random() * 3.5;
+        const a = antennae[Math.floor(Math.random() * 2)];
+        if (a) a.kick = (Math.random() - 0.3) * 0.5;
+      }
+      const back = strike >= 0 ? pulse(0.6, 0.2) * 0.4 : 0;
+      for (const a of antennae) {
+        a.flick += (a.kick - a.flick) * (1 - Math.exp(-dt * 30));
+        a.kick *= Math.exp(-dt * 3);
+        if (a.node) {
+          a.node.rotation.x = Math.sin(time * 0.8 + a.side) * 0.05 + a.flick - back;
+          a.node.rotation.z = Math.sin(time * 0.6 + a.side * 2) * 0.05 + a.flick * 0.5 * a.side;
+        }
+      }
+    },
+  };
+}
+
 export async function web(ctx: ChapterContext, at: Vector3, yaw: number): Promise<SetPiece & { snare: Vector3; hooks: { onFree: (() => void) | null } }> {
   const hooks: { onFree: (() => void) | null } = { onFree: null };
   const objects: Object3D[] = [];
@@ -111,8 +585,10 @@ export async function web(ctx: ChapterContext, at: Vector3, yaw: number): Promis
   ];
   const SPIDER = new Vector3(-4.6, 0, -1.5);
   const MANTIS = new Vector3(4.3, 0, 3.0);
-  // Keep strands and pumpkins out of the two creatures.
-  const free = (x: number, z: number) => !(x < -1.6 && Math.abs(z - SPIDER.z) < 3.8) && !(x > 2.4 && Math.abs(z - MANTIS.z) < 2);
+  // Tapped, the spider bolts this far along the web, away from you.
+  const ROAM = 1.4;
+  // Keep strands and pumpkins out of the two creatures (and of where the spider runs to).
+  const free = (x: number, z: number) => !(x < -1.6 && Math.abs(z - SPIDER.z) < 3.8 + ROAM) && !(x > 2.4 && Math.abs(z - MANTIS.z) < 2);
   for (const s of sheets) {
     const m = new Mesh(new PlaneGeometry(s.w, s.h, 24, 12), s.mat);
     m.position.copy(toWorld(s.p));
@@ -134,27 +610,33 @@ export async function web(ctx: ChapterContext, at: Vector3, yaw: number): Promis
 
   // The spider and the mantis.
   const spider = await loadModel('pumpkin-spider', { glowReceive: 0.6 });
-  const legs: Object3D[] = [];
+  let crawler: ReturnType<typeof pumpkinSpider> | null = null;
   if (spider) {
-    spider.root.position.copy(toWorld(SPIDER));
-    spider.root.rotation.y = yaw + Math.PI / 2 - 0.15;
     objects.push(spider.root);
-    for (let k = 0; k < 8; k++) {
-      const l = spider.node(`leg_${k}`);
-      if (l) legs.push(l);
-    }
     for (const m of spider.glows.values()) m.emissiveIntensity = 2.5;
+    const homeYaw = yaw + Math.PI / 2 - 0.15;
+    const at = toWorld(SPIDER);
+    // Its spots: home, or a little way along the web either side, a touch further back.
+    const spots = [SPIDER, SPIDER.clone().add(new Vector3(-0.15, 0, -ROAM)), SPIDER.clone().add(new Vector3(-0.15, 0, ROAM))].map(toWorld);
+    crawler = pumpkinSpider(spider, { x: at.x, z: at.z, yaw: homeYaw }, (from) => {
+      // The spot furthest from you (that isn't where it is), turned a little toward you.
+      const eye = ctx.camera.position;
+      const spot = spots
+        .filter((p) => Math.hypot(p.x - from.x, p.z - from.z) > 0.8)
+        .reduce((a, b) => (Math.hypot(b.x - eye.x, b.z - eye.z) > Math.hypot(a.x - eye.x, a.z - eye.z) ? b : a));
+      const facing = wrap(Math.atan2(eye.x - spot.x, eye.z - spot.z) - homeYaw);
+      return { x: spot.x, z: spot.z, yaw: homeYaw + (spot === spots[0] ? 0 : Math.max(-0.22, Math.min(0.22, facing))) };
+    });
   }
-  const legRest = legs.map((l) => l.rotation.clone());
-  const baby = spider?.node('baby');
-  const babyRest = baby?.position.clone();
   const mantis = await loadModel('praying-mantis', { glowReceive: 0.6 });
-  const mantisHead = mantis?.node('head');
+  let praying: ReturnType<typeof prayingMantis> | null = null;
   if (mantis) {
     mantis.root.position.copy(toWorld(MANTIS));
     mantis.root.rotation.y = yaw - Math.PI / 2 + 0.35;
     objects.push(mantis.root);
     for (const m of mantis.glows.values()) m.emissiveIntensity = 2.2;
+    // The click is the claws snapping shut.
+    praying = prayingMantis(mantis, ctx.camera, () => void ctx.audio.sfx('mantis-click', { at: pointOnGround(mantis.root.position.clone().setY(1.8)), volume: 0.8 }));
   }
 
   // Pumpkins wrapped in web, with little neon spiders on them, hanging on threads from the web.
@@ -209,7 +691,6 @@ export async function web(ctx: ChapterContext, at: Vector3, yaw: number): Promis
 
   const snare = toWorld(new Vector3(2.5, 2.2, -1.8));
   let freed = false;
-  let twitch = 0;
   return {
     objects,
     snare,
@@ -226,45 +707,46 @@ export async function web(ctx: ChapterContext, at: Vector3, yaw: number): Promis
       { position: toWorld(SPIDER.clone().add(new Vector3(2.2, 2.2, 0))), color: new Color(0.6, 0.35, 1), intensity: 6, distance: 8 },
       { position: toWorld(MANTIS.clone().add(new Vector3(-1.6, 2.4, 0))), color: new Color(0.55, 0.4, 1), intensity: 4, distance: 6 },
     ],
-    update(dt, time) {
-      // The spider's legs twitch now and then; the mantis turns its head to you.
-      twitch = Math.max(0, twitch - dt);
-      legs.forEach((l, i) => {
-        const r = legRest[i];
-        if (!r) return;
-        // Legs 0-3 reach out along +x, 4-7 along -x: lifting one is a turn about z.
-        const lift = Math.sin(time * 1.3 + i) * 0.03 + Math.max(0, Math.sin(time * 18 + i * 1.7)) * 0.12 * twitch;
-        l.rotation.z = r.z + (i < 4 ? lift : -lift);
-      });
-      if (baby && babyRest) {
-        baby.position.y = babyRest.y + Math.abs(Math.sin(time * 2.1)) * 0.02 + twitch * 0.05;
-        baby.rotation.y += dt * twitch * 6;
-      }
-      if (mantisHead && mantis) {
-        const local = mantis.root.worldToLocal(ctx.camera.position.clone());
-        const want = Math.max(-0.7, Math.min(0.7, Math.atan2(local.x, local.z)));
-        mantisHead.rotation.y += (want - mantisHead.rotation.y) * (1 - Math.exp(-dt * 1.5));
-      }
+    update(dt) {
+      crawler?.update(dt);
+      praying?.update(dt);
       pumpkins?.update(ctx.camera, dt);
     },
     pick(ray: Ray) {
+      // Whatever you tapped that's nearest along your line of sight (the snare is behind the
+      // mantis from some places).
+      const hits: { at: Vector3; act: () => void }[] = [];
       // Free the Ember: tap the web where it's caught.
       if (!freed && ray.distanceSqToPoint(pointOnGround(snare)) < 1.2) {
-        return () => {
-          freed = true;
-          void ctx.audio.sfx('web-stretch', { at: pointOnGround(snare), volume: 0.9 });
-          hooks.onFree?.();
-        };
+        hits.push({
+          at: pointOnGround(snare),
+          act: () => {
+            freed = true;
+            void ctx.audio.sfx('web-stretch', { at: pointOnGround(snare), volume: 0.9 });
+            hooks.onFree?.();
+          },
+        });
       }
-      const spiderAt = spider ? pointOnGround(spider.root.position.clone().setY(2)) : null;
-      if (spiderAt && ray.distanceSqToPoint(spiderAt) < 4) {
-        return () => {
-          twitch = 1;
-          void ctx.audio.sfx('spider-scurry', { at: spiderAt, volume: 0.8 });
-        };
+      // (The spider is wherever it has run to.)
+      const spiderAt = crawler ? pointOnGround(crawler.position.clone().setY(2)) : null;
+      if (crawler && spiderAt && ray.distanceSqToPoint(spiderAt) < 4) {
+        const c = crawler;
+        hits.push({
+          at: spiderAt,
+          act: () => {
+            if (c.tap()) void ctx.audio.sfx('spider-scurry', { at: spiderAt, volume: 0.8 });
+          },
+        });
       }
-      if (mantis && ray.distanceSqToPoint(pointOnGround(mantis.root.position.clone().setY(2))) < 2.5) {
-        return () => void ctx.audio.sfx('mantis-click', { at: pointOnGround(mantis.root.position), volume: 0.8 });
+      const mantisAt = mantis ? pointOnGround(mantis.root.position.clone().setY(2)) : null;
+      if (mantisAt && praying && ray.distanceSqToPoint(mantisAt) < 2.5) {
+        const p = praying;
+        hits.push({ at: mantisAt, act: () => p.tap() });
+      }
+      if (hits.length) {
+        const along = (h: { at: Vector3 }) => h.at.clone().sub(ray.origin).dot(ray.direction);
+        hits.sort((a, b) => along(a) - along(b));
+        return (hits[0] as { act: () => void }).act;
       }
       const hit = hangAt.map((h) => pointOnGround(toWorld(h))).find((p) => ray.distanceSqToPoint(p) < 0.2 && ray.origin.distanceTo(p) < 15);
       if (hit) return () => void ctx.audio.sfx('web-stretch', { at: hit, volume: 0.6 });

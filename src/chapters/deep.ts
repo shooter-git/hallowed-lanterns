@@ -15,6 +15,7 @@ import {
   type MeshStandardMaterial,
   type Object3D,
   PlaneGeometry,
+  Quaternion,
   type Ray,
   Scene,
   ShaderMaterial,
@@ -174,7 +175,7 @@ function streamers(anchors: { p: Vector3; len: number; phase: number }[]): Mesh<
   geo.setAttribute('aAt', new InstancedBufferAttribute(at, 4));
   geo.setAttribute('aPhase', new InstancedBufferAttribute(ph, 1));
   geo.instanceCount = anchors.length;
-  return new Mesh(
+  const mesh = new Mesh(
     geo,
     new ShaderMaterial({
       uniforms: { ...shared },
@@ -215,6 +216,10 @@ function streamers(anchors: { p: Vector3; len: number; phase: number }[]): Mesh<
       side: DoubleSide,
     }),
   );
+  // The ribbons are placed by the shader, all along the path: the geometry's own bounds (one
+  // ribbon at the origin) would cull every one of them at once whenever the origin left the view.
+  mesh.frustumCulled = false;
+  return mesh;
 }
 
 /** A flat painted coral cut-out board, branching, in a neon colour. */
@@ -237,6 +242,211 @@ function coral(height: number, color: Color, seed: number): Mesh {
   s.lineTo(-height * 0.08, 0);
   const geo = new ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: false, curveSegments: 6 });
   return new Mesh(geo, hallow(new MeshBasicGlow({ color }), { key: 'coral' }));
+}
+
+/** Joints along each of the Keeper's arms; the arm bends smoothly between them. */
+const ARM_JOINTS = 24;
+
+/**
+ * Bends an arm along its length (the model's `along` UVs: 0 at the root, 1 at the tip): every
+ * vertex keeps its place around the arm's centre line, which follows the joints (positions and
+ * turns from `bendArm`), so the arm curls and sweeps without stretching, its suckers turning with it.
+ */
+const ARM_VERTEX_PARS = /* glsl */ `
+#define HL_JOINTS ${ARM_JOINTS}
+uniform vec3 uRest[HL_JOINTS];
+uniform vec3 uPos[HL_JOINTS];
+uniform vec4 uRot[HL_JOINTS];
+vec3 hlTurn(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
+`;
+const ARM_NORMAL = /* glsl */ `
+#include <beginnormal_vertex>
+float hlU = clamp(uv1.x, 0.0, 1.0) * float(HL_JOINTS - 1);
+int hlJ = int(min(floor(hlU), float(HL_JOINTS - 2)));
+float hlF = hlU - float(hlJ);
+vec4 hlQ = normalize(mix(uRot[hlJ], uRot[hlJ + 1], hlF));
+objectNormal = hlTurn(hlQ, objectNormal);
+`;
+const ARM_VERTEX = /* glsl */ `
+#include <begin_vertex>
+transformed = mix(uPos[hlJ], uPos[hlJ + 1], hlF) + hlTurn(hlQ, transformed - mix(uRest[hlJ], uRest[hlJ + 1], hlF));
+`;
+
+/** One of the Keeper's arms: its centre line at rest, and how it's bent now. */
+interface Arm {
+  /** The centre line at each joint, at rest (in the arm's own space). */
+  rest: Vector3[];
+  tangent: Vector3[];
+  /** Turning about this bends the arm within its own upright plane (+ lifts it). */
+  plane: Vector3;
+  /** Turning about these (one per joint) bends it out of that plane. */
+  side: Vector3[];
+  /** Radians each joint turns when the arm is raised (to wave, or a little, in sympathy). */
+  raise: number[];
+  /** How far the raised arm turns its suckers toward you (radians). */
+  twist: number;
+  /** 1 for the arm that waves, a little for the others. */
+  react: number;
+  seed: number;
+  /** How far the lift and the sweeps have travelled out along the arm, joint by joint (0–1). */
+  lift: Float32Array;
+  sweep: Float32Array;
+  /** The root's own eased lift and sweep (the first stage of each, so they start gently). */
+  drive: [number, number];
+  pos: Float32Array;
+  rot: Float32Array;
+}
+
+/** The arm's centre line at its joints: the middle of each ring of the tube (suckers left out). */
+function armCentre(geo: BufferGeometry): Vector3[] {
+  const pos = geo.getAttribute('position');
+  const uv = geo.getAttribute('uv');
+  const along = geo.getAttribute('uv1');
+  const rings = new Map<number, Vector3 & { n?: number }>();
+  for (let i = 0; i < pos.count; i++) {
+    // The suckers are painted from their own corner of the texture, below the arm's.
+    if (uv.getY(i) > 0.876) continue;
+    const key = Math.round(along.getX(i) * 1e4);
+    let r = rings.get(key);
+    if (!r) rings.set(key, (r = Object.assign(new Vector3(), { n: 0 })));
+    r.x += pos.getX(i);
+    r.y += pos.getY(i);
+    r.z += pos.getZ(i);
+    r.n = (r.n ?? 0) + 1;
+  }
+  const ring = [...rings].sort((a, b) => a[0] - b[0]).map(([k, r]) => ({ a: k / 1e4, p: r.divideScalar(r.n ?? 1) }));
+  const out: Vector3[] = [];
+  let j = 0;
+  for (let k = 0; k < ARM_JOINTS; k++) {
+    const a = k / (ARM_JOINTS - 1);
+    while (j < ring.length - 2 && (ring[j + 1] as (typeof ring)[number]).a < a) j++;
+    const r0 = ring[j] as (typeof ring)[number];
+    const r1 = ring[j + 1] as (typeof ring)[number];
+    out.push(r0.p.clone().lerp(r1.p, Math.min(1, Math.max(0, (a - r0.a) / Math.max(1e-6, r1.a - r0.a)))));
+  }
+  return out;
+}
+
+const smooth = (a: number, b: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+const DEG = Math.PI / 180;
+const _qa = new Quaternion();
+const _qb = new Quaternion();
+const _qt = new Quaternion();
+const _v = new Vector3();
+const _p = new Vector3();
+const _segs = Array.from({ length: ARM_JOINTS - 1 }, () => new Quaternion());
+
+/**
+ * Bends an arm: each joint turns within the arm's plane (`bend`, radians) and out of it (`side`),
+ * and the turns add up from the root to the tip; then each ring of the tube turns about the arm
+ * by `twist`. Writes the joints' places and turns into the arm's uniforms.
+ */
+function bendArm(arm: Arm, bend: (k: number) => number, side: (k: number) => number, twist: (k: number) => number) {
+  const n = ARM_JOINTS;
+  _p.copy(arm.rest[0] as Vector3).toArray(arm.pos, 0);
+  for (let k = 0; k < n - 1; k++) {
+    const q = (_segs[k] as Quaternion).copy(k ? (_segs[k - 1] as Quaternion) : _qa.identity());
+    q.multiply(_qb.setFromAxisAngle(arm.plane, bend(k))).multiply(_qb.setFromAxisAngle(arm.side[k] as Vector3, side(k)));
+    _p.add(_v.subVectors(arm.rest[k + 1] as Vector3, arm.rest[k] as Vector3).applyQuaternion(q)).toArray(arm.pos, (k + 1) * 3);
+  }
+  _qb.identity();
+  for (let k = 0; k < n; k++) {
+    // At a joint, halfway between the turns of the stretches either side of it.
+    const q = _qa.copy(_segs[Math.max(0, k - 1)] as Quaternion);
+    if (k > 0 && k < n - 1) q.slerp(_segs[k] as Quaternion, 0.5);
+    q.multiply(_qt.setFromAxisAngle(arm.tangent[k] as Vector3, twist(k)));
+    // Keep neighbours in the same hemisphere so the shader's blend between them is the short way.
+    if (q.dot(_qb) < 0) q.set(-q.x, -q.y, -q.z, -q.w);
+    _qb.copy(q).toArray(arm.rot, k * 4);
+  }
+}
+
+/**
+ * Builds the Keeper's arm `index` from its mesh: finds its centre line and its plane, works out
+ * the raised pose (for the arm that waves: out from the body and up, the curl at its tip held high)
+ * and how far to turn its suckers toward you, and patches its material to bend.
+ */
+function makeArm(mesh: Mesh, index: number, waver: boolean, reacts: number): Arm {
+  const n = ARM_JOINTS;
+  const rest = armCentre(mesh.geometry);
+  const tangent = rest.map((_, k) => (rest[Math.min(n - 1, k + 1)] as Vector3).clone().sub(rest[Math.max(0, k - 1)] as Vector3).normalize());
+  const up = new Vector3(0, 1, 0);
+  const out = (rest[Math.round(n * 0.35)] as Vector3).clone().sub(rest[0] as Vector3).setY(0).normalize();
+  const plane = out.clone().cross(up).normalize();
+  const side = tangent.map((t) => t.clone().cross(plane).normalize());
+  // Elevation of each stretch of the arm (radians above the horizontal, outward).
+  const elev = rest.slice(0, -1).map((p, k) => {
+    _v.subVectors(rest[k + 1] as Vector3, p);
+    return Math.atan2(_v.dot(up), _v.dot(out));
+  });
+  const raise: number[] = [];
+  if (waver) {
+    // Raised: a long arc out from the body and up beside its head, the curled tip (left as it is)
+    // held high and opened a little.
+    const curl = 0.72;
+    let held = 0;
+    let before = 0;
+    for (let k = 0; k < n - 1; k++) {
+      const a = (k + 0.5) / (n - 1);
+      let total: number;
+      if (a <= curl) {
+        total = (12 + 80 * smooth(0.12, 0.66, a)) * DEG - (elev[k] as number);
+        held = total;
+      } else total = held - 22 * DEG * smooth(curl, 0.95, a);
+      raise.push(total - before);
+      before = total;
+    }
+  } else {
+    // In sympathy: the outer arm curls a little (rising arms lean out instead, away from the body).
+    const sign = (elev[Math.round(n * 0.6)] as number) > 45 * DEG ? -1 : 1;
+    for (let k = 0; k < n - 1; k++) raise.push(sign * reacts * 7 * DEG * smooth(0.45, 0.85, k / (n - 1)));
+  }
+  const arm: Arm = {
+    rest, tangent, plane, side, raise, twist: 0, react: waver ? 1 : reacts, seed: index * 1.7 + 0.4,
+    lift: new Float32Array(n), sweep: new Float32Array(n), drive: [0, 0],
+    pos: new Float32Array(n * 3), rot: new Float32Array(n * 4),
+  };
+  if (waver) {
+    // Which way round to turn the raised arm so its suckers face you (+z): look at the suckers
+    // halfway along, in the raised pose.
+    const pos = mesh.geometry.getAttribute('position');
+    const uv = mesh.geometry.getAttribute('uv');
+    const along = mesh.geometry.getAttribute('uv1');
+    const k = Math.round((n - 1) * 0.45);
+    const dir = new Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      const a = along.getX(i) * (n - 1);
+      if (uv.getY(i) <= 0.876 || Math.abs(a - k) > 2) continue;
+      dir.add(_v.set(pos.getX(i), pos.getY(i), pos.getZ(i)).sub(rest[k] as Vector3));
+    }
+    dir.addScaledVector(tangent[k] as Vector3, -dir.dot(tangent[k] as Vector3)).normalize();
+    bendArm(arm, (j) => arm.raise[j] as number, () => 0, () => 0);
+    const q = new Quaternion().fromArray(arm.rot, k * 4);
+    const d = dir.applyQuaternion(q);
+    const t = (tangent[k] as Vector3).clone().applyQuaternion(q);
+    const toYou = new Vector3(0, 0, 1).addScaledVector(t, -t.z).normalize();
+    arm.twist = Math.atan2(_v.crossVectors(d, toYou).dot(t), d.dot(toYou));
+  }
+  bendArm(arm, () => 0, () => 0, () => 0);
+  const mat = (mesh.material as MeshStandardMaterial).clone();
+  hallow(mat, {
+    key: 'keeper-arm',
+    glow: 0.3,
+    uniforms: { uRest: { value: new Float32Array(rest.flatMap((p) => [p.x, p.y, p.z])) }, uPos: { value: arm.pos }, uRot: { value: arm.rot } },
+    vertexPars: ARM_VERTEX_PARS,
+    vertex: [
+      ['#include <beginnormal_vertex>', ARM_NORMAL],
+      ['#include <begin_vertex>', ARM_VERTEX],
+    ],
+  });
+  mat.defines = { ...(mat.defines ?? {}), USE_UV1: '' };
+  mesh.material = mat;
+  // Raised, the arm reaches far outside its resting bounds.
+  mesh.frustumCulled = false;
+  return arm;
 }
 
 export async function build(ctx: ChapterContext): Promise<Chapter> {
@@ -418,7 +628,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   // The Keeper of the Deep.
   const keeper = await loadModel('octopus', { glowReceive: 0.3 });
   let keeperRoot: Object3D | null = null;
-  const tentacles: { node: Object3D; mat: MeshStandardMaterial; wave: { value: number } }[] = [];
+  const arms: Arm[] = [];
   let eyes: Object3D[] = [];
   let keeperBox = new Box3();
   if (keeper) {
@@ -433,33 +643,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     keeperRoot.traverse((o) => {
       const mesh = o as Mesh;
       if (!mesh.isMesh || !o.name.startsWith('tentacle')) return;
-      const mat = (mesh.material as MeshStandardMaterial).clone();
-      const wave = { value: 0 };
-      const phase = Number(o.name.split('_')[1] ?? 0) * 0.8;
-      hallow(mat, {
-        key: `tentacle${phase}`,
-        glow: 0.3,
-        uniforms: { uWave: wave, uPhase: { value: phase } },
-        vertexPars: 'uniform float uWave;\nuniform float uPhase;',
-        vertex: [
-          [
-            '#include <begin_vertex>',
-            /* glsl */ `#include <begin_vertex>
-            {
-              // Bend along the tentacle (uv1.x: 0 at the root, 1 at the tip): a slow sway,
-              // and a big wave when it waves at you.
-              float a = uv1.x;
-              float sway = sin(uHlTime * 0.7 + uPhase + a * 2.5) * 0.25 + uWave * sin(uHlTime * 5.0 + a * 3.0) * 0.9;
-              transformed.x += sway * a * a;
-              transformed.z += cos(uHlTime * 0.5 + uPhase * 1.3 + a * 2.0) * 0.15 * a * a;
-              transformed.y += uWave * a * a * 0.6;
-            }`,
-          ],
-        ],
-      });
-      mat.defines = { ...(mat.defines ?? {}), USE_UV1: '' };
-      mesh.material = mat;
-      tentacles.push({ node: o, mat, wave });
+      const i = Number(o.name.split('_')[1] ?? 0);
+      // It waves with the arm on its left (your right), out to the side; the arms beside it stir.
+      arms.push(makeArm(mesh, i, i === 2, i === 0 || i === 4 ? 0.35 : 0.15));
     });
     keeperBox = new Box3().setFromObject(keeperRoot);
     keeperRoot.position.y = -7;
@@ -546,7 +732,13 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   let time = 0;
   let risen = 0;
   let rising = false;
-  let waving = 0;
+  // The wave (times on the chapter's clock): the arm rises, sweeps from side to side, and lowers.
+  const SWEEP_PERIOD = 2.6;
+  let waveFrom = -1e9;
+  let sweepFrom = -1e9;
+  let sweepUntil = -1e9;
+  let liftUntil = -1e9;
+  let sweepPhase = 0;
   let hinted = 0;
   let wavedBack = false;
   const puffed = new Map<number, number>();
@@ -610,7 +802,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
         const d = Math.hypot(w.position.x - KEEPER.x, w.position.z - KEEPER.z);
         if (!rising && d < 22) {
           rising = true;
-          void ctx.audio.cue('keeper-rises', 1);
+          void ctx.audio.sfx('keeper-rise', { at: KEEPER.clone().setY(2), volume: 1 });
           ctx.ui.say('Something enormous is rising…', 5);
         }
         if (rising) risen = Math.min(1, risen + dt / 7);
@@ -624,9 +816,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
           eye.rotation.y += (Math.atan2(dir.x, dir.z) * 0.5 - eye.rotation.y) * (1 - Math.exp(-dt * 2));
           eye.rotation.x += (-Math.asin(Math.max(-1, Math.min(1, dir.y))) * 0.4 - eye.rotation.x) * (1 - Math.exp(-dt * 2));
         }
-        waving = Math.max(0, waving - dt / 3);
-        const wv = Math.sin(Math.min(1, waving) * Math.PI);
-        tentacles.forEach((t, i) => (t.wave.value = i === 2 ? wv : wv * 0.15));
+        moveArms(dt);
         if (k > 0.9 && !hinted && d < 14) {
           hinted = time;
           ctx.ui.say('Wave to it.', 4);
@@ -673,7 +863,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     finished() {
-      return wavedBack && risen >= 1 && ctx.walker.s > path.length - 1.2 && waving <= 0;
+      return wavedBack && risen >= 1 && ctx.walker.s > path.length - 1.2 && !waveGoing();
     },
 
     dispose() {
@@ -689,13 +879,89 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       for (const c of corals) c.geometry.dispose();
     },
   };
-  if (import.meta.env.DEV) (window as unknown as { deep: unknown }).deep = { rise: () => (risen = 1, rising = true) };
+  if (import.meta.env.DEV) (window as unknown as { deep: unknown }).deep = { rise: () => (risen = 1, rising = true), wave: () => wave('It waves back.') };
 
   function wave(line: string) {
     wavedBack = true;
-    waving = 1.4;
+    if (time < sweepUntil) {
+      // Waving already: a little longer.
+      sweepUntil = Math.max(sweepUntil, time + SWEEP_PERIOD * 1.5);
+    } else {
+      // From rest, or from wherever it had got to on the way down.
+      const up = arms.find((a) => a.react === 1)?.lift[ARM_JOINTS >> 1] ?? 0;
+      waveFrom = time;
+      sweepFrom = time + 1.8 * (1 - up * 0.6);
+      sweepUntil = sweepFrom + SWEEP_PERIOD * 2;
+      if ((arms.find((a) => a.react === 1)?.drive[1] ?? 0) < 0.02) sweepPhase = 0;
+    }
+    liftUntil = sweepUntil + 0.7;
     void ctx.audio.sfx('octopus-wave', { at: KEEPER.clone().add(new Vector3(0, 3, 0)), volume: 1 });
     ctx.ui.say(line, 4);
+  }
+
+  /** Still waving, or the arm not yet settled back down. */
+  function waveGoing() {
+    return time < liftUntil || arms.some((a) => (a.lift[ARM_JOINTS - 1] as number) > 0.03 || (a.sweep[ARM_JOINTS - 1] as number) > 0.03);
+  }
+
+  /**
+   * The Keeper's arms, every frame: a slow drift as the water moves them, and the wave. The lift
+   * runs from the root to the tip (each joint following the one before), so the arm peels up off
+   * the floor in a curl that travels out along it and later lays itself down the same way; the
+   * sweeps travel out along it too, the tip following through, curling and uncurling.
+   */
+  function moveArms(dt: number) {
+    const n = ARM_JOINTS;
+    const sweeping = time > sweepFrom && time < sweepUntil;
+    if (sweeping || arms.some((a) => a.drive[1] > 1e-3)) sweepPhase += (dt * Math.PI * 2) / SWEEP_PERIOD;
+    for (const arm of arms) {
+      const waver = arm.react === 1;
+      // The others stir a beat later.
+      const lifting = time < liftUntil && time > waveFrom + (waver ? 0 : 0.6);
+      const swaying = sweeping && time > sweepFrom + (waver ? 0 : 0.5);
+      // Up gently; down more gently still.
+      const rise = lifting ? 0.7 : 0.9;
+      const step = lifting ? 0.06 : 0.075;
+      ease(arm.lift, arm.drive, 0, lifting ? 1 : 0, rise, step, dt);
+      ease(arm.sweep, arm.drive, 1, swaying ? 1 : 0, 0.55, 0.02, dt);
+      const s = arm.seed;
+      bendArm(
+        arm,
+        (k) => {
+          const a = k / (n - 1);
+          // Drifting: the outer arm lifts a touch and settles, over and over.
+          let b = 0.5 * DEG * (0.5 + 0.5 * Math.sin(time * 0.4 + s * 1.3 - a * 1.6)) * smooth(0.3, 0.8, a);
+          b += (arm.raise[k] as number) * (arm.lift[k] as number);
+          const e = arm.sweep[k] as number;
+          if (waver) {
+            // The sweeps, from the elbow out (more outward than in, to keep clear of its face), and
+            // the tip curling and uncurling through them.
+            b += e * 3.1 * DEG * (Math.sin(sweepPhase - a * 1.7) - 0.45) * smooth(0.08, 0.35, a) * (1 - 0.35 * smooth(0.7, 1, a));
+            b += e * 10 * DEG * Math.sin(sweepPhase - a * 1.7 - 1.2) * smooth(0.66, 0.85, a);
+          } else b += e * arm.react * 4 * DEG * Math.sin(sweepPhase * 0.5 + s - a * 1.5) * smooth(0.35, 0.9, a);
+          return b;
+        },
+        (k) => {
+          const a = k / (n - 1);
+          let b = 0.6 * DEG * Math.sin(time * 0.55 + s - a * 2) * smooth(0.05, 0.5, a);
+          if (waver) b += (arm.sweep[k] as number) * 0.9 * DEG * Math.cos(sweepPhase - a * 1.7) * smooth(0.1, 0.4, a);
+          return b;
+        },
+        (k) => arm.twist * (arm.lift[k] as number) * smooth(0.08, 0.45, k / (n - 1)),
+      );
+    }
+  }
+
+  /**
+   * Eases a front along a chain: the root's drive (`drive[slot]`) toward the target, the root
+   * toward its drive, and every joint toward the one before it, each with its own lag.
+   */
+  function ease(chain: Float32Array, drive: [number, number], slot: 0 | 1, target: number, root: number, step: number, dt: number) {
+    const kr = 1 - Math.exp(-dt / root);
+    const ks = 1 - Math.exp(-dt / step);
+    drive[slot] += (target - drive[slot]) * kr;
+    chain[0] = (chain[0] as number) + (drive[slot] - (chain[0] as number)) * kr;
+    for (let k = 1; k < chain.length; k++) chain[k] = (chain[k] as number) + ((chain[k - 1] as number) - (chain[k] as number)) * ks;
   }
 
   return chapter;

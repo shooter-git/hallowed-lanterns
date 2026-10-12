@@ -245,17 +245,23 @@ painter (colour + normal; one plank per row band, `row_tones` to keep two woods 
 
 | File | Size | Tris | Nodes |
 |---|---|---|---|
-| `pumpkin-spider.glb` | 7.00 × 3.03 × 5.51 | 23.2k | `spider` → `leg_0` … `leg_7`, `baby` |
-| `praying-mantis.glb` | 3.71 × 3.39 × 2.97 | 11.0k | `mantis` → `head` |
+| `pumpkin-spider.glb` | 7.00 × 3.03 × 5.51 | 23.2k | `spider` → `leg_<k>` → `tibia_<k>` → empty `foot_<k>` (k = 0 … 7), `baby` |
+| `praying-mantis.glb` | 3.71 × 3.39 × 2.97 | 11.0k | `mantis` → `abdomen`, `thorax` → `head` → `antenna_L`, `antenna_R`; `thorax` → `foreleg_L`/`_R` → `femur_L`/`_R` → `tibia_L`/`_R` |
 | `web-pumpkin.glb` | 0.51 × 0.75 × 0.53 | 3.8k | `web_pumpkin` → empty `hang_point` |
 
-- **Spider**: legs pivot at their roots inside the body: `leg_0`–`leg_3` on +X front to back,
-  `leg_4`–`leg_7` on -X front to back; twitch them by small rotations about their local axes.
+- **Spider**: each leg is two segments: `leg_<k>` (the femur) pivots at the hip inside the
+  body, `leg_0`–`leg_3` on +X front to back, `leg_4`–`leg_7` on -X front to back; its child
+  `tibia_<k>` (the rest of the leg) pivots at the knee, about 2.4–2.5 m up; the empty `foot_<k>`
+  marks the foot's centre (y = 0.10). The scene walks it by placing the feet and bending hip and
+  knee to reach them.
   `baby` (the green spiderling on the abdomen) pivots where it sits. Materials `glow_uvpaint`
   (2048² base + 1024² emission: the neon lightning patches, polka dots, pale lower legs and the
   baby glow; the maroon pumpkins stay dark) and `glow_eyes` (the domed pink spirals).
-- **Mantis**: sits on its mid and hind legs, forelegs raised and folded; `head` pivots at the
-  neck (eyes, antennae, palps and collar go with it). Materials `glow_uv` (lime foam tubes and
+- **Mantis**: sits on its mid and hind legs (part of `mantis`), forelegs raised and folded.
+  `abdomen` pivots where it joins the thorax; `thorax` (the prothorax) at its base; each
+  raptorial foreleg is a chain, `foreleg_L/_R` (coxa, at the shoulder) → `femur_L/_R` (at the
+  elbow) → `tibia_L/_R` (the claw); `head` pivots at the neck (eyes, palps and collar go with
+  it) and carries `antenna_L/_R`, pivoting at their roots. Materials `glow_uv` (lime foam tubes and
   the orange gourd abdomen; emission = base) and `glow_eyes`.
 - **Web pumpkin**: stands on the ground; the five threads meet at `hang_point` 0.42 m above the
   stem, to hang it in the web instead. `pumpkin_skin`, `glow_web` (strands, double-sided,
@@ -302,7 +308,7 @@ wood and shingles from `tex_wood.py`. Axes below are glTF / three.js.
 | File | Size (x × y × z) | Tris | Nodes |
 |---|---|---|---|
 | `magic-well.glb` | 1.98 × 2.58 × 1.64 | 16.5k | `magic_well` → `windlass`, `crank`, empties `fog_source`, `coin_drop` |
-| `venus-flytrap.glb` | 3.4 × 4.1 × 3.1 | 24.4k | `venus_flytrap` → `trap` → `lobe_upper`, `lobe_lower`, `fly` → `wing_L`, `wing_R`; `trap_small_1`, `trap_small_2` → `trap_small_<n>_upper`, `trap_small_<n>_lower` |
+| `venus-flytrap.glb` | 3.4 × 4.1 × 3.1 | 25.4k | `venus_flytrap` → `stem_0` → … → `stem_4` → `trap` → `lobe_upper` (→ `fly_land`, `fly_hair`), `lobe_lower`, `fly` → `wing_L`, `wing_R`, `vines_L`, `vines_R`; `trap_small_1`, `trap_small_2` → `trap_small_<n>_upper`, `trap_small_<n>_lower` |
 
 - **Well** (Candle Grove): wall of fieldstones 1.3 m across, 0.85 m to the capstone tops; two
   ivy-wound posts, shingled roof (ridge 2.5 m). The shaft (`glow_well_inner`) goes down to
@@ -316,6 +322,12 @@ wood and shingles from `tex_wood.py`. Axes below are glTF / three.js.
   local **X**; the mouth faces local +Z, a little upward. Close: `lobe_upper` +13°,
   `lobe_lower` −13° about local X (the small traps: ±16°); the opposite signs open wider. The
   teeth of the two lobes interlock when closed. `fly` pivots in its thorax; `wing_L`/`wing_R`
-  flap about their local Z (the body axis). Vines hang from the hinge ends (part of `trap`).
+  flap about their local Z (the body axis). The main stem is a chain of five rigid segments,
+  `stem_0` (pivot at the ground) to `stem_4`, jointed at 20/40/58/76 % of its length with a
+  dome over each joint, so bending the chain bends the stem without a seam; `trap` hangs off
+  `stem_4` on its hinge line. The vines (`vines_L`, `vines_R`) pivot where they hang from the
+  hinge ends, so the code keeps them hanging as the head moves. Three trigger hairs stand on
+  each lobe of the big trap; the empties `fly_land` and `fly_hair` (under `lobe_upper`) mark
+  where the fly lands on the roof of the mouth and where it stops by a hair.
   Materials `stem`, `leaf`, `trap_outer` (base + dim emission), `glow_trap`, `teeth` (dim
   emission), `fly_body`, `fly_wing` (alpha BLEND, double-sided), `vine` (alpha MASK).
