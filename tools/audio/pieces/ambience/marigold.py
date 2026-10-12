@@ -17,8 +17,10 @@ def render():
     NA.tree_crickets(crick, 0, LOOP, count=2, level=0.012, seed=82)
     mix.add(crick, 1.0, {"forest": 0.4})
 
+    # The wind sits under the details now (it was louder than everything else, and levelling
+    # the whole ambience pushed it up): the rest stays where it was, the wind comes down.
     air = mix.track()
-    NA.wind_leaves(air, level=0.02, seed=83, crackle=0.3, low=0.5, gust_rate=0.04, bright=0.8)
+    NA.wind_leaves(air, level=0.0126, seed=83, crackle=0.3, low=0.5, gust_rate=0.04, bright=0.8)
     mix.add(air, 1.0)
 
     bells = mix.track()
@@ -35,7 +37,7 @@ def render():
     mix.add(bells, 0.4, {"cathedral": 1.0})
 
     out = mix.render({"forest": {"seed": 81}, "cathedral": {"seed": 82}})
-    return finish_loop("ambience", "marigold", out, LOOP, 3, -20.0, 96, glue=False, tilt_hs_db=-1.5)
+    return finish_loop("ambience", "marigold", out, LOOP, 3, -21.0, 96, glue=False, tilt_hs_db=-1.5)
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ def render():
     r = rng("oak")
     for i, t in enumerate([6.0, 27.5, 44.0]):
         oak.add(t, NA.creak(seed=i, dur=r.uniform(0.8, 1.6)), gain=0.06, pan=float(r.uniform(-0.4, 0.4)))
-    NA.wind_leaves(oak, level=0.03, seed=51, crackle=0.7, low=0.4, gust_rate=0.05)
+    NA.wind_leaves(oak, level=0.0108, seed=51, crackle=0.7, low=0.4, gust_rate=0.05)
     mix.add(oak, 1.0, {"forest": 0.3})
 
     crick = mix.track()
@@ -32,7 +32,7 @@ def render():
     mix.add(tw, 1.0, {"hall": 0.6})
 
     out = mix.render({"forest": {"seed": 51}, "hall": {"seed": 52}})
-    return finish_loop("ambience", "hollow", out, LOOP, 3, -20.0, 96, glue=False, tilt_hs_db=-1.5)
+    return finish_loop("ambience", "hollow", out, LOOP, 3, -24.6, 96, glue=False, tilt_hs_db=-1.5)
 
 
 if __name__ == "__main__":

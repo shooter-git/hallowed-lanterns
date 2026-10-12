@@ -140,7 +140,7 @@ export class Engine {
     walker.onStep = () => {
       if (!this.chapter) return;
       foot = -foot;
-      void audio.sfx(this.chapter.steps, { volume: 0.34, rate: 0.96 + Math.random() * 0.08, pan: foot * 0.14, send: 'sfx' });
+      void audio.sfx(this.chapter.steps, { volume: 0.24, rate: 0.96 + Math.random() * 0.08, pan: foot * 0.14, send: 'sfx' });
     };
     ui.walkButton.addEventListener('click', () => {
       walker.auto = !walker.auto;
@@ -267,7 +267,7 @@ export class Engine {
     this.transition = { t: 0, phase: 'out', target: index };
     // Whatever the chapter you're leaving was offering goes with it.
     this.ctx.ui.clearOffers();
-    void this.ctx.audio.sfx('fog-swirl', { volume: 0.7 });
+    void this.ctx.audio.sfx('fog-swirl', { volume: 0.45 });
   }
 
   private frame(dt: number) {

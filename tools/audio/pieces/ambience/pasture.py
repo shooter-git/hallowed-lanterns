@@ -17,8 +17,10 @@ def render():
     NA.tree_crickets(crick, 0, LOOP, count=3, level=0.009, seed=42, pan=1.0)
     mix.add(crick, 1.0, {"field": 0.6})
 
+    # The wind sits under the details now (it was louder than everything else, and levelling
+    # the whole ambience pushed it up): the rest stays where it was, the wind comes down.
     air = mix.track()
-    NA.wind_whoosh(air, level=0.02, seed=43, cutoff=900, rate=0.04)
+    NA.wind_whoosh(air, level=0.0087, seed=43, cutoff=900, rate=0.04)
     mix.add(air, 1.0)
 
     hum = mix.track()
@@ -37,7 +39,7 @@ def render():
     mix.add(owl, 1.0, {"field": 1.0})
 
     out = mix.render({"field": {"seed": 41}})
-    return finish_loop("ambience", "pasture", out, LOOP, 3, -20.0, 96, glue=False, tilt_hs_db=-1.5)
+    return finish_loop("ambience", "pasture", out, LOOP, 3, -22.4, 96, glue=False, tilt_hs_db=-1.5)
 
 
 if __name__ == "__main__":

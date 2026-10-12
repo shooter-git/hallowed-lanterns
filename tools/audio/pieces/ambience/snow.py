@@ -12,12 +12,14 @@ LOOP = 60.0
 
 def render():
     mix = Mix(LOOP, circular=True)
+    # The wind sits under the details now (it was louder than everything else, and levelling
+    # the whole ambience pushed it up): the rest stays where it was, the wind comes down.
     hush = mix.track()
-    NA.snow_hush(hush, level=0.03, seed=61)
+    NA.snow_hush(hush, level=0.011, seed=61)
     mix.add(hush, 1.0)
 
     wind = mix.track()
-    NA.wind_whoosh(wind, level=0.025, seed=62, cutoff=650, rate=0.035, whistle=0.15)
+    NA.wind_whoosh(wind, level=0.0092, seed=62, cutoff=650, rate=0.035, whistle=0.15)
     mix.add(wind, 1.0, {"hall": 0.2})
 
     ev = mix.track()
@@ -31,7 +33,7 @@ def render():
     mix.add(ev, 1.0, {"hall": 0.6})
 
     out = mix.render({"hall": {"seed": 61}})
-    return finish_loop("ambience", "snow", out, LOOP, 3, -20.0, 96, glue=False, tilt_hs_db=-2.0)
+    return finish_loop("ambience", "snow", out, LOOP, 3, -27.7, 96, glue=False, tilt_hs_db=-2.0)
 
 
 if __name__ == "__main__":
