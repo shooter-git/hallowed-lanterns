@@ -1,89 +1,103 @@
-"""V. Sweet Hollow — "Sugar Rush".
+"""V. Sweet Hollow — "Sugar Rush" (rescored, Glass).
 
-Pizzicato strings and glockenspiel, playful and bouncy but still magical:
-celesta harmonies, a soft shaker and frame drum, sprinkle glissandi, and in the
-middle the pumpkin xylophone itself plays the Ember's motif (the same notes the
-letter pumpkins play). D major, 4/4 at 112 bpm in eighths: 56 bars = 120 s.
-
-  bars  0-3   pizzicato groove
-  bars  4-11  A: the glockenspiel tune (the motif, bounced)
-  bars 12-19  A again with celesta harmony
-  bars 20-27  B: pizzicato violins call, glockenspiel answers
-  bars 28-31  the pumpkins play the motif, sprinkles fly
-  bars 32-39  A with the pumpkin xylophone doubling
-  bars 40-47  B
-  bars 48-55  A, and round again
+Playful the Philip Glass way: bouncing, interlocking patterns, no jingle. A
+marimba cycles broken chords in eighths grouped 3+3+2 against the 4/4 (one
+note changes at a time; D Lydian, the G sharp is the sugar). Pizzicato
+violins and violas HOCKET the Ember's cell diminished to sixteenths - D B A
+F# A - displaced a sixteenth off the beat, so it hops between them. Cello
+pizzicati syncopate the bass (1, the and of 2, 4). Flute and clarinet
+staccati grow by an additive process (2, 2+3, 2+3+3 ...) on the cell. A
+filtered synth pulse and a soft glockenspiel sparkle join; the lift turns
+to the relative minor and back (B minor 9, G Lydian, E minor 9, A sus),
+staying in the key, with spiccato sixteenths ticking under it; then
+everything subtracts back to the marimba.
+4/4, quarter = 120 (in sixteenths), 68 bars = 136 s.
 """
-from hlaudio.score import N, seq, prog, pad, bass_line, shift, humanize, Clock
-from hlaudio.arrange import window, shape, comp, counter_thirds
-from hlaudio import mallets as ML, plucked as PL, perc as PC, effects as FX
-from hlaudio.piece import Mix, finish_loop
+import numpy as np
+
+from hlaudio.score import N, prog, humanize, Clock
+from hlaudio.sampler import Curve
+from hlaudio.orch import Stage
+from hlaudio import process as PR
+from hlaudio import electro as EL, effects as FX
+from hlaudio.piece import finish_loop
 
 TITLE = "Sugar Rush"
-BAR = 8
-BARS = 56
-BPM_UNIT = 112 * 2
-LOOP = BARS * BAR * 60 / BPM_UNIT  # 120 s
-DPENT = [62, 64, 66, 69, 71, 74, 76, 78, 81, 83, 86, 88]
+BAR = 16
+BARS = 68
+BPM_UNIT = 480
+LOOP = BARS * BAR * 60 / BPM_UNIT  # 136 s
+M = PR.Mode(62, "lydian")  # D with G#
+
+LOOP4 = [("Dmaj7#11", 2, [66, 69, 73, 76]), ("Bm9", 2, [66, 69, 71, 73]),
+         ("Gmaj9", 2, [66, 69, 71, 74]), ("Aadd9", 2, [64, 69, 71, 73])]
+LIFT = [("Bm9", 2, [66, 69, 73, 74]), ("Gmaj7#11", 2, [66, 69, 71, 73]),
+        ("Em9", 2, [66, 67, 71, 74]), ("A7sus4", 2, [64, 67, 69, 74])]
+PLAN = LOOP4 * 3 + LIFT + LOOP4 * 4 + [("Dmaj7#11", 4, [66, 69, 73, 76])]   # lift at bars 24-31
+BASS = {"Dmaj7#11": 38, "Bm9": 35, "Gmaj9": 31, "Aadd9": 33, "Gmaj7#11": 31, "Em9": 40, "A7sus4": 33}
 
 
 def bar(b):
     return b * BAR
 
 
-A_CH = "G:8 | D:8 | Em7:4 A7:4 | D:8 | G:8 | Bm:4 G:4 | Em7:4 A7:4 | D:8 | "
-B_CH = "Bm:8 | G:8 | D:8 | A:8 | Bm:8 | G:8 | Em7:4 A7:4 | A7:8 | "
-A_MEL = ("B5:2 A5:1 F#5:1 A5:3 D5:1 | B5:2 A5:1 F#5:1 A5:2 F#5:1 G5:1 | A5:1 B5:1 A5:1 F#5:1 E5:2 D5:1 E5:1 | "
-         "F#5:4 r:3 D5:1 | B5:2 A5:1 F#5:1 A5:3 D6:1 | D6:2 C#6:1 B5:1 A5:2 F#5:1 G5:1 | "
-         "A5:1 G5:1 F#5:1 E5:1 D5:2 E5:1 F#5:1 | ")
-A_END_PICK = "D5:4 r:3 D5:1"
-A_END = "D5:4 r:4"
-
-
-def harmony():
-    return prog("D:8 | G:8 | D:8 | A7:8 | " + A_CH + A_CH + B_CH + "D:8 | G/D:8 | D:8 | A7sus4:4 A7:4 | " +
-                A_CH + B_CH + A_CH.rstrip(" |"))
-
-
-def sprinkle(t, lo=74, hi=98, step=0.25, vel=0.4):
-    ps = [p + 12 for p in DPENT if lo <= p + 12 <= hi]
-    return [N(t + i * step, 1.0, float(p), vel * (0.7 + 0.3 * i / len(ps))) for i, p in enumerate(ps)]
-
-
 def score():
-    pr = harmony()
-    assert abs(sum(d for _, d, _ in pr) - BARS * BAR) < 1e-6
+    pr = prog(" ".join(f"{c}:{b * BAR}" for c, b, _ in PLAN))
+    assert abs(sum(d for _, d, _ in pr) - BARS * BAR) < 1e-6, sum(d for _, d, _ in pr) / BAR
     P = {}
-    pick = seq("D5:1", bar(4) - 1, vel=0.62)
-    a1 = pick + seq(A_MEL + A_END_PICK, bar(4), vel=0.66)
-    a2 = seq(A_MEL + A_END, bar(12), vel=0.7)
-    a3 = seq("D5:1", bar(32) - 1, vel=0.62) + seq(A_MEL + A_END, bar(32), vel=0.72)
-    a4 = seq("D5:1", bar(48) - 1, vel=0.62) + seq(A_MEL + A_END, bar(48), vel=0.68)
-    glock_ans = []
-    for b0 in (20, 40):
-        glock_ans += seq("r:6 B5:1 A5:1 | r:6 D6:1 B5:1 | r:6 A5:1 F#5:1 | r:6 C#6:1 A5:1 | "
-                         "r:8 | r:8 | r:8 | " + ("r:7 D5:1" if b0 == 20 else "r:8"), bar(b0), vel=0.56)
-    P["glock"] = shift(a1 + a2 + a3 + a4 + glock_ans, dp=12)
-    P["celesta"] = counter_thirds(a2 + a4, pr)
-    P["xylo"] = shift(a3, vmul=0.85) + seq("D5:1 B5:2 A5:1 F#5:1 A5:3 | r:8 | D5:1 B5:2 A5:1 F#5:1 A5:3 | r:8",
-                                           bar(28), vel=0.72)
-    P["cel_echo"] = seq("r:8 | D6:1 B6:2 A6:1 F#6:1 A6:3 | r:8 | D6:1 B6:2 A6:1 F#6:1 A6:3", bar(28), vel=0.4)
-    vb = ("F#5:1 r:1 F#5:1 G5:1 A5:2 r:2 | B5:1 r:1 B5:1 A5:1 G5:2 r:2 | F#5:1 r:1 F#5:1 E5:1 D5:2 r:2 | "
-          "E5:1 r:1 E5:1 F#5:1 E5:2 r:2 | D6:2 C#6:1 B5:1 A5:2 F#5:2 | B5:2 A5:1 G5:1 F#5:2 D5:2 | "
-          "E5:2 F#5:1 G5:1 A5:2 C#6:2 | E5:2 C#5:2 A4:2 r:2")
-    P["pizz_mel"] = seq(vb, bar(20), vel=0.72) + seq(vb, bar(40), vel=0.72)
-    P["sprinkles"] = sprinkle(bar(4) - 4) + sprinkle(bar(20) - 4, step=0.2) + sprinkle(bar(29) + 4, step=0.2) + \
-        sprinkle(bar(31) + 4, step=0.2) + sprinkle(bar(40) - 4) + sprinkle(bar(55) + 3, step=0.18, vel=0.3)
-    # accompaniment
-    P["bass"] = bass_line(pr, 38, vel=0.62, pattern=[(0, 2, "r"), (4, 2, "5")], period=8)
-    P["chords"] = comp(pr, [2, 6], 8, 62, 74, n=3, dur=0.6, vel=0.42, accent=[1.0, 0.85])
-    sh = []
-    for b in range(4, BARS):
-        for e in range(8):
-            sh.append(N(bar(b) + e, 0.5, 0, 0.32 if e % 2 else 0.2))
-    P["shaker"] = sh
-    P["drum"] = [N(bar(b), 2, 0, 0.45) for b in range(4, BARS)] + [N(bar(b) + 4, 2, 0, 0.25) for b in range(4, BARS)]
-    P["cymbal"] = [N(bar(b), 1, 0, 0.3) for b in (4, 12, 20, 28, 32, 40, 48)]
+    acc = [1.15, .7, .8, 1.1, .7, .8, 1.05, .7]           # 3+3+2 in eighths
+    mar, _ = PR.cycling([(s, b) for _, b, s in PLAN], [0, 2, 3, 1, 2, 3, 0, 2], 2.0, 0.0, 1, vel=0.6,
+                        accents=acc, legato=1.2)
+    P["marimba"] = mar
+    # the cell diminished to sixteenths, displaced a sixteenth, hocketed
+    fig = PR.realize(PR.cell("P"), M, 7, 1.0, 1.0, vel=0.6, accents=[1.1, .9, .85, .9, 1.0])
+    cell_line = []
+    for b in range(4, 60):
+        sym = None
+        for (t0, d, s) in pr:
+            if t0 <= bar(b) < t0 + d:
+                sym = s
+        for half in (0, 8):
+            for n in fig:
+                cell_line.append(N(bar(b) + half + n.t, 0.9, n.p, n.v))
+    cell_line = PR.fit(cell_line, pr)
+    vn, vla = PR.hocket(cell_line, 2)
+    P["pz_vn"], P["pz_vla"] = vn, [N(n.t, n.d, n.p - 12, n.v) for n in vla]
+    # cello pizzicato: 1, the and of 2, 4
+    vc = []
+    t = 0.0
+    for c, b, s in PLAN:
+        for k in range(b):
+            for o, dv in ((0, 1.0), (6, 0.75), (12, 0.85)):
+                b_ = BASS[c] + (12 if BASS[c] < 36 else 0)          # inside the cellos' range
+                vc.append(N(t + bar(k) + o, 3, float(b_ + (12 if o == 6 else 0)), 0.6 * dv))
+        t += bar(b)
+    P["pz_vc"] = [n for n in vc if bar(2) <= n.t < bar(64)]
+    # woodwinds: additive process on the cell, eighths (flute), echoed a beat later (clarinet)
+    groups = [2, 2, 3, 3, 2, 3, 3, 2, 3, 3, 4, 4, 5, 5, 4, 3]
+    wl, t = [], bar(12)
+    while t < bar(56):
+        seg, t = PR.additive(PR.cell("P"), groups, M, 14, t, 2.0, vel=0.5, accent=1.25, legato=0.6)
+        wl += [n for n in seg if n.t < bar(56)]
+    wl = PR.fit(wl, pr)
+    P["fl"] = wl
+    P["cl"] = [N(n.t + 4, n.d, n.p - 12, n.v * 0.85) for n in wl if n.t + 4 < bar(56)]
+    P["glock"] = []
+    for b0 in (16, 20, 24, 28, 40, 44, 48):
+        P["glock"] += PR.fit(PR.realize(PR.cell("P", 3), M, 14, bar(b0) + 3, [3, 3, 6], vel=0.45), pr)
+    arp = PR.ticking([74, 81, 78, 81, 76, 81, 78, 83], bar(20), bar(56), 1.0,
+                     [1.0, .55, .7, .55, .9, .55, .7, .55], vel=0.55)
+    P["arp"] = PR.fit(arp, pr)
+    P["spic"] = PR.fit(PR.ticking([62, 69, 62, 69, 62, 69, 62, 69], bar(22), bar(34), 1.0,
+                                  [1.15, .6, .75, .6, 1.05, .6, .75, .6], vel=0.5), pr)
+    P["sub"] = [N(bar(b) + q * 4, 3.0, float(BASS[[s for (t0, d, s) in pr if t0 <= bar(b) < t0 + d][0]] - 12), 0.6)
+                for b in range(4, 64) for q in range(4)]
+    P["vla_sus"] = []
+    t = 0.0
+    for c, b, s in PLAN:
+        if bar(24) <= t < bar(32):
+            P["vla_sus"] += [N(t, bar(b) + 0.5, float(p - 12), 0.5) for p in s[1:3]]
+        t += bar(b)
     return pr, P
 
 
@@ -91,45 +105,40 @@ def render():
     pr, P = score()
     clk = Clock(bpm=BPM_UNIT)
     S = lambda notes, seed, j=0.006: humanize(clk.notes(notes), seed, t_jit=j)
-    mix = Mix(LOOP, circular=True)
+    sec = lambda b: clk.s(bar(b))
+    arc = Curve([(0, 0.35), (sec(4), 0.42), (sec(12), 0.52), (sec(20), 0.65), (sec(25), 0.85), (sec(31), 0.85),
+                 (sec(40), 0.78), (sec(52), 0.65), (sec(62), 0.4), (LOOP, 0.35)], period=LOOP)
+    cutoff = Curve([(0, 1200), (sec(20), 1600), (sec(28), 3800), (sec(40), 2600), (sec(56), 1200), (LOOP, 1200)],
+                   period=LOOP)
+    st = Stage(LOOP, circular=True)
 
-    pz = mix.track()
-    PL.render_plucked(pz, S(P["bass"], 1), "pizz_low", gain=1.05, pan=0.35, players=3, seed=1)
-    PL.render_plucked(pz, S(P["chords"], 2), "pizz", gain=0.62, pan=-0.1, players=2, pan_spread=0.3, seed=2)
-    PL.render_plucked(pz, S(P["pizz_mel"], 3), "pizz", gain=1.1, pan=-0.35, players=4, seed=3)
-    pz.buf = FX.eq(pz.buf, ("hp", 50, 0.7), ("peak", 200, 1.0, 1.5), ("hs", 5000, 0.7, -3), circular=True).astype("float32")
-    mix.add(pz, 1.0, {"room": 0.25, "hall": 0.3}, name="pizzicato")
+    def shaped(notes, seed, lo=0.6, hi=0.6, j=0.006):
+        out = S(notes, seed, j)
+        for n in out:
+            n.v = float(np.clip(n.v * (lo + hi * arc(n.t)), 0.05, 1))
+        return out
 
-    gl = mix.track()
-    ML.render(gl, S(P["glock"], 4), ML.glockenspiel, gain=0.42, pan=0.2, pan_by_pitch=0.2, center_pitch=88)
-    ML.render(gl, S(P["sprinkles"], 5, 0.002), ML.glockenspiel, gain=0.22, pan=0.0, pan_by_pitch=0.6, center_pitch=90)
-    gl.buf = FX.eq(gl.buf, ("hp", 500, 0.7), ("hs", 6500, 0.7, -4), circular=True).astype("float32")
-    mix.add(gl, 1.0, {"hall": 0.32, "echo:0.535": 0.08}, name="glock")
+    st.play("marimba", shaped(P["marimba"], 1, 0.55, 0.65), "marimba", seed=1, gain_db=4)
+    st.play("violins_pizz", shaped(P["pz_vn"], 2), "violins_pizz", seed=2, gain_db=1, seat="violins")
+    st.play("violas_pizz", shaped(P["pz_vla"], 3), "violas_pizz", seed=3, gain_db=2, seat="violas")
+    st.play("cellos_pizz", shaped(P["pz_vc"], 4), "cellos_pizz", seed=4, gain_db=2, seat="cellos")
+    st.play("flutes", shaped(P["fl"], 5), "flute_stac", seed=5, gain_db=-1)
+    st.play("clarinets", shaped(P["cl"], 6), "clarinet_stac", seed=6, gain_db=4)
+    st.play("glock", shaped(P["glock"], 7, 0.7, 0.4, 0.004), "glock", seed=7, gain_db=0)
+    st.play("cellos_spic", shaped(P["spic"], 8), "cellos_spic", seed=8, gain_db=0, seat="cellos")
+    st.play("violas", S(P["vla_sus"], 9), "violas", seed=9, dyn=arc, gain_db=-12, depth=0.8,
+            shape={"attack": 0.4, "swell": 0.2, "taper": 2.0}, lag=0.02)
+    ar = st.stem("arp", {"concert": 0.45}, depth=0.6)
+    EL.arp(ar, shaped(P["arp"], 10, 0.5, 0.6, 0.0), gain=0.45, seed=10, cutoff=cutoff, res=2.2, decay=0.12,
+           shape=0.35, pan=0.2, pan_wobble=0.4)
+    ar.buf = (ar.buf + FX.echo(ar.buf, 0.375, fb=0.4, mix=0.3, lp=2600, circular=True)).astype("float32")
+    sb = st.stem("sub", {}, depth=0.3)
+    EL.sub_pulse(sb, shaped(P["sub"], 11, 0.5, 0.6, 0.0), gain=0.5, seed=11, decay=0.3)
 
-    ce = mix.track()
-    ML.render(ce, S(P["celesta"], 6), ML.celesta, gain=0.18, pan=-0.3, pan_by_pitch=0.2)
-    ML.render(ce, S(P["cel_echo"], 7), ML.celesta, gain=0.35, pan=0.3)
-    mix.add(ce, 1.0, {"hall": 0.35}, name="celesta")
-
-    xy = mix.track()
-    ML.render(xy, S(P["xylo"], 8), ML.pumpkin_xylo, gain=0.5, pan=-0.15, pan_by_pitch=0.3, center_pitch=76)
-    mix.add(xy, 1.0, {"room": 0.3, "hall": 0.25}, name="xylo")
-
-    pc = mix.track()
-    for i, n in enumerate(S(P["shaker"], 9, 0.004)):
-        pc.add(n.t, PC.shaker(n.v, seed=i), gain=0.32, pan=0.45)
-    for i, n in enumerate(S(P["drum"], 10, 0.003)):
-        pc.add(n.t, PC.drum(105.0, n.v, seed=i, decay=0.3, bend=0.06, brightness=0.7), gain=0.42, pan=0.0)
-    for i, n in enumerate(S(P["cymbal"], 11, 0.0)):
-        pc.add(n.t, ML.finger_cymbal(n.v, seed=i, f1=1850.0), gain=0.3, pan=-0.4)
-    pc.buf = FX.eq(pc.buf, ("hs", 6000, 0.7, -4), circular=True).astype("float32")
-    mix.add(pc, 1.0, {"room": 0.3, "hall": 0.15}, name="perc")
-
-    out = mix.render({"hall": {"seed": 51}, "room": {"seed": 52},
-                      "echo:0.535": {"fb": 0.3, "lp": 4000, "pingpong": True}})
-    return finish_loop("music", "hollow", out, LOOP, 4, -16.0, 128,
-                       meta={"title": TITLE, "bpm": 112, "meter": "4/4", "beat": "quarter", "key": "D major",
-                             "instrument": "glockenspiel"})
+    out = st.render({"concert": {"seed": 51}}, warmth=0.35)
+    return finish_loop("music", "hollow", out, LOOP, 4, -16.0, 192,
+                       meta={"title": TITLE, "bpm": 120, "meter": "4/4", "beat": "quarter", "key": "D lydian",
+                             "instrument": "marimba and pizzicato"})
 
 
 if __name__ == "__main__":

@@ -1,108 +1,148 @@
-"""IV. The Pasture of Giants — "Gentle Giants".
+"""IV. The Pasture of Giants — "Gentle Giants" (rescored, Zimmer).
 
-Low cellos and basses in open fifths, a soft horn and a solo cello calling to
-each other with the motif, a hummed choir and slow starlight (celesta and glass
-very high). D, mostly over a D-A pedal. 4/4 at 52 bpm: 26 bars = exactly 120 s.
-
-  bars  0-3   open fifths and stars
-  bars  4-11  horn calls the motif, the cello answers; together to the cadence
-  bars 12-17  stillness: the choir swells under the starlight
-  bars 18-21  the solo cello sings the motif up high, the horn beneath it
-  bars 22-25  the field breathes out; a far horn echo; back to the fifths
+A long slow build by adding layers, never by getting faster. Open fifths on
+D (pizzicato and soft low strings, the organ's pedal) under Mixolydian
+chords that move above the same bass (D5, C/D, G/D). The horns state the
+Ember's cell in whole-bar notes; a second horn answers it modally at the
+fifth two bars later; then the trombones and the tuba enter with it in
+STRETTO, each a bar after the last, while a dotted spiccato ostinato
+(long-short, long-short) grows in the cellos and basses. A solo violin and a
+clarinet hold the cell's inversion high in two-bar notes. The lift stays in
+the key - G over B, C, then D - with the one low braam of the piece on G;
+the full organ and timpani bring it home to D, and the layers come off one
+by one until the fifths and the stars are left.
+D Mixolydian, 4/4 at 60, 34 bars = 136 s.
 """
+import numpy as np
+
 from hlaudio.core import rng
-from hlaudio.score import N, seq, prog, pad, bass_line, shift, humanize, Clock
-from hlaudio.arrange import window, legato, shape, ranks
-from hlaudio import mallets as ML, bowed as BW, wind as WI, voice as VO, effects as FX
-from hlaudio.piece import Mix, finish_loop
+from hlaudio.score import N, prog, humanize, Clock
+from hlaudio.sampler import Curve
+from hlaudio.orch import Stage, sustain_chords, roots
+from hlaudio import process as PR
+from hlaudio import electro as EL, effects as FX
+from hlaudio.piece import finish_loop
 
 TITLE = "Gentle Giants"
 BAR = 4
-BARS = 26
-BPM_UNIT = 52
-LOOP = BARS * BAR * 60 / BPM_UNIT  # 120 s
-STARS = [86, 88, 90, 93, 95, 98, 100, 102]  # D6..F#7 (D pentatonic)
+BARS = 34
+BPM = 60
+LOOP = BARS * BAR * 60 / BPM  # 136 s
+M = PR.Mode(50, "mixolydian")  # D (C natural)
+STARS = [81, 86, 88, 90, 93, 95, 98]
+
+CH = ("D5:8 | Csus2/D:8 | G/D:8 | D5:8 | "            # 0-7
+      "D5:8 | C/D:8 | G/D:8 | Dsus4:4 D:4 | "         # 8-15
+      "D:8 | C/D:8 | G/B:8 | C:4 Dsus4:4 | "           # 16-23
+      "D:8 | G:4 C:4 | Dsus4:4 D:4 | G/D:8 | "         # 24-31
+      "D5:8")                                          # 32-33
 
 
 def bar(b):
     return b * BAR
 
 
-def harmony():
-    return prog(
-        "D5:4 | Dsus2:4 | G/D:4 | D5:4 | "
-        "Gmaj7/D:4 | D5:4 | Em7:4 | A7sus4:2 A7:2 | G/D:4 | Bm:4 | D/A:2 A7:2 | D:4 | "
-        "Gadd9/D:4 | D5:4 | Em7:4 | D5:4 | Bm7:4 | A7sus4:4 | "
-        "Gmaj7/D:4 | D5:4 | G/D:4 | D:4 | "
-        "D5:4 | Dsus2:4 | Gadd9/D:4 | A7sus4:4")
-
-
 def score():
-    pr = harmony()
-    assert abs(sum(d for _, d, _ in pr) - BARS * BAR) < 1e-6
+    pr = prog(CH)
+    assert abs(sum(d for _, d, _ in pr) - BARS * BAR) < 1e-6, sum(d for _, d, _ in pr) / BAR
     P = {}
-    P["horn"] = seq("D4:1 | B4:2 A4:1 F#4:1 | A4:4", bar(3) + 3, vel=0.6) + \
-        seq("D4:1 | B4:2 A4:1 F#4:1 | D5:3 C#5:1 | A4:2 F#4:1 E4:1 | D4:4", bar(7) + 3, vel=0.66) + \
-        seq("A3:4 | A3:4 | B3:4 | A3:4 | F#3:4 | E3:4", bar(12), vel=0.42) + \
-        seq("B3:2 A3:2 | A3:4 | G3:2 B3:2 | A3:4", bar(18), vel=0.45) + \
-        seq("D4:1 | B4:2 A4:1 F#4:1 | A4:4", bar(22) + 3, vel=0.35)
-    P["cello"] = seq("C#4:1 | A4:2 G4:1 E4:1 | G4:2 F#4:2", bar(5) + 3, vel=0.66) + \
-        seq("F#3:2 D3:1 C#3:1 | D3:4", bar(10), vel=0.6) + \
-        seq("D4:1 | B4:2 A4:1 F#4:1 | A4:3 D4:1 | B4:2 A4:1 F#4:1 | D5:4", bar(17) + 3, vel=0.7)
-    # low strings: open fifths pedal, following the harmony
-    lows = pad(pr, 45, 57, 2, vel=0.5, legato=0.3)
-    dyn = [(0, 4, 0.75), (4, 12, 0.85), (12, 18, 1.0), (18, 22, 0.9), (22, 26, 0.7)]
-    P["cellos"] = shape(lows, dyn, BAR)
-    P["basses"] = shape(bass_line(pr, 33, vel=0.5), dyn, BAR)
-    hum = pad(pr, 50, 66, 3, vel=0.45, legato=0.5)
-    P["choir"] = shape(hum, [(0, 4, 0.7), (4, 12, 0.8), (12, 18, 1.15), (18, 22, 0.9), (22, 26, 0.7)], BAR)
-    # starlight: sparse high celesta, a little more in the still middle
+    # the brass canon / stretto of the cell, a bar a note
+    P["hn1"] = PR.fit(PR.realize(PR.cell("P"), M, 7, bar(8), [4, 4, 4, 4, 8], vel=0.6), pr)       # D4 B4 A4 F#4 A4
+    P["hn2"] = PR.fit(PR.realize(PR.cell("P"), M, 4, bar(10), [4, 4, 4, 4, 8], vel=0.55), pr)      # A3 E4 D4 C4 D4
+    P["tbn"] = PR.fit(PR.realize(PR.cell("P"), M, 0, bar(16), [4, 4, 4, 4, 8], vel=0.6), pr)       # D3 B3 A3 F#3 A3
+    P["tuba"] = PR.fit(PR.realize(PR.cell("P"), M, -7, bar(17), [4, 4, 4, 4, 8], vel=0.6), pr)     # D2 ...
+    P["hn_top"] = PR.fit(PR.realize(PR.cell("P"), M, 7, bar(24), [4, 4, 4, 4, 8], vel=0.75), pr)
+    # strings: the inversion held high, two bars a note
+    P["vn"] = PR.fit(PR.realize(PR.cell("I"), M, 14, bar(16), [8, 8, 8, 8], vel=0.55), pr)        # D5 F#4.. (up an 8ve)
+    for n in P["vn"]:
+        n.p += 12
+    P["vla"] = PR.fit(PR.realize(PR.cell("I"), M, 11, bar(18), [8, 8, 8, 8], vel=0.5), pr)
+    # the dotted ostinato (long-short in sixteenths: 3+1) in cellos and basses
+    dot = []
+    for b in range(10, 31):
+        for q in range(4):
+            t = bar(b) + q
+            for o, d_, v in ((0.0, 0.7, 1.0), (0.75, 0.22, 0.7)):
+                dot.append(N(t + o, d_, 38.0 if q % 2 == 0 else 45.0, 0.5 * v))
+    P["dot_vc"] = dot
+    P["dot_cb"] = [N(n.t, n.d, 26.0 + (n.p - 38.0), n.v) for n in dot if n.p == 38.0]
+    P["fifths"] = [N(bar(0), bar(10), 38.0, 0.5), N(bar(0), bar(10), 45.0, 0.45),
+                   N(bar(31), bar(3), 38.0, 0.5), N(bar(31), bar(3), 45.0, 0.45)]
+    P["cb_ped"] = [N(bar(0), bar(10), 38.0, 0.5), N(bar(30), bar(4), 38.0, 0.5)]
+    # plucked open fifths under the pedal where the spiccato is silent
+    pz = []
+    for b in list(range(0, 10)) + list(range(31, 34)):
+        pz += [N(bar(b), 1.5, 38.0, 0.55), N(bar(b) + 2, 1.5, 45.0, 0.42)]
+    P["pz"] = pz
+    P["org_soft"] = sustain_chords(pr, 50, 69, 3, vel=0.5, overlap=0.4, end=bar(24)) + \
+        sustain_chords(pr, 50, 69, 3, vel=0.5, overlap=0.4, start=bar(31))
+    P["org_ped"] = [N(bar(0), bar(34), 26.0, 0.5)]
+    P["org_full"] = sustain_chords(pr, 50, 74, 4, vel=0.6, start=bar(24), end=bar(31))
+    P["org_full_ped"] = roots(pr, 26, vel=0.6, start=bar(24), end=bar(31))
+    P["timp_roll"] = [N(bar(22), bar(2) + 0.3, 50.0, 0.6)]
+    P["timp"] = [N(bar(24), 3, 38.0, 0.8), N(bar(25), 2, 46.0, 0.65), N(bar(26), 3, 48.0, 0.6),
+                 N(bar(28), 3, 38.0, 0.7), N(bar(30), 4, 38.0, 0.55)]
     r = rng("stars")
-    st = []
-    t = 0.7
+    st, t = [], 1.0
     while t < BARS * BAR:
-        dens = 1.0 if (bar(12) <= t < bar(18)) else 0.6
-        st.append(N(t, 1.0, float(r.choice(STARS)), float(r.uniform(0.22, 0.42))))
-        t += r.uniform(1.4, 3.2) / dens
+        if not (bar(20) <= t < bar(30)):
+            st.append(N(t, 6.0, float(r.choice(STARS)), float(r.uniform(0.25, 0.4))))
+        t += r.uniform(3.0, 7.0)
     P["stars"] = st
-    P["glass"] = seq("(A5 E6):24", bar(12), vel=0.4) + seq("(F#5 D6):8", bar(22), vel=0.3)
     return pr, P
 
 
 def render():
     pr, P = score()
-    clk = Clock(bpm=BPM_UNIT, rubato=(4 * BAR, 0.03))
-    S = lambda notes, seed, j=0.006: humanize(clk.notes(notes), seed, t_jit=j)
-    mix = Mix(LOOP, circular=True)
+    clk = Clock(bpm=BPM, rubato=(8 * BAR, 0.02))
+    S = lambda notes, seed, j=0.015: humanize(clk.notes(notes), seed, t_jit=j)
+    sec = lambda b: clk.s(bar(b))
+    arc = Curve([(0, 0.34), (sec(8), 0.4), (sec(12), 0.47), (sec(16), 0.55), (sec(20), 0.64), (sec(23.5), 0.76),
+                 (sec(24.5), 0.88), (sec(29), 0.85), (sec(31), 0.5), (sec(33), 0.36), (LOOP, 0.34)], period=LOOP)
+    st = Stage(LOOP, circular=True)
+    shape = {"attack": 0.5, "swell": 0.22, "taper": 3.0}
+    br = dict(shape=shape, lag=0.03)
+    st.play("horns", S(P["hn1"], 1), "horns", seed=1, dyn=arc, gain_db=1, double=1, **br)
+    st.play("horns2", S(P["hn2"], 2), "horns", seed=2, dyn=arc, gain_db=-2, seat="horns", **br)
+    st.play("trombones", S(P["tbn"], 3), "trombones", seed=3, dyn=arc, gain_db=-3, double=1, **br)
+    st.play("tuba", S(P["tuba"], 4), "tuba", seed=4, dyn=arc, gain_db=-3, **br)
+    st.play("horns", S(P["hn_top"], 5), "horns", seed=5, dyn=arc, gain_db=0, double=2, **br)
+    st.play("solo_violin", S(P["vn"], 6), "solo_violin", seed=6, dyn=arc, gain_db=0, legato=True, slide=0.1, **br)
+    st.play("clarinets", S(P["vla"], 7), "clarinet", seed=7, dyn=arc, gain_db=2, **br)
+    dv = S(P["dot_vc"], 8, 0.006)
+    db_ = S(P["dot_cb"], 9, 0.006)
+    for n in dv + db_:
+        n.v = float(n.v * (0.45 + 0.75 * arc(n.t)))
+    st.play("cellos_spic", dv, "cellos_spic", seed=8, gain_db=1, seat="cellos")
+    st.play("basses_spic", db_, "basses_spic", seed=9, gain_db=-1, seat="basses")
+    st.play("cellos", S(P["fifths"], 10), "cellos", seed=10, dyn=arc, gain_db=-5, depth=0.78, shape=shape)
+    st.play("basses", S(P["cb_ped"], 11), "basses", seed=11, dyn=arc, gain_db=-5, depth=0.8, shape=shape)
+    st.play("cellos_pizz", S(P["pz"], 21, 0.006), "cellos_pizz", seed=21, gain_db=3, seat="cellos")
+    st.play("organ", S(P["org_soft"], 12, 0.0), "organ_soft", seed=12, dyn=arc, gain_db=-9)
+    st.play("organ", S(P["org_ped"], 13, 0.0), "organ_soft_pedal", seed=13, dyn=arc, gain_db=-6)
+    top = Curve([(sec(23.5), 0.3), (sec(24.5), 0.85), (sec(30), 0.8), (sec(31.5), 0.3)])
+    st.play("organ", S(P["org_full"], 14, 0.0), "organ", seed=14, dyn=top, gain_db=-13)
+    st.play("organ", S(P["org_full_ped"], 15, 0.0), "organ_pedal", seed=15, dyn=top, gain_db=-9)
+    st.play("timpani", S(P["timp_roll"], 16, 0.0), "timpani_roll", seed=16,
+            dyn=Curve([(sec(22), 0.02), (sec(24), 0.75), (sec(24.05), 0.3)]), gain_db=-5, release=0.4)
+    st.play("timpani", S(P["timp"], 17, 0.004), "timpani", seed=17, gain_db=-2)
+    # the braam on the G (bar 25): low brass and a sub
+    t_b = sec(25) - 0.05
+    bdyn = Curve([(t_b, 0.35), (t_b + 1.0, 0.95), (t_b + 2.6, 0.75), (t_b + 4.0, 0.3)])
+    st.play("braam", [N(t_b, 4.0, 43.0, 0.95), N(t_b, 4.0, 50.0, 0.9)], "trombones", seed=18, dyn=bdyn,
+            gain_db=-8, seat="trombones")
+    st.play("braam", [N(t_b, 4.0, 31.0, 0.95)], "tuba", seed=19, dyn=bdyn, gain_db=-7, seat="tuba")
+    bm = st.stem("braam")
+    EL.sub_swell(bm, t_b, 3.2, 31.0, gain=0.18, attack=0.9, release=1.5)
+    gl = st.stem("glass", {"shimmer:cathedral2": 0.5, "concert": 0.5}, depth=0.8)
+    EL.glass(gl, S(P["stars"], 20, 0.0), gain=0.4, seed=20, attack=1.2, release=4.0, pan_spread=0.8)
+    st.stems["organ"].buf = FX.tremulant(st.stems["organ"].buf, 5.0, 0.03, 0.08, circular=True).astype("float32")
 
-    low = mix.track()
-    BW.strings(low, S(P["cellos"], 1), "cellos", gain=0.33, seed=1, style_over={"attack": 0.8, "release": 1.5})
-    BW.strings(low, S(P["basses"], 2), "basses", gain=0.3, seed=2, style_over={"attack": 1.0, "release": 1.8})
-    mix.add(low, 1.0, {"hall": 0.4, "sky": 0.2}, name="low strings")
-
-    solo = mix.track()
-    BW.strings(solo, S(legato(P["cello"], 0.1), 3), "solo_cello", gain=0.85, seed=3)
-    mix.add(solo, 0.7, {"hall": 0.45, "sky": 0.2}, name="solo cello")
-
-    hn = mix.track()
-    WI.horn(hn, S(legato(P["horn"], 0.1), 4), gain=1.1, pan=-0.25, seed=4, players=2)
-    mix.add(hn, 1.0, {"hall": 0.55, "sky": 0.3}, name="horn")
-
-    ch = mix.track()
-    lo, hi = ranks(S(P["choir"], 5, 0.0), [[0], [1, 2]])
-    VO.choir(ch, lo, "bass", singers=6, vowel=("u", "o"), morph=0.2, gain=0.45, seed=5)
-    VO.choir(ch, hi, "tenor", singers=6, vowel=("u", "o"), morph=0.25, gain=0.42, seed=6)
-    mix.add(ch, 1.0, {"hall": 0.5, "sky": 0.3}, name="choir")
-
-    sky = mix.track()
-    ML.render(sky, S(P["stars"], 7, 0.0), ML.celesta, gain=0.5, pan_spread=0.7)
-    VO.glass_pad(sky, S(P["glass"], 8, 0.0), gain=0.3, seed=8, attack=3.0, release=4.0)
-    mix.add(sky, 1.0, {"shimmer:sky": 0.35, "hall": 0.2}, name="stars")
-
-    out = mix.render({"hall": {"seed": 41}, "sky": {"seed": 42}, "shimmer:sky": {"seed": 43, "gens": 2, "fb": 0.4}})
-    return finish_loop("music", "pasture", out, LOOP, 4, -16.0, 128,
-                       meta={"title": TITLE, "bpm": 52, "meter": "4/4", "beat": "quarter", "key": "D (open fifths)",
-                             "instrument": "cello"})
+    out = st.render({"concert": {"seed": 41}, "cathedral2": {"seed": 42},
+                     "shimmer:cathedral2": {"seed": 43, "gens": 2, "fb": 0.4}}, warmth=0.35)
+    return finish_loop("music", "pasture", out, LOOP, 4, -16.0, 192,
+                       meta={"title": TITLE, "bpm": BPM, "meter": "4/4", "beat": "quarter", "key": "D mixolydian",
+                             "instrument": "horns"})
 
 
 if __name__ == "__main__":

@@ -1,105 +1,146 @@
-"""The Ember's chime: the five-note motif, quick (~1.5 s), on each chapter's
-instrument and in each chapter's key, so it always sits inside the music."""
+"""The Ember's chime: the five-note motif, quick (~1.5 s), in each chapter's
+key, so it always sits inside the music. Magical and soft: real samples
+(VSCO 2 CE harp, felt piano, marimba, glockenspiel, bell tree) with a faint
+glass halo, fairly dry (the game adds its world reverb). Nothing reedy.
+
+  arbor     felt piano + glass halo, D       grove     three gentle variations, D in B minor:
+  garden    harp + glass halo, G               1 harp, 2 harp an octave up (harmonic-like),
+  pasture   felt piano low + harp above, D     3 felt piano with a soft bell-tree shimmer
+  hollow    marimba + glass halo, D          snow      harp + a soft glockenspiel, A
+  deep      harp under water + glass, A      marigold  the big guitar (harp + guitar body) with a
+                                                       quiet felt-piano unison, G
+"""
 import numpy as np
 
-from hlaudio.core import Track, ns
-from hlaudio.score import N, shift
+from hlaudio.score import N
 from hlaudio.theme import motif
-from hlaudio import mallets as ML, plucked as PL, bowed as BW, voice as VO, effects as FX
-from hlaudio.piece import Mix, finish_sfx
+from hlaudio import sfxkit as K, electro as EL, effects as FX
+from hlaudio.piece import finish_sfx
 
 E = 0.15  # seconds per eighth: the motif lasts ~1.05 s, then rings
 
 
-def music_box():
-    mix = Mix(4.0, circular=False)
-    tr = mix.track()
-    ML.render(tr, motif(0.02, "D6", E, vel=0.75), ML.music_box, gain=1.0, pan_by_pitch=0.3, center_pitch=88)
-    tr.buf = FX.convolve(tr.buf, np.vstack([ML.box_ir(3)] * 2))[:, : tr.n].astype("float32")
-    mix.add(tr, 1.0, {"hall": 0.3})
-    return mix.render()
+def _halo(st, m, up=12, gain=0.18, send=0.15):
+    """A faint glass shimmer doubling the motif an octave up."""
+    gl = st.stem("glass", {st.hall: send}, depth=K.DEPTH)
+    notes = [N(n.t + 0.01, max(n.d, 0.3), n.p + up, 0.4) for n in m]
+    for x in notes:
+        x.x["attack"] = 0.04
+        x.x["release"] = 1.2
+    EL.glass(gl, notes, gain=gain, seed=11, bright=0.35, pan_spread=0.25, breath=0.03)
+    gl.buf = FX.eq(gl.buf.astype(np.float64), ("lp", 4000, 0.7)).astype(np.float32)
 
 
-def celesta():
-    mix = Mix(4.0, circular=False)
-    tr = mix.track()
-    m = motif(0.02, "D6", E, vel=0.7)
+def _m(root, unit=E, vel=0.6, last=1.6):
+    m = motif(0.02, root, unit, vel=vel)
+    m[-1].d = last
+    return m
+
+
+def arbor():
+    st = K.stage(3.5)
+    m = _m("D5", vel=0.58)
+    K.play(st, "piano", m, "piano", layer_bias=-0.15, release=1.0, pan=0.0, width=0.5)
+    _halo(st, m)
+    return K.finish(st)
+
+
+def grove_1():
+    st = K.stage(3.5)
+    m = _m("D5", vel=0.55, last=1.8)
+    K.play(st, "harp", m, "harp", pan=0.0, width=0.5)
+    _halo(st, m, gain=0.14)
+    return K.finish(st)
+
+
+def grove_2():
+    """Harp an octave up, very soft and dark, like harmonics."""
+    st = K.stage(3.5)
+    m = _m("D6", E * 1.1, vel=0.42, last=1.8)
+    K.play(st, "harp", m, "harp", pan=0.05, width=0.5)
+    h = st.stems["harp"]
+    h.buf = FX.eq(h.buf.astype(np.float64), ("hs", 2500, 0.7, -4.0), ("lp", 4500, 0.7)).astype(np.float32)
+    _halo(st, m, up=0, gain=0.12)
+    return K.finish(st)
+
+
+def grove_3():
+    """Felt piano with a soft, dark bell-tree shimmer before it."""
+    st = K.stage(3.5)
+    m = motif(0.18, "D5", E, vel=0.52)
     m[-1].d = 1.6
-    ML.render(tr, m, ML.celesta, gain=1.0, pan_by_pitch=0.3, center_pitch=86)
-    mix.add(tr, 1.0, {"forest": 0.35, "hall": 0.2})
-    return mix.render()
+    K.play(st, "piano", m, "piano", layer_bias=-0.2, release=1.0, pan=0.0, width=0.5)
+    K.play(st, "belltree", [N(0.0, 1.5, 0, 0.3)], "belltree", pan=-0.2, width=0.6, send=0.15, gain_db=-12)
+    b = st.stems["belltree"]
+    b.buf = FX.eq(b.buf.astype(np.float64), ("hs", 3000, 0.7, -6.0), ("lp", 5000, 0.7)).astype(np.float32)
+    return K.finish(st)
 
 
-def zither():
-    mix = Mix(4.0, circular=False)
-    tr = mix.track()
-    m = motif(0.02, "G4", E * 1.05, vel=0.75)
-    m[-1].x["vib"] = (22, 5.0, 0.25)      # rou xian on the last note
-    PL.render_plucked(tr, m, "zheng", gain=1.0, pan_by_pitch=0.3, center=72)
-    mix.add(tr, 1.0, {"forest": 0.3})
-    return mix.render()
+def garden():
+    st = K.stage(3.5)
+    m = _m("G4", E * 1.05, vel=0.62, last=1.8)
+    K.play(st, "harp", m, "harp", pan=0.0, width=0.5)
+    _halo(st, m)
+    return K.finish(st)
 
 
-def cello():
-    mix = Mix(4.5, circular=False)
-    tr = mix.track()
-    m = motif(0.05, "D3", 0.19, vel=0.75)
-    for i, n in enumerate(m):
-        n.d = (m[i + 1].t - n.t + 0.02) if i + 1 < len(m) else 0.9
-    BW.strings(tr, m, "solo_cello", gain=1.0, seed=3)
-    mix.add(tr, 1.0, {"hall": 0.35})
-    return mix.render()
+def pasture():
+    st = K.stage(3.5)
+    m = _m("D4", E * 1.1, vel=0.58, last=1.8)
+    K.play(st, "piano", m, "piano", layer_bias=-0.15, release=1.2, pan=0.0, width=0.5)
+    K.play(st, "harp", [N(n.t + 0.004, n.d, n.p + 12, 0.42) for n in m], "harp", pan=0.1, width=0.4, gain_db=-5)
+    return K.finish(st)
 
 
-def glockenspiel():
-    mix = Mix(4.0, circular=False)
-    tr = mix.track()
-    ML.render(tr, motif(0.02, "D6", E, vel=0.65), ML.glockenspiel, gain=1.0, pan_by_pitch=0.3, center_pitch=88)
-    mix.add(tr, 1.0, {"room": 0.3, "hall": 0.2})
-    return mix.render()
+def hollow():
+    st = K.stage(3.0)
+    m = _m("D5", vel=0.62, last=1.2)
+    K.play(st, "marimba", m, "marimba", pan=0.0, width=0.5)
+    _halo(st, m, gain=0.14)
+    return K.finish(st)
 
 
-def sleigh():
-    mix = Mix(4.0, circular=False)
-    tr = mix.track()
-    ML.render(tr, motif(0.02, "A5", E * 1.1, vel=0.6), ML.bell, gain=1.0, pan_by_pitch=0.3, center_pitch=84, tone="hand")
-    for i, t in enumerate([0.02, 0.35, 0.68, 0.99]):
-        tr.add(t, ML.jingle(0.5 if i else 0.7, seed=40 + i, shake=0.08), gain=0.5)
-    mix.add(tr, 1.0, {"hall": 0.3})
-    return mix.render()
+def snow():
+    st = K.stage(3.5)
+    m = _m("A4", E * 1.1, vel=0.6, last=1.8)
+    K.play(st, "harp", m, "harp", pan=0.0, width=0.5)
+    K.play(st, "glock", [N(n.t + 0.005, n.d, n.p + 12, 0.3) for n in m], "glock", pan=0.0, width=0.4, send=0.15)
+    return K.finish(st)
 
 
-def whale_choir():
-    mix = Mix(5.0, circular=False)
-    tr = mix.track()
-    m = motif(0.05, "A4", 0.2, vel=0.75)
-    for i, n in enumerate(m):
-        n.d = (m[i + 1].t - n.t + 0.05) if i + 1 < len(m) else 1.2
-    VO.choir(tr, m, "soprano", singers=6, vowel=("u", "o"), morph=0.4, gain=1.0, seed=7,
-             style_over={"glide": 0.12, "attack": 0.12, "release": 0.8, "vib_delay": 0.15})
-    VO.glass_pad(tr, shift(m, dp=-12), gain=0.5, seed=8, glide=0.15, attack=0.15, release=1.0)
-    tr.buf = FX.eq(tr.buf, ("lp", 3500, 0.7)).astype("float32")
-    mix.add(tr, 1.0, {"underwater": 0.6})
-    return mix.render()
+def deep():
+    st = K.stage(3.5, hall="underwater")
+    m = _m("A4", E * 1.15, vel=0.58, last=1.8)
+    K.play(st, "harp", m, "harp", pan=0.0, width=0.5, send=0.16)
+    h = st.stems["harp"]
+    h.buf = FX.eq(h.buf.astype(np.float64), ("lp", 3200, 0.7)).astype(np.float32)
+    _halo(st, m, gain=0.16, send=0.2)
+    return K.finish(st)
 
 
-def guitar():
-    mix = Mix(4.0, circular=False)
-    tr = mix.track()
-    PL.render_plucked(tr, motif(0.02, "G4", E * 1.1, vel=0.75), "guitar", gain=1.0, pan_by_pitch=0.2, center=67)
-    mix.add(tr, 1.0, {"room": 0.25, "hall": 0.2})
-    return mix.render()
+def marigold():
+    st = K.stage(3.5)
+    m = _m("G4", E * 1.1, vel=0.66, last=1.8)
+    K.play(st, "guitar", m, "harp", pan=0.0, width=0.5)
+    K.guitar_body(st, "guitar", 0.8, seed=3)
+    # a quiet felt-piano unison rounds the plucked string's hollow (odd-heavy) tone
+    K.play(st, "piano", [N(n.t + 0.003, n.d, n.p, 0.5) for n in m], "piano", layer_bias=-0.2, pan=0.0,
+           width=0.4, gain_db=-1)
+    return K.finish(st)
 
 
 CHIMES = {
-    "arbor": music_box, "grove": celesta, "garden": zither, "pasture": cello,
-    "hollow": glockenspiel, "snow": sleigh, "deep": whale_choir, "marigold": guitar,
+    "ember-chime-arbor": arbor, "ember-chime-grove": grove_1, "ember-chime-grove-2": grove_2,
+    "ember-chime-grove-3": grove_3, "ember-chime-garden": garden, "ember-chime-pasture": pasture,
+    "ember-chime-hollow": hollow, "ember-chime-snow": snow, "ember-chime-deep": deep,
+    "ember-chime-marigold": marigold,
 }
 
 
 def render():
-    for ch, fn in CHIMES.items():
-        finish_sfx(f"ember-chime-{ch}", f"ember-chime-{ch}", fn(), -3.0, stereo=True, max_s=2.4)
+    for name, fn in CHIMES.items():
+        group = name if not name.startswith("ember-chime-grove") else "ember-chime-grove"
+        finish_sfx(group, name, fn(), -3.0, stereo=True, max_s=2.4)
 
 
 if __name__ == "__main__":

@@ -1,36 +1,66 @@
-"""Finale — "Hallowed Lanterns" (one-shot, plays at the Wishing Tree).
+"""Finale — "Hallowed Lanterns" (rescored; one-shot, plays at the Wishing Tree).
 
-The full theme with a real ending. 6/8, D major, rising to E major for the
-last statement. About 2'10".
+The title's music, grown into the whole arc and ending for real. 4/4,
+quarter = 80, the eighths grouped 3+3+2, D with Lydian colours.
 
-  bars  0-3   the music box alone, as at sundown; strings breathe in
-  bars  4-11  theme A: violins, the music box above, harp below
-  bars 12-19  the journey: the motif passes through every chapter's voice —
-              celesta, zither, cello, glockenspiel, whale-choir, sleigh bells,
-              guitar — each in its own key over a circle of chords
-  bars 20-27  theme B: cellos and horns, the choir arriving
-  bars 28-29  the lift (B7)
-  bars 30-37  theme A in E major: everyone, choir singing the melody
-  bars 38-41  the closing phrase, broadening (ritardando)
-  bars 42-46  coda: the music box plays the motif one last time over a held
-              E major chord, a last chime of every bell, and stillness
+The felt piano's broken-chord cycle opens it exactly as the title does, one
+note of the voicing changing at a time, and the theme EMERGES as the top
+voice of the arpeggio (B A F# A | D C# B A). Then a three-voice CANON on the
+Ember's motif augmented: a solo violin (D B A F# A), the clarinet a fifth
+below two bars later, the bassoon an octave below two bars after that, over
+cello pizzicati plucking the pedal. Then a Zimmer build by adding layers:
+spiccato sixteenths ticking in 3+3+2, a dotted ostinato in the low strings,
+the organ pedal playing the motif in the bass while the horns sing the
+theme above it in long notes. The one lift is prepared, never a jolt: G
+Lydian, then E minor 9 over an A pedal and A sus - the dominant held while
+the spiccato keeps ticking - with the one braam, into the full statement in
+D: the theme in horns and trombones with the flute above, over the full
+organ, timpani and the bassoon's canon. The coda leaves the piano alone to
+say the Ember's motif once more over a held D major ninth, and stops.
+
+  bars  0-11  the piano cycle; the theme emerges as its top voice
+  bars 12-19  canon of the motif: solo violin, clarinet, bassoon; pizzicato pedal
+  bars 20-27  the build: spiccato, ostinato, organ pedal motif, horns' theme
+  bars 28-29  the A pedal (E minor 9 over A, A sus): the braam and the timpani
+  bars 30-37  the full statement in D
+  bars 38-41  coda: the piano's motif over D major ninth, and silence
 """
 import numpy as np
 
-from hlaudio.core import Track
-from hlaudio.score import N, seq, prog, pad, bass_line, arpeggio, shift, humanize, Clock
-from hlaudio.arrange import window, legato, shape, ranks
-from hlaudio import theme as TH
-from hlaudio import mallets as ML, plucked as PL, bowed as BW, wind as WI, voice as VO, perc as PC, effects as FX
-from hlaudio.piece import Mix, finish_oneshot
+from hlaudio.core import SR
+from hlaudio.score import N, prog, humanize, Clock, chord_pcs
+from hlaudio.sampler import Curve
+from hlaudio.orch import Stage, sustain_chords, roots
+from hlaudio import process as PR
+from hlaudio import electro as EL, effects as FX
+from hlaudio.piece import finish_oneshot
 
 TITLE = "Hallowed Lanterns"
-BAR = 6
-BARS = 46
-A_BODY = ("B5:2 A5:1 F#5:1 A5:2 | A5:5 C#5:1 | A5:2 G5:1 E5:1 G5:2 | G5:3 F#5:2 D5:1 | "
-          "B5:2 A5:1 F#5:1 A5:2 | D6:4 C#6:1 B5:1 | A5:2 F#5:1 E5:1 F#5:2 | ")
-A_CH = ("G:3 D/F#:3 | Bm7:3 A:3 | Em7:3 A7sus4:3 | A7:3 D:3 | "
-        "G:3 D/F#:3 | Bm:3 Gmaj7:3 | D/A:3 A7:3 | D:6 | ")
+BAR = 8            # eighths
+BARS = 42
+BPM_UNIT = 160     # eighths per minute (quarter = 80)
+SECONDS = BARS * BAR * 60 / BPM_UNIT + 9.0
+M = PR.Mode(62, "ionian")
+
+G69 = "G6add9/D"
+# (chord, melody top voice of the piano or None, piano pattern)
+PLAN = [
+    ("Dmaj9", None, "A"), ("Dmaj9", None, "A"), (G69, None, "A"), (G69, None, "A"),
+    (G69, 83, "B"), ("Dmaj9", 81, "B"), ("Bm11/D", 78, "B"), ("Asus4/D", 81, "B"),
+    (G69, 86, "C"), ("Dmaj9", 85, "C"), ("Bm11/D", 83, "C"), ("Asus4/D", 81, "C"),
+    (G69, None, "A"), (G69, None, "A"), ("A7sus4/D", None, "A"), ("Bm11/D", None, "A"),
+    (G69, None, "A"), (G69, None, "A"), ("Dmaj9", None, "A"), ("Bm11/D", None, "A"),
+    ("Dmaj9", 83, "C"), ("Bm9", 81, "C"), ("Aadd9", 78, "C"), ("Dmaj7/F#", 81, "C"),
+    ("Asus4", 86, "C"), ("A", 85, "C"), ("Gmaj7#11", 83, "C"), ("Gmaj7#11", 81, "C"),
+    ("Em9/A", None, "A"), ("A7sus4", None, "A"),
+    ("Dmaj9", 83, "C"), ("Bm9", 81, "C"), ("Aadd9", 78, "C"), ("Dmaj7/F#", 81, "C"),
+    ("Asus4", 86, "C"), ("A", 85, "C"), ("Gmaj7#11", 83, "C"), ("Asus4", 81, "C"),
+    ("Dmaj9", None, "A"), ("Dmaj9", None, "A"), ("Dmaj9", None, "D"), ("Dmaj9", None, "D"),
+]
+PAT = {"A": [0, 1, 2, 3, 2, 1, 2, 3], "B": [0, 1, 2, 3, 2, 1, 4, 3], "C": [0, 2, 4, 1, 3, 4, 2, 4], "D": []}
+ACC = [1.0, .72, .8, .95, .72, .8, .92, .75]
+BASS = {"Bm9": 35, "Aadd9": 33, "Dmaj7/F#": 30, "Asus4": 33, "A": 33, "Gmaj7#11": 31, "Em9/A": 33,
+        "A7sus4": 33}
 
 
 def bar(b):
@@ -38,158 +68,224 @@ def bar(b):
 
 
 def harmony():
-    from hlaudio.score import transpose_prog
-    p = prog("D:6 | G/D:6 | D:6 | A7sus4:3 A7:3 | " + A_CH +
-             "Bm:6 | G:6 | Em:6 | A:6 | F#m:6 | D:6 | G:6 | A7sus4:3 A7:3 | " +
-             TH.CHORDS_B + " | B7sus4:6 | B7:6")
-    a_e = transpose_prog(prog(A_CH.rstrip(" |").rsplit("|", 1)[0]), 2, 1, bar(30))
-    end_e = prog("A:3 E/G#:3 | C#m:3 Amaj7:3 | E/B:3 B7:3 | B7sus4:3 E:3 | "
-                 "Eadd9:6 | Eadd9:6 | Amaj7/E:6 | Eadd9:6 | Eadd9:6", bar(37))
-    return p + a_e + end_e
+    return prog(" ".join(f"{c}:{BAR}" for c, _, _ in PLAN))
+
+
+def lead(cur, sym, lo=64, hi=77):
+    """The voicing for `sym` (4 distinct notes in lo..hi) that moves least
+    from `cur` while keeping the chord's colour tones (all but root and fifth)."""
+    from itertools import combinations
+    pcs, _, root = chord_pcs(sym)
+    colour = set(pcs) - {root, (root + 7) % 12}
+    cand = [p for p in range(lo, hi + 1) if p % 12 in pcs]
+    best, bs = None, 1e9
+    for comb in combinations(cand, 4):
+        move = sum(abs(a - b) for a, b in zip(sorted(cur), comb))
+        miss = len(colour - {p % 12 for p in comb})
+        crush = sum(1 for a, b in zip(comb, comb[1:]) if b - a == 1)
+        sc = move + 5 * miss + 3 * crush
+        if sc < bs:
+            best, bs = list(comb), sc
+    return best
+
+
+def arpeggio():
+    out = []
+    cur = [64, 66, 69, 73]
+    for b, (sym, top, pat) in enumerate(PLAN):
+        target = lead(cur, sym)
+        for i, idx in enumerate(PAT[pat]):
+            if i in (0, 3, 6) and cur != target:
+                cand = [(target[k] in cur, abs(c - g), k) for k, (c, g) in enumerate(zip(cur, target)) if c != g]
+                k = min(cand)[2]
+                cur[k] = target[k]
+                cur.sort()
+            t = bar(b) + i
+            if idx == 4:
+                v = (0.44 if pat == "B" else 0.5) * (1.06 if i == 6 else 1.0)
+                out.append(N(t, 2.6, float(top), v, {"top": True}))
+            else:
+                out.append(N(t, 2.2, float(cur[idx]), 0.4 * ACC[i]))
+    return out
 
 
 def score():
     pr = harmony()
-    total = sum(d for _, d, _ in pr)
-    assert abs(total - BARS * BAR) < 1e-6, (total, BARS * BAR)
+    assert abs(sum(d for _, d, _ in pr) - BARS * BAR) < 1e-6
     P = {}
-    # intro: the music box alone
-    P["box"] = seq("r:5 D6:1 | B6:2 A6:1 F#6:1 A6:2 | A6:12", bar(0), vel=0.62)
-    # theme A (D) on violins, music box an octave up
-    a1 = seq("D5:1", bar(4) - 1, vel=0.55) + seq(A_BODY + "D5:6", bar(4), vel=0.6)
-    P["vln"] = a1
-    P["box"] += shift(a1, dp=12, vmul=0.7)
-    # the journey: one chapter voice per bar, each in its own key
-    P["j_celesta"] = TH.motif(bar(12) - 1, "D6", 1.0, vel=0.6)            # Bm  (grove)
-    P["j_zither"] = TH.motif(bar(13) - 1, "G4", 1.0, vel=0.7)             # G   (garden)
-    P["j_cello"] = TH.motif(bar(14) - 1, "E3", 1.0, vel=0.7, minor=True)  # Em  (pasture)
-    P["j_glock"] = TH.motif(bar(15) - 1, "A6", 1.0, vel=0.55)             # A   (hollow)
-    P["j_whale"] = TH.motif(bar(16) - 1, "F#4", 1.0, vel=0.65, minor=True)  # F#m (deep)
-    P["j_bells"] = TH.motif(bar(17) - 1, "D6", 1.0, vel=0.55)             # D   (snow)
-    P["j_guitar"] = TH.motif(bar(18) - 1, "G4", 1.0, vel=0.75)            # G   (marigold)
-    P["box"] += TH.motif(bar(19) - 1, "D6", 1.0, vel=0.5)                 # and home: the music box
-    # theme B: cellos (8vb) with violas, horns answering
-    b = TH.theme_b(bar(20), vel=0.7)
-    b = [n for n in b if not (n.t >= bar(27) + 5)]  # drop the pickup: we lift to E instead
-    P["cello_b"] = shift(b, dp=-12)
-    P["horn_b"] = seq("D4:6 | D4:6 | D4:3 C4:3 | D4:3 C#4:3 | D4:3 C#4:3 | D4:3 Bb3:3 | A3:6 | A3:6", bar(20), vel=0.45)
-    # the lift
-    P["lift"] = seq("F#5:3 A5:3 | B5:5 E5:1", bar(28), vel=0.66)
-    # theme A in E: violins + sopranos, music box/glock sparkle above
-    a2 = seq(A_BODY.rstrip(" |"), bar(30), vel=0.85, transpose=2)
-    a2 += seq(TH.THEME_A_END, bar(37), vel=0.8, transpose=2)
-    P["vln2"] = a2
-    P["sop2"] = a2
-    P["box2"] = shift(a2, dp=12, vmul=0.5)
-    # coda: the music box, one last time, slowly
-    P["coda_box"] = seq("E6:1 | C#7:2 B6:1 G#6:1 B6:4 | r:4 | E7:4", bar(41) + 5, vel=0.55)
-    P["final_chime"] = [N(bar(44) + i * 0.3, 6, float(p), 0.5) for i, p in enumerate([64, 68, 71, 76, 80, 83, 88])]
-    # accompaniment
-    dyn = [(0, 4, 0.35), (4, 12, 0.6), (12, 20, 0.48), (20, 24, 0.62), (24, 28, 0.8), (28, 30, 0.95),
-           (30, 38, 1.15), (38, 42, 1.05), (42, 46, 0.42)]
-    pd = pad(pr, 57, 76, 4, vel=0.5, legato=0.2)
-    lo, hi = ranks(pd, [[0, 1], [2, 3]])
-    P["violas"] = shape(lo, dyn, BAR)
-    P["violins2"] = shape(hi, dyn, BAR)
-    bl = bass_line(pr, 43, vel=0.55)
-    P["cellos"] = shape([n for n in bl if not (bar(20) <= n.t < bar(28))], dyn, BAR)
-    P["basses"] = shape(shift([n for n in bl if n.t >= bar(4)], dp=-12, vmul=0.9), dyn, BAR)
-    harp = arpeggio(pr, 50, 83, 1.0, [0, 2, 3, 4, 3, 2], vel=0.36, n_tones=5)
-    P["harp"] = shape([n for n in harp if bar(4) <= n.t < bar(42)], dyn, BAR)
-    choir = pad(pr, 50, 69, 4, vel=0.5, legato=0.4)
-    cdyn = [(0, 20, 0.0), (20, 24, 0.45), (24, 28, 0.7), (28, 30, 0.9), (30, 42, 1.1), (42, 46, 0.6)]
-    c_lo, c_hi = ranks(choir, [[0, 1], [2, 3]])
-    P["tenor"] = [n for n in shape(c_lo, cdyn, BAR) if n.v > 0.05]
-    P["alto"] = [n for n in shape(c_hi, cdyn, BAR) if n.v > 0.05]
-    P["horns"] = [n for n in shape(pad(pr, 52, 64, 2, vel=0.5, legato=0.2),
-                                  [(0, 30, 0.0), (30, 42, 0.9), (42, 46, 0.6)], BAR) if n.v > 0.05]
-    P["drum"] = [N(bar(b), 3, 0, 0.5 if b % 2 == 0 else 0.35) for b in range(30, 42)]
-    P["glide_harp"] = [N(bar(3) + 2 + i * 0.22, 3, float(p), 0.35) for i, p in enumerate([62, 64, 66, 69, 71, 74, 76, 78, 81, 83, 86])] + \
-        [N(bar(29) + 1 + i * 0.2, 3, float(p), 0.42) for i, p in enumerate([64, 66, 68, 71, 73, 76, 78, 80, 83, 85, 88])]
+    P["arp"] = arpeggio()
+    lh = []
+    for b in range(0, 40, 2):
+        sym = PLAN[b][0]
+        lo = BASS.get(sym, 38)
+        lh += [N(bar(b), bar(2) + 1, float(lo), 0.42), N(bar(b) + 4, bar(2) - 3, float(lo + 12), 0.3)]
+    P["lh"] = lh
+    # the coda: the Ember's motif on the piano, D5 | B5 A5 F#5 A5 (quarter = eighth x2), then the low D
+    P["coda"] = [N(bar(38) + 6, 2, 74.0, 0.48), N(bar(39), 4, 83.0, 0.55), N(bar(39) + 4, 2, 81.0, 0.5),
+                 N(bar(39) + 6, 2, 78.0, 0.46), N(bar(40), 12, 81.0, 0.5),
+                 N(bar(40), 16, 50.0, 0.4), N(bar(40), 16, 38.0, 0.45), N(bar(40) + 2, 14, 66.0, 0.3),
+                 N(bar(40) + 3, 13, 69.0, 0.3), N(bar(40) + 4, 12, 73.0, 0.28), N(bar(40) + 5, 11, 76.0, 0.28)]
+    # the canon of the augmented motif (bars 12-22)
+    P["vn_canon"] = [N(bar(12), 4, 74.0, 0.5), N(bar(12) + 4, 12, 83.0, 0.58), N(bar(14), 8, 81.0, 0.55),
+                     N(bar(15), 8, 78.0, 0.52), N(bar(16), 16, 81.0, 0.55)]
+    P["vla_canon"] = [N(bar(14), 4, 67.0, 0.5), N(bar(14) + 4, 12, 76.0, 0.56), N(bar(16), 8, 74.0, 0.54),
+                      N(bar(17), 8, 71.0, 0.5), N(bar(18), 16, 74.0, 0.52)]
+    P["vc_canon"] = [N(bar(16), 4, 50.0, 0.5), N(bar(16) + 4, 12, 59.0, 0.56), N(bar(18), 8, 57.0, 0.54),
+                     N(bar(19), 8, 54.0, 0.52), N(bar(20), 16, 57.0, 0.52)]
+    # the build: spiccato sixteenths (3+3+2 in each half bar), the dotted low ostinato
+    acc16 = [1.15, .6, .7, 1.05, .6, .7, .95, .6]
+    tick = []
+    for b in range(20, 38):
+        sym = PLAN[b][0]
+        pcs, bass, root = chord_pcs(sym)
+        lo = 62 + ((root - 62) % 12)
+        p1, p2 = float(lo if lo <= 69 else lo - 12), float((lo if lo <= 69 else lo - 12) + 7)
+        for k in range(16):
+            tick.append(N(bar(b) + k * 0.5, 0.4, p1 if k % 2 == 0 else p2, 0.5 * acc16[k % 8]))
+    P["tick"] = tick
+    dot = []
+    for b in range(22, 38):
+        sym = PLAN[b][0]
+        r = BASS.get(sym, 38) + 12
+        for q in range(4):
+            dot += [N(bar(b) + q * 2, 1.4, float(r), 0.55), N(bar(b) + q * 2 + 1.5, 0.45, float(r), 0.4)]
+    P["dot"] = dot
+    P["org_ped_motif"] = [N(bar(20), 8, 38.0, 0.55), N(bar(21), 8, 35.0, 0.55), N(bar(22), 8, 33.0, 0.55),
+                          N(bar(23), 8, 30.0, 0.55), N(bar(24), 16, 33.0, 0.55)]
+    P["horns"] = [N(bar(20) + i * 8, 8.2, float(p), 0.6) for i, p in enumerate([71, 69, 66, 69, 74, 73, 71, 69])]
+    P["horns_full"] = [N(bar(30) + i * 8, 8.2, float(p), 0.75) for i, p in enumerate([71, 69, 66, 69, 74, 73, 71, 69])]
+    P["tbn_full"] = [N(n.t, n.d, n.p - 12, n.v * 0.95) for n in P["horns_full"]]
+    P["vn_full"] = [N(n.t, n.d, n.p + 12, n.v * 0.9) for n in P["horns_full"]]
+    P["vc_canon2"] = [N(bar(30), 4, 50.0, 0.6), N(bar(30) + 4, 12, 59.0, 0.65), N(bar(32), 8, 57.0, 0.62),
+                      N(bar(33), 8, 54.0, 0.6), N(bar(34), 16, 57.0, 0.6)]
+    P["vla_sus"] = sustain_chords(pr, 57, 69, 2, vel=0.5, overlap=0.4, start=bar(20), end=bar(38))
+    P["org_full"] = sustain_chords(pr, 57, 76, 4, vel=0.6, overlap=0.3, start=bar(28), end=bar(38))
+    lowp = lambda p: p - 12 if p >= 36 else p
+    P["org_full_ped"] = [N(bar(b), bar(1) + 0.3, float(lowp(BASS.get(PLAN[b][0], 38))), 0.6) for b in range(28, 38)]
+    P["org_soft"] = [N(bar(0), bar(12), 50.0, 0.45), N(bar(12), bar(8), 50.0, 0.45),
+                     N(bar(38), bar(4) + 4, 50.0, 0.4)] + \
+        [N(bar(38), bar(4) + 4, float(p), 0.42) for p in (57, 61, 64, 66)]
+    P["org_soft_ped"] = [N(bar(0), bar(20), 38.0, 0.45), N(bar(38), bar(4) + 4, 38.0, 0.45)]
+    P["vc_pizz"] = [N(bar(b) + pos, 1.5, float(p), v) for b in range(12, 20)
+                    for pos, p, v in ((0, 38, 0.55), (3, 45, 0.42), (6, 50, 0.45))]
+    P["cb"] = [N(bar(12), bar(8), 38.0, 0.45)] + \
+        [N(bar(b), bar(1) + 0.3, float(BASS.get(PLAN[b][0], 38)), 0.55) for b in range(20, 38)] + \
+        [N(bar(38), bar(4) + 4, 38.0, 0.45)]
+    P["timp_roll"] = [N(bar(18), bar(2) + 0.3, 45.0, 0.5), N(bar(29), bar(1) + 0.3, 45.0, 0.7),
+                      N(bar(36), bar(2) + 0.3, 45.0, 0.6)]
+    P["timp"] = [N(bar(20), 3, 38.0, 0.62), N(bar(24), 3, 45.0, 0.6), N(bar(28), 3, 45.0, 0.7),
+                 N(bar(30), 3, 38.0, 0.85), N(bar(34), 3, 45.0, 0.7), N(bar(38), 4, 38.0, 0.6)]
+    gp = []
+    for b in range(0, 40):
+        for pos, p in ((0, 74.0), (3, 81.0), (6, 76.0)):
+            gp.append(N(bar(b) + pos, 1.0, p, 0.42 if pos == 0 else 0.34))
+    P["glass"] = [n for n in gp if not (bar(28) <= n.t < bar(30))]
+    P["air"] = [N(bar(36), bar(6), 93.0, 0.3), N(bar(38), bar(4), 86.0, 0.3)]
+    P["sub"] = [N(bar(b) + pos, 1.5, 26.0, 0.55 if pos == 0 else 0.42) for b in range(12, 38) for pos in (0, 3)
+                if not (28 <= b < 30)]
     return pr, P
 
 
 def render():
     pr, P = score()
-    clk = Clock(points=[(0, 147), (bar(37), 147), (bar(41), 114), (bar(43), 100), (bar(46), 92)])
-    S = lambda notes, seed, j=0.007: humanize(clk.notes(notes), seed, t_jit=j)
-    end_s = clk.s(bar(BARS)) + 5.0
-    mix = Mix(end_s, circular=False)
+    clk = Clock(bpm=BPM_UNIT)
+    S = lambda notes, seed, j=0.008: humanize(clk.notes(notes), seed, t_jit=j)
+    sec = lambda b: clk.s(bar(b))
+    arc = Curve([(0, 0.38), (sec(4), 0.44), (sec(8), 0.52), (sec(12), 0.56), (sec(16), 0.6), (sec(20), 0.66),
+                 (sec(24), 0.74), (sec(27.5), 0.82), (sec(28.2), 0.9), (sec(30.2), 0.96), (sec(36), 0.92),
+                 (sec(37.8), 0.7), (sec(38.5), 0.45), (sec(42), 0.32)])
+    build = Curve([(sec(19.5), 0.25), (sec(22), 0.45), (sec(27.5), 0.75), (sec(30), 0.95), (sec(37), 0.9),
+                   (sec(38.2), 0.3)])
+    st = Stage(SECONDS, circular=False)
+    shape = {"attack": 0.6, "swell": 0.2, "taper": 2.5}
 
-    box = mix.track()
-    ML.render(box, S(P["box"], 1), ML.music_box, gain=0.5, pan=0.1, pan_by_pitch=0.25, center_pitch=88)
-    ML.render(box, S(P["box2"], 2), ML.music_box, gain=0.32, pan=0.15, pan_by_pitch=0.25, center_pitch=90)
-    ML.render(box, S(P["coda_box"], 3), ML.music_box, gain=0.55, pan=0.05, pan_by_pitch=0.2, center_pitch=92)
-    box.buf = FX.convolve(box.buf, np.vstack([ML.box_ir(3)] * 2))[:, : box.n].astype("float32")
-    box.buf = FX.eq(box.buf, ("hp", 300, 0.7), ("hs", 7000, 0.7, -4)).astype("float32")
-    mix.add(box, 1.0, {"hall": 0.4, "sky": 0.12}, name="music box")
+    arp = S(P["arp"], 1, 0.006)
+    for n in arp:
+        n.v = float(n.v * (0.9 + 0.45 * arc(n.t)))
+    st.play("piano", [n for n in arp if not n.x.get("top")], "piano", seed=1, gain_db=9, layer_bias=-0.25,
+            release=0.9)
+    st.play("piano", [n for n in arp if n.x.get("top")], "piano", seed=2, gain_db=10, layer_bias=-0.15,
+            release=1.2)
+    lh = S(P["lh"], 3, 0.01)
+    for n in lh:
+        n.v = float(n.v * (0.9 + 0.4 * arc(n.t)))
+    st.play("piano", lh, "piano", seed=3, gain_db=6, layer_bias=-0.3, release=1.5)
+    st.play("piano", S(P["coda"], 4, 0.012), "piano", seed=4, gain_db=9, layer_bias=-0.2, release=2.5)
 
-    st = mix.track()
-    BW.strings(st, S(legato(P["vln"] + P["lift"] + P["vln2"], 0.05), 4), "violins", gain=0.95, seed=4)
-    BW.strings(st, S(P["violins2"], 5), "violins2", gain=0.42, seed=5)
-    BW.strings(st, S(P["violas"], 6), "violas", gain=0.45, seed=6)
-    BW.strings(st, S(legato(P["cello_b"], 0.05), 7), "cellos", gain=0.85, seed=7)
-    BW.strings(st, S(P["cellos"], 8), "cellos", gain=0.5, seed=8)
-    BW.strings(st, S(P["basses"], 9), "basses", gain=0.45, seed=9)
-    mix.add(st, 1.0, {"hall": 0.5, "sky": 0.15}, name="strings")
+    kw = dict(shape=shape, lag=0.025)
+    st.play("solo_violin", S(P["vn_canon"], 5), "solo_violin", seed=5, gain_db=4, legato=True, slide=0.1,
+            dyn=Curve([(sec(12), 0.45), (sec(14), 0.6), (sec(17.5), 0.55), (sec(18.2), 0.35)]), **kw)
+    st.play("clarinets", S(P["vla_canon"], 6), "clarinet", seed=6, gain_db=4,
+            dyn=Curve([(sec(14), 0.45), (sec(16), 0.6), (sec(19.5), 0.55), (sec(20.2), 0.35)]), **kw)
+    st.play("bassoon", S(P["vc_canon"], 7), "bassoon", seed=7, gain_db=0,
+            dyn=Curve([(sec(16), 0.45), (sec(18), 0.62), (sec(21.5), 0.6), (sec(22.2), 0.4)]), **kw)
+    vp = S(P["vc_pizz"], 31, 0.006)
+    st.play("cellos_pizz", vp, "cellos_pizz", seed=31, gain_db=2, seat="cellos")
+    tk = S(P["tick"], 8, 0.005)
+    for n in tk:
+        n.v = float(n.v * (0.55 + 0.6 * build(n.t)))
+    st.play("violas_spic", [n for n in tk], "violas_spic", seed=8, gain_db=3, seat="violas")
+    st.play("violins_spic", [N(n.t, n.d, n.p + 12, n.v * 0.85) for n in tk if n.t >= sec(24)], "violins_spic",
+            seed=9, gain_db=-1, seat="violins2")
+    dt = S(P["dot"], 10, 0.005)
+    for n in dt:
+        n.v = float(n.v * (0.6 + 0.5 * build(n.t)))
+    st.play("cellos_spic", dt, "cellos_spic", seed=10, gain_db=2, seat="cellos")
+    st.play("basses_spic", [N(n.t, n.d, n.p - 12, n.v) for n in dt], "basses_spic", seed=11, gain_db=-4,
+            seat="basses")
+    st.play("organ", S(P["org_ped_motif"], 12, 0.0), "organ_pedal", seed=12,
+            dyn=Curve([(sec(20), 0.45), (sec(23), 0.6), (sec(26), 0.55)]), gain_db=-8)
+    st.play("horns", S(P["horns"], 13), "horns", seed=13,
+            dyn=Curve([(sec(20), 0.45), (sec(24), 0.62), (sec(27.8), 0.7)]), gain_db=-2, **kw)
+    st.play("horns", S(P["horns_full"], 14), "horns", seed=14, dyn=build, gain_db=2, shape=shape, lag=0.03)
+    st.play("trombones", S(P["tbn_full"], 15), "trombones", seed=15, dyn=build, gain_db=-3, shape=shape,
+            lag=0.03)
+    st.play("flutes", S(P["vn_full"], 16), "flute", seed=16, dyn=build, gain_db=2, **kw)
+    st.play("bassoon", S(P["vc_canon2"], 17), "bassoon", seed=17, dyn=build, gain_db=-3, **kw)
+    st.play("violas", S(P["vla_sus"], 18), "violas", seed=18, dyn=build, gain_db=-12, depth=0.8, **kw)
+    st.play("basses", S(P["cb"], 19), "basses", seed=19, dyn=arc, gain_db=-9, depth=0.8, **kw)
+    top = Curve([(sec(27.8), 0.35), (sec(28.5), 0.7), (sec(30.2), 0.85), (sec(37), 0.8), (sec(38.3), 0.3)])
+    st.play("organ", S(P["org_full"], 20, 0.0), "organ", seed=20, dyn=top, gain_db=-12)
+    st.play("organ", S(P["org_full_ped"], 21, 0.0), "organ_pedal", seed=21, dyn=top, gain_db=-8)
+    soft = Curve([(0, 0.35), (sec(12), 0.45), (sec(19.5), 0.4), (sec(20), 0.0), (sec(38), 0.3), (sec(39), 0.45),
+                  (sec(42), 0.35)])
+    st.play("organ", S(P["org_soft"], 22, 0.0), "organ_soft", seed=22, dyn=soft, gain_db=-12)
+    st.play("organ", S(P["org_soft_ped"], 23, 0.0), "organ_soft_pedal", seed=23, dyn=soft, gain_db=-7)
+    st.stems["organ"].buf = FX.tremulant(st.stems["organ"].buf, 5.0, 0.03, 0.08).astype("float32")
+    st.play("timpani", S(P["timp_roll"], 24, 0.0), "timpani_roll", seed=24,
+            dyn=Curve([(sec(18), 0.05), (sec(20), 0.5), (sec(20.05), 0.1), (sec(29), 0.1), (sec(30), 0.8),
+                       (sec(30.05), 0.1), (sec(36), 0.1), (sec(38), 0.6), (sec(38.05), 0.1)]),
+            gain_db=-6, release=0.4)
+    st.play("timpani", S(P["timp"], 25, 0.004), "timpani", seed=25, gain_db=-3)
+    # the braam on the A pedal
+    t_b = sec(28) - 0.05
+    bdyn = Curve([(t_b, 0.4), (t_b + 1.2, 0.95), (t_b + 3.6, 0.8), (t_b + 5.8, 0.4)])
+    st.play("braam", [N(t_b, 6.0, 45.0, 0.95), N(t_b, 6.0, 52.0, 0.9)], "trombones", seed=26, dyn=bdyn,
+            gain_db=-8, seat="trombones")
+    st.play("braam", [N(t_b, 6.0, 33.0, 0.95)], "tuba", seed=27, dyn=bdyn, gain_db=-7, seat="tuba")
+    br = st.stem("braam")
+    EL.sub_swell(br, t_b, 5.0, 33.0, gain=0.18, attack=1.0, release=1.5)
 
-    hp = mix.track()
-    PL.render_plucked(hp, S(P["harp"], 10), "harp", gain=0.45, pan=-0.3, pan_by_pitch=0.3, center=66, seed=10)
-    PL.render_plucked(hp, S(P["glide_harp"], 11, 0.002), "harp", gain=0.4, pan=-0.25, pan_by_pitch=0.4, center=74, seed=11)
-    mix.add(hp, 1.0, {"hall": 0.4}, name="harp")
+    gl = st.stem("glass", {"shimmer:cathedral2": 0.35, "concert": 0.55}, depth=0.65)
+    gp = S(P["glass"], 28, 0.0)
+    for n in gp:
+        n.v = float(n.v * (0.7 + 0.4 * arc(n.t)))
+        n.x["attack"] = 0.03
+        n.x["release"] = 1.1
+    EL.glass(gl, gp, gain=0.38, seed=28, bright=0.5, pan_spread=0.35, breath=0.05)
+    EL.glass(gl, S(P["air"], 29, 0.0), gain=0.25, seed=29, attack=2.5, release=5.0, bright=0.4)
+    gl.buf = FX.eq(gl.buf.astype(np.float64), ("lp", 4200, 0.7))
+    gl.buf = (gl.buf + FX.echo(gl.buf, clk.s(1.5), fb=0.38, mix=0.32, lp=2200)[:, : gl.buf.shape[1]]).astype("float32")
+    sb = st.stem("sub", {}, depth=0.3)
+    sub = S(P["sub"], 30, 0.0)
+    for n in sub:
+        n.v = float(n.v * (0.55 + 0.5 * arc(n.t)))
+    EL.sub_pulse(sb, sub, gain=0.4, seed=30, decay=0.35)
 
-    # the journey
-    jr = mix.track()
-    ML.render(jr, S(P["j_celesta"], 12), ML.celesta, gain=0.55, pan=0.25)
-    PL.render_plucked(jr, S(P["j_zither"], 13), "zheng", gain=0.75, pan=-0.2, seed=13)
-    m = S(P["j_cello"], 14, 0.0)
-    for i, n in enumerate(m):
-        n.d = (m[i + 1].t - n.t + 0.03) if i + 1 < len(m) else 1.4
-    BW.strings(jr, m, "solo_cello", gain=0.8, seed=14)
-    ML.render(jr, S(P["j_glock"], 15), ML.glockenspiel, gain=0.4, pan=0.3)
-    w = S(P["j_whale"], 16, 0.0)
-    for i, n in enumerate(w):
-        n.d = (w[i + 1].t - n.t + 0.05) if i + 1 < len(w) else 1.6
-    VO.glass_pad(jr, w, gain=0.55, seed=16, glide=0.2, attack=0.2, release=1.5,
-                 partials=(1.0, 0.35, 0.18, 0.08), shimmer_partial=0.0, layers=2, pan_spread=0.3)
-    ML.render(jr, S(P["j_bells"], 17), ML.bell, gain=0.45, pan=-0.2, tone="hand")
-    t_j = S([N(bar(17), 1, 0, 0.5)], 18, 0.0)[0].t
-    jr.add(t_j, ML.jingle(0.5, seed=3, shake=0.1), gain=0.45, pan=0.25)
-    PL.render_plucked(jr, S(P["j_guitar"], 19), "guitar", gain=0.8, pan=0.1, seed=19)
-    mix.add(jr, 1.0, {"hall": 0.45, "shimmer:cathedral": 0.12}, name="journey")
-
-    hn = mix.track()
-    WI.horn(hn, S(legato(P["horn_b"], 0.1), 20), gain=0.6, pan=0.3, seed=20, players=2)
-    WI.horn(hn, S(P["horns"], 21), gain=0.5, pan=0.35, seed=21, players=2)
-    mix.add(hn, 1.0, {"hall": 0.55}, name="horns")
-
-    ch = mix.track()
-    VO.choir(ch, S(P["alto"], 22, 0.0), "alto", singers=8, vowel=("u", "a"), morph=0.35, gain=0.42, seed=22)
-    VO.choir(ch, S(P["tenor"], 23, 0.0), "tenor", singers=8, vowel=("u", "a"), morph=0.35, gain=0.4, seed=23)
-    VO.choir(ch, S(legato(P["sop2"], 0.05), 24, 0.0), "soprano", singers=10, vowel=("o", "a"), morph=0.6,
-             gain=0.5, seed=24)
-    mix.add(ch, 1.0, {"hall": 0.45, "sky": 0.25}, name="choir")
-
-    sp = mix.track()
-    for i, n in enumerate(S(P["drum"], 25, 0.003)):
-        sp.add(n.t, PC.drum(62.0, n.v, seed=i, decay=0.6, bend=0.08, brightness=0.55), gain=0.5)
-    ML.render(sp, S(P["final_chime"], 26, 0.0), ML.celesta, gain=0.4, pan_by_pitch=0.4, center_pitch=76)
-    ML.render(sp, S(shift(P["final_chime"], dp=12, vmul=0.7), 27, 0.0), ML.bell, gain=0.25, pan_by_pitch=0.4,
-              center_pitch=88, tone="hand")
-    t_end = clk.s(bar(44))
-    sp.add(t_end, ML.jingle(0.45, seed=9, shake=0.14), gain=0.4, pan=0.2)
-    sp.add(t_end + 0.05, ML.finger_cymbal(0.4, seed=4, f1=1650.0), gain=0.35, pan=-0.3)
-    mix.add(sp, 1.0, {"hall": 0.45, "shimmer:cathedral": 0.3}, name="chimes")
-
-    out = mix.render({"hall": {"seed": 91}, "sky": {"seed": 92},
-                      "shimmer:cathedral": {"seed": 93, "gens": 2, "fb": 0.45}})
-    # gentle fade over the last seconds so the tail ends in silence
-    n = out.shape[1]
-    k = int(5.0 * 44100)
-    out[:, n - k:] *= np.cos(np.linspace(0, np.pi / 2, k)) ** 2
-    return finish_oneshot("music", "finale", out, -16.0, 128,
-                          meta={"title": TITLE, "key": "D major -> E major", "meter": "6/8", "bpm": 49,
-                                "beat": "dotted quarter"})
+    out = st.render({"concert": {"seed": 91}, "cathedral2": {"seed": 92},
+                     "shimmer:cathedral2": {"seed": 93, "gens": 2, "fb": 0.42}}, warmth=0.35)
+    return finish_oneshot("music", "finale", out, -16.0, 192, max_s=SECONDS, end_fade=3.0,
+                          meta={"title": TITLE, "key": "D major", "meter": "4/4", "bpm": 80, "beat": "quarter"})
 
 
 if __name__ == "__main__":

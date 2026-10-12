@@ -106,7 +106,7 @@ def _qa(name, y, kind):
     M.write_wav(CACHE / "wav" / f"{kind}-{name}.wav", y)
 
 
-def _encode_verified(y, path, kbps, target_lufs, tp_max=-1.6, mono=False, tries=4, lufs_tol=0.35,
+def _encode_verified(y, path, kbps, target_lufs, tp_max=-1.6, mono=False, tries=5, lufs_tol=0.15,
                      measure_lufs=True):
     """Encode, measure the MP3, nudge gain/ceiling until it lands. Returns (y, I, TP)."""
     g = 0.0
@@ -145,7 +145,8 @@ def finish_loop(kind, name, x, loop_seconds, tail_seconds, target_lufs, kbps, me
     path = OUT / kind / f"{name}.mp3"
     full, I, TP = _encode_verified(full, path, kbps, target_lufs)
     _qa(name, full, kind)
-    entry = {"file": f"{kind}/{name}.mp3", "loopSeconds": round(loop_seconds, 3), "tailSeconds": tail_seconds}
+    # loopSeconds must land on the exact sample the loop was rendered with
+    entry = {"file": f"{kind}/{name}.mp3", "loopSeconds": round(n / SR, 6), "tailSeconds": tail_seconds}
     if meta:
         entry.update(meta)
     update_manifest(kind, name, entry)

@@ -66,25 +66,25 @@
   "music": {
     "arbor": {
       "file": "music/arbor.mp3",
-      "loopSeconds": 120.0,
+      "loopSeconds": 134.4,
       "tailSeconds": 4,
       "title": "Sundown",
-      "bpm": 50,
-      "meter": "6/8",
-      "beat": "dotted quarter",
+      "bpm": 75,
+      "meter": "4/4",
+      "beat": "quarter",
       "key": "D major",
-      "instrument": "music box"
+      "instrument": "piano"
     },
     "deep": {
       "file": "music/deep.mp3",
-      "loopSeconds": 120.0,
+      "loopSeconds": 134.4,
       "tailSeconds": 4,
       "title": "Where the Lanterns Swim",
-      "bpm": 50,
+      "bpm": 100,
       "meter": "4/4",
       "beat": "quarter",
-      "key": "F# minor / A major",
-      "instrument": "whale-song choir"
+      "key": "F# dorian / A lydian",
+      "instrument": "synth arpeggio and glass"
     },
     "ember-born": {
       "file": "music/ember-born.mp3",
@@ -97,75 +97,75 @@
     "finale": {
       "file": "music/finale.mp3",
       "oneShot": true,
-      "seconds": 124.34,
+      "seconds": 135.0,
       "title": "Hallowed Lanterns",
-      "key": "D major -> E major",
-      "meter": "6/8",
-      "bpm": 49,
-      "beat": "dotted quarter"
+      "key": "D major",
+      "meter": "4/4",
+      "bpm": 80,
+      "beat": "quarter"
     },
     "garden": {
       "file": "music/garden.mp3",
-      "loopSeconds": 120.0,
+      "loopSeconds": 135.0,
       "tailSeconds": 4,
       "title": "Lantern Song",
-      "bpm": 64,
+      "bpm": 96,
       "meter": "4/4",
       "beat": "quarter",
-      "key": "G major pentatonic",
-      "instrument": "zither"
+      "key": "G mixolydian",
+      "instrument": "organ and harp"
     },
     "grove": {
       "file": "music/grove.mp3",
-      "loopSeconds": 120.0,
+      "loopSeconds": 133.0,
       "tailSeconds": 4,
       "title": "Blue Hour",
-      "bpm": 72,
-      "meter": "4/4",
-      "beat": "quarter",
-      "key": "B minor",
-      "instrument": "celesta"
+      "bpm": 240,
+      "meter": "7/8",
+      "beat": "eighth",
+      "key": "B minor (aeolian)",
+      "instrument": "glass arpeggio"
     },
     "hollow": {
       "file": "music/hollow.mp3",
-      "loopSeconds": 120.0,
+      "loopSeconds": 136.0,
       "tailSeconds": 4,
       "title": "Sugar Rush",
-      "bpm": 112,
+      "bpm": 120,
       "meter": "4/4",
       "beat": "quarter",
-      "key": "D major",
-      "instrument": "glockenspiel"
+      "key": "D lydian",
+      "instrument": "marimba and pizzicato"
     },
     "keeper-rises": {
       "file": "music/keeper-rises.mp3",
       "oneShot": true,
       "seconds": 14.0,
       "title": "The Keeper Rises",
-      "key": "F# minor -> A major",
+      "key": "F# dorian -> A lydian",
       "stinger": true
     },
     "marigold": {
       "file": "music/marigold.mp3",
-      "loopSeconds": 120.0,
+      "loopSeconds": 133.333333,
       "tailSeconds": 4,
       "title": "Remember Me",
-      "bpm": 66,
+      "bpm": 72,
       "meter": "4/4",
       "beat": "quarter",
       "key": "G major",
-      "instrument": "nylon guitar"
+      "instrument": "piano"
     },
     "pasture": {
       "file": "music/pasture.mp3",
-      "loopSeconds": 120.0,
+      "loopSeconds": 136.0,
       "tailSeconds": 4,
       "title": "Gentle Giants",
-      "bpm": 52,
+      "bpm": 60,
       "meter": "4/4",
       "beat": "quarter",
-      "key": "D (open fifths)",
-      "instrument": "cello"
+      "key": "D mixolydian",
+      "instrument": "horns"
     },
     "picture-show": {
       "file": "music/picture-show.mp3",
@@ -180,14 +180,26 @@
     },
     "snow": {
       "file": "music/snow.mp3",
-      "loopSeconds": 120.0,
+      "loopSeconds": 136.0,
       "tailSeconds": 4,
       "title": "First Snow",
       "bpm": 60,
-      "meter": "3/4",
+      "meter": "4/4",
       "beat": "quarter",
-      "key": "A major",
-      "instrument": "celesta and sleigh bells"
+      "key": "A lydian",
+      "instrument": "harp and glass"
+    },
+    "title": {
+      "file": "music/title.mp3",
+      "loopSeconds": 72.0,
+      "tailSeconds": 4,
+      "title": "Hallowed Lanterns",
+      "bpm": 80,
+      "meter": "4/4",
+      "beat": "quarter",
+      "key": "D lydian",
+      "instrument": "piano",
+      "theme": true
     }
   },
   "ambience": {
@@ -268,7 +280,9 @@
       "sfx/ember-chime-garden.mp3"
     ],
     "ember-chime-grove": [
-      "sfx/ember-chime-grove.mp3"
+      "sfx/ember-chime-grove.mp3",
+      "sfx/ember-chime-grove-2.mp3",
+      "sfx/ember-chime-grove-3.mp3"
     ],
     "ember-chime-hollow": [
       "sfx/ember-chime-hollow.mp3"
@@ -281,6 +295,16 @@
     ],
     "ember-chime-snow": [
       "sfx/ember-chime-snow.mp3"
+    ],
+    "fly-buzz": [
+      "sfx/fly-buzz-1.mp3",
+      "sfx/fly-buzz-2.mp3",
+      "sfx/fly-buzz-3.mp3",
+      "sfx/fly-buzz-4.mp3"
+    ],
+    "flytrap-snap": [
+      "sfx/flytrap-snap-1.mp3",
+      "sfx/flytrap-snap-2.mp3"
     ],
     "fog-swirl": [
       "sfx/fog-swirl-1.mp3",
@@ -400,6 +424,11 @@
     "web-stretch": [
       "sfx/web-stretch-1.mp3",
       "sfx/web-stretch-2.mp3"
+    ],
+    "well-coin": [
+      "sfx/well-coin-1.mp3",
+      "sfx/well-coin-2.mp3",
+      "sfx/well-coin-3.mp3"
     ],
     "wings-flutter": [
       "sfx/wings-flutter.mp3"

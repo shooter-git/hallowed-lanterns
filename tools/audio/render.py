@@ -79,28 +79,59 @@ def run_one(key):
     print(f"[{key}] done in {time.time() - t0:.0f}s", flush=True)
 
 
+SYNTH = "Synthesised with tools/audio (Hallowed Lanterns)"
+VSCO_MUSIC = ("Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples "
+              "(CC0, Versilian Studios)")
+VSCO_SFX = "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios)"
+SAMPLED_SFX = ("xylo-", "guitar-", "ember-chime-", "snowflake-", "sprinkle-burst", "wish-hang")
+
+
+def source_for(path):
+    name = path.rsplit("/", 1)[-1]
+    if "/audio/music/" in path:
+        return VSCO_MUSIC
+    if "/audio/sfx/" in path and name.startswith(SAMPLED_SFX):
+        return VSCO_SFX
+    return SYNTH
+
+
 def update_lock():
     """Add an entry for every file in public/audio to assets.lock.json (merging
-    with whatever else is there; re-read right before writing)."""
+    with whatever else is there; re-read right before writing), and keep the
+    source line of our own entries right (music and the instrument-like sfx
+    use the VSCO 2 CE samples). Entries with any other source (e.g. recorded
+    footsteps) are never touched."""
     root = HERE.parents[1]
     files = sorted(p for p in (root / "public" / "audio").rglob("*") if p.is_file())
-    entries = [{"path": str(p.relative_to(root)).replace(os.sep, "/"), "license": "own",
-                "source": "Synthesised with tools/audio (Hallowed Lanterns)"} for p in files
+    entries = [{"path": str(p.relative_to(root)).replace(os.sep, "/"), "license": "own"} for p in files
                if p.suffix in (".mp3", ".json")]
+    for e in entries:
+        e["source"] = source_for(e["path"])
     lock = root / "assets.lock.json"
+    ours = {SYNTH, VSCO_MUSIC, VSCO_SFX}
+
+    def merged(data):
+        assets = data.setdefault("assets", [])
+        have = {a.get("path") for a in assets}
+        n = 0
+        for a in assets:
+            if a.get("source") in ours and a.get("path", "").startswith("public/audio/"):
+                want = source_for(a["path"])
+                if a["source"] != want:
+                    a["source"] = want
+                    n += 1
+        added = [e for e in entries if e["path"] not in have]
+        assets.extend(added)
+        return n + len(added)
+
     data = json.loads(lock.read_text()) if lock.exists() else {"assets": []}
-    assets = data.setdefault("assets", [])
-    have = {a.get("path") for a in assets}
-    added = [e for e in entries if e["path"] not in have]
-    if not added:
+    if not merged(data):
         return 0
     # re-read immediately before writing, in case someone else changed it meanwhile
     data = json.loads(lock.read_text()) if lock.exists() else {"assets": []}
-    assets = data.setdefault("assets", [])
-    have = {a.get("path") for a in assets}
-    assets.extend(e for e in added if e["path"] not in have)
+    n = merged(data)
     lock.write_text(json.dumps(data, indent=2) + "\n")
-    return len(added)
+    return n
 
 
 def main():

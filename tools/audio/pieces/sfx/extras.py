@@ -1,7 +1,9 @@
 """Sounds for the added scenes.
 
 guitar-1..6      a big magical guitar's open strings, D3 A3 D4 F#4 A4 B4 (stereo):
-                 the Ember's motif D B A F# A is strings 3 6 5 4 5
+                 the Ember's motif D B A F# A is strings 3 6 5 4 5. Sampled: the
+                 VSCO 2 CE harp through a guitar body, fairly dry
+                 (render_instruments() renders just these)
 owl-hoot-1..2    a soft, friendly great horned owl with a little shimmer
 wings-flutter    a big flurry of feathers (stereo)
 web-stretch-1..2 a cobweb stretched and plucked: a soft elastic twang and silk rustle
@@ -22,6 +24,7 @@ from hlaudio.lines import wt_osc
 from hlaudio import mallets as ML, plucked as PL, voice as VO, nature as NA, perc as PC, nb, theme as TH
 from hlaudio.core import m
 from hlaudio.piece import finish_sfx
+from hlaudio import sfxkit as K
 
 
 def _wet(y, space, amt, keep, shimmer_amt=0.0):
@@ -43,9 +46,11 @@ def _wet(y, space, amt, keep, shimmer_amt=0.0):
 # ----------------------------------------------------------------- guitar strings
 
 def guitar_string(p, i):
-    tr = Track(4.5)
-    PL.render_plucked(tr, [N(0.01, 4.0, p, 0.72)], "big_guitar", gain=1.0, pan=-0.15 + 0.06 * i, seed=200 + i)
-    return _wet(tr.buf, "hall", 0.22, 4.2, shimmer_amt=0.1)
+    st = K.stage(4.5)
+    K.play(st, "guitar", [N(0.01, 4.0, float(p), 0.72)], "harp", seed=200 + i, pan=-0.15 + 0.06 * i, width=0.5,
+           extra={"shimmer:concert": 0.04})
+    K.guitar_body(st, "guitar", 0.8, seed=i)
+    return K.finish(st, {"shimmer:concert": {"seed": 8, "gens": 1, "fb": 0.35}})
 
 
 # ----------------------------------------------------------------- owls and wings
@@ -285,9 +290,13 @@ def chest_open():
     return _wet(y, "room", 0.2, 3.3, shimmer_amt=0.12)
 
 
-def render():
+def render_instruments():
     for i, nm in enumerate(TH.GUITAR_NOTES):
         finish_sfx("guitar", f"guitar-{i + 1}", guitar_string(m(nm), i), -3.0, stereo=True, max_s=4.0)
+
+
+def render():
+    render_instruments()
     for i in range(2):
         finish_sfx("owl-hoot", f"owl-hoot-{i + 1}", owl_hoot(i), -4.0, max_s=3.0)
     finish_sfx("wings-flutter", "wings-flutter", wings_flutter(), -4.0, stereo=True, max_s=2.3)

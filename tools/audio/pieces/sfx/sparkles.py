@@ -1,6 +1,8 @@
 """Small magic: xylo-1..8 (the pumpkin xylophone, D pentatonic, contains the
 motif), sprinkle-burst, snowflake-1..5, bubble-1..4, wish-hang, fog-swirl-1..2
-and ui-tap."""
+and ui-tap. The instrument-like ones (xylo, sprinkle-burst, snowflakes,
+wish-hang) are sampled (VSCO 2 CE marimba, glockenspiel, harp, strings) and
+fairly dry; render_instruments() renders just those."""
 import numpy as np
 
 from hlaudio.core import SR, ns, rng, tvec, Track, smoothstep
@@ -9,6 +11,7 @@ from hlaudio.score import N
 from hlaudio import mallets as ML, voice as VO, nature as NA, bowed as BW, nb, theme as TH
 from hlaudio.core import m
 from hlaudio.piece import finish_sfx
+from hlaudio import sfxkit as K, electro as EL
 
 
 def _verb(y, space, amt, keep):
@@ -22,39 +25,43 @@ def _verb(y, space, amt, keep):
 
 
 def xylo(p):
-    return _verb(ML.pumpkin_xylo(p, 0.75, seed=int(p)), "room", 0.15, 1.6)
+    """A pumpkin-xylophone note: the marimba, close and nearly dry."""
+    st = K.stage(1.8)
+    K.play(st, "marimba", [N(0.01, 0.9, float(p), 0.72)], "marimba", pan=0.0, width=0.3, send=0.09)
+    return K.finish(st)
 
 
 def sprinkle_burst():
+    """A burst of soft glockenspiel notes (D pentatonic) thinning out, with a
+    small airy 'pop' at the start and a touch of shimmer."""
     r = rng("sprinkle")
-    tr = Track(3.0)
-    pent = [86, 88, 90, 93, 95, 98, 100, 102]  # D6..F#7
-    t = 0.0
-    k = 0
+    st = K.stage(3.0)
+    pent = [74, 76, 78, 81, 83, 86, 88, 90]  # D5..F#6
+    notes, t = [], 0.0
     while t < 1.3:
-        p = float(r.choice(pent))
-        tr.add(t, ML.glockenspiel(p, r.uniform(0.3, 0.7), seed=k), gain=0.25 * (1 - t / 1.6),
-               pan=float(r.uniform(-0.9, 0.9)))
+        notes.append(N(t, 0.6, float(r.choice(pent)), float(r.uniform(0.25, 0.5) * (1 - t / 1.8)),
+                       {"pan": float(r.uniform(-0.8, 0.8))}))
         t += r.exponential(0.02 + 0.06 * t)
-        k += 1
-    # the 'pop' of the burst
+    for i, n in enumerate(notes):
+        K.play(st, "glock", [n], "glock", seed=i, pan=n.x["pan"], width=0.2, send=0.13,
+               extra={"shimmer:concert": 0.08})
     n = ns(0.25)
     tt = tvec(n)
     pop = nb.svf(r.standard_normal(n), 600 + 2400 * smoothstep(tt / 0.15), 2.0, 1) * np.exp(-tt / 0.06)
     pop = filt(pop, chain(("lp", 3500, 0.7)))
-    tr.add(0, pop, gain=0.35)
-    y = tr.buf.astype(float)
-    wet = shimmer(y, "hall", gens=1, fb=0.35)
-    y = np.pad(y, ((0, 0), (0, wet.shape[1] - y.shape[1]))) + 0.3 * wet
-    return eq(y, ("hs", 6000, 0.7, -3))[:, : ns(3.2)]
+    st.stem("pop", {"concert": 0.1}, depth=K.DEPTH).add(0.0, pop, gain=0.12)
+    g = st.stems["glock"]
+    g.buf = eq(g.buf.astype(float), ("lp", 3800, 0.7)).astype("float32")      # sparkle, not tinkle
+    return K.finish(st, {"shimmer:concert": {"seed": 6, "gens": 1, "fb": 0.3}})
 
 
 def snowflake(p, i):
-    y = ML.bell(p, 0.55, seed=i, tone="tiny")
-    hi = ML.bell(p + 12, 0.3, seed=i + 10, tone="tiny")
-    k = min(y.size, hi.size)
-    y[:k] += 0.15 * hi[:k]
-    return _verb(y, "hall", 0.3, 2.2)
+    """One soft glockenspiel note with a harp harmonic under it."""
+    st = K.stage(2.2)
+    K.play(st, "glock", [N(0.01, 1.0, float(p), 0.36)], "glock", seed=i, pan=0.0, width=0.3, send=0.15)
+    K.play(st, "harp", [N(0.01, 1.0, float(p - 12), 0.4)], "harp", seed=i, pan=0.0, width=0.3, send=0.15,
+           gain_db=-12)
+    return K.finish(st)
 
 
 def bubble(i):
@@ -69,18 +76,21 @@ def bubble(i):
 
 
 def wish_hang():
-    """A sparkle running up, then a warm G major chord (glass, strings, choir)."""
-    tr = Track(4.5)
-    for k, p in enumerate([79, 83, 86, 91, 95, 98]):  # G5 B5 D6 G6 B6 D7
-        tr.add(0.03 * k + 0.02, ML.celesta(p, 0.45 + 0.05 * k, dur=1.5, seed=k), gain=0.32, pan=-0.5 + 0.2 * k)
-    chord = [N(0.25, 2.0, float(p), 0.55, {"attack": 0.35, "release": 1.4}) for p in (55, 62, 67, 71, 74)]
-    VO.glass_pad(tr, chord, gain=0.5, seed=3, attack=0.35, release=1.6, glide=0.1)
-    BW.strings(tr, [N(0.2, 2.0, float(p), 0.5, {"attack": 0.4, "release": 1.3}) for p in (55, 59, 62, 67)], "violas",
-               gain=0.35, seed=4)
-    y = tr.buf.astype(float)
-    wet = shimmer(y, "hall", gens=1, fb=0.35)
-    y = np.pad(y, ((0, 0), (0, wet.shape[1] - y.shape[1]))) + 0.3 * wet
-    return eq(y, ("hs", 6000, 0.7, -3))[:, : ns(4.8)]
+    """A harp run up a G major chord, a soft glockenspiel touch at the top,
+    then a warm G major chord (violas and violins, a glass halo)."""
+    st = K.stage(4.5)
+    run = [N(0.02 + 0.035 * k, 1.6, float(p), 0.45 + 0.04 * k) for k, p in enumerate([67, 71, 74, 79, 83, 86])]
+    K.play(st, "harp", run, "harp", pan=-0.1, width=0.6)
+    K.play(st, "glock", [N(0.2, 1.0, 91.0, 0.3), N(0.24, 1.0, 95.0, 0.25)], "glock", pan=0.3, width=0.3,
+           send=0.15)
+    sh = {"attack": 0.35, "swell": 0.15, "taper": 1.5}
+    K.play(st, "violas", [N(0.2, 1.8, float(p), 0.5) for p in (55, 62)], "violas", shape=sh, double=1, gain_db=-4)
+    K.play(st, "violins", [N(0.22, 1.8, float(p), 0.48) for p in (67, 71, 74)], "violins", shape=sh, double=1,
+           gain_db=-6, layer_bias=-0.2)
+    gl = st.stem("glass", {"concert": 0.15}, depth=K.DEPTH)
+    EL.glass(gl, [N(0.3, 1.6, float(p), 0.4) for p in (79, 86)], gain=0.25, seed=3, attack=0.35, release=1.4,
+             bright=0.5)
+    return K.finish(st)
 
 
 def fog_swirl(i):
@@ -119,15 +129,19 @@ def ui_tap():
     return y
 
 
-def render():
+def render_instruments():
     for i, nm in enumerate(TH.XYLO_NOTES):
         finish_sfx("xylo", f"xylo-{i + 1}", xylo(m(nm)), -3.0, max_s=1.0)
     finish_sfx("sprinkle-burst", "sprinkle-burst", sprinkle_burst(), -3.0, stereo=True, max_s=1.7)
-    for i, p in enumerate([93, 97, 100, 102, 105]):  # A6 C#7 E7 F#7 A7 (snow's A major)
+    for i, p in enumerate([81, 85, 88, 90, 93]):  # A5 C#6 E6 F#6 A6 (snow's A major)
         finish_sfx("snowflake", f"snowflake-{i + 1}", snowflake(p, i), -5.0, max_s=1.4)
+    finish_sfx("wish-hang", "wish-hang", wish_hang(), -3.0, stereo=True, max_s=2.1)
+
+
+def render():
+    render_instruments()
     for i in range(4):
         finish_sfx("bubble", f"bubble-{i + 1}", bubble(i), -5.0)
-    finish_sfx("wish-hang", "wish-hang", wish_hang(), -3.0, stereo=True, max_s=2.1)
     for i in range(2):
         finish_sfx("fog-swirl", f"fog-swirl-{i + 1}", fog_swirl(i), -4.0, stereo=True, max_s=1.9)
     finish_sfx("ui-tap", "ui-tap", ui_tap(), -9.0)

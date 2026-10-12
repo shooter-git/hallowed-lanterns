@@ -130,6 +130,17 @@ SPACES = {
                        build=0.12, length=7.0, hi=3500),
     "plate": dict(rt=[3.2, 3.2, 3.0, 2.8, 2.4, 1.9, 1.3], pre=0.004, er=0, er_span=0.01,
                   build=0.005, length=6.0, hi=10000),
+    "scoring": dict(rt=[2.9, 2.7, 2.4, 2.1, 1.7, 1.2, 0.8], pre=0.022, er=36, er_span=0.09, build=0.03,
+                    length=5.5, hi=9000),
+    "epic": dict(rt=[4.4, 4.1, 3.6, 3.0, 2.3, 1.5, 0.9], pre=0.03, er=40, er_span=0.12, build=0.05,
+                 length=7.5, hi=8500),
+    # the rescore's halls: dense smooth tails, darker tops, real pre-delay
+    "concert": dict(rt=[3.6, 3.4, 3.0, 2.6, 2.0, 1.35, 0.85], pre=0.026, er=34, er_span=0.09, build=0.06,
+                    length=8.0, hi=5800, er_lp=0.5),
+    "cathedral2": dict(rt=[6.2, 6.0, 5.2, 4.2, 3.0, 1.9, 1.1], pre=0.038, er=36, er_span=0.14, build=0.1,
+                       length=11.0, hi=4800, er_lp=0.6),
+    "chamber": dict(rt=[1.6, 1.5, 1.35, 1.2, 0.95, 0.7, 0.45], pre=0.012, er=30, er_span=0.045, build=0.02,
+                    length=3.0, hi=6500, er_lp=0.4),
     "sky": dict(rt=[7.5, 7.2, 6.8, 6.0, 4.8, 3.4, 2.2], pre=0.06, er=8, er_span=0.2,
                 build=0.25, length=11.0, hi=7500),
 }
@@ -185,14 +196,17 @@ def make_ir(space="hall", seed=0, rt_scale=1.0, **over):
         late *= build
         # early reflections
         er = np.zeros(n)
-        for k in range(p["er"]):
-            d = p["pre"] * 0.4 + r.uniform(0.002, p["er_span"]) * (1 + 0.3 * (ch % 2))
+        # reflections arrive after the pre-delay, thicker and duller as they go
+        times = np.sort(p["pre"] + r.uniform(0.0, p["er_span"], p["er"]) * (1 + 0.25 * (ch % 2)))
+        for k, d in enumerate(times):
             i = ns(d)
             if i < n:
-                er[i] += r.choice([-1, 1]) * r.uniform(0.3, 1.0) * np.exp(-d / (p["er_span"] + 1e-3))
+                er[i] += r.choice([-1, 1]) * r.uniform(0.35, 1.0) * np.exp(-(d - p["pre"]) / (p["er_span"] * 0.8 + 1e-3))
         if p["er"]:
+            a = p.get("er_lp", 0.35)
             er = signal.lfilter([0.5, 0.5], [1.0], er)
-            er = signal.lfilter([1 - 0.35], [1, -0.35], er)
+            er = signal.lfilter([1 - a], [1, -a], er)
+            er = signal.lfilter([1 - a * 0.6], [1, -a * 0.6], er)
         late_e = np.sqrt(np.sum(late ** 2)) + 1e-12
         er_e = np.sqrt(np.sum(er ** 2)) + 1e-12
         sig = late / late_e + (0.45 * er / er_e if p["er"] else 0)
@@ -367,6 +381,59 @@ def echo(x, time=0.375, fb=0.35, mix=0.25, lp=4500, circular=False, pingpong=Tru
             else:
                 out[ch, d:d + n] += src[ch] * g
     return out * mix
+
+
+def soften(x, amount=0.5, circular=False, fast=0.0004, slow=0.010):
+    """Transient softener: pulls down the first milliseconds of each attack
+    (close-mic click, hammer, mallet) relative to the body of the note."""
+    x = np.asarray(x, dtype=np.float64)
+    st = np.atleast_2d(x)
+    pre = ns(0.3) if circular else 0
+    m = np.abs(st).max(axis=0)
+    if pre:
+        m = np.concatenate([m[-pre:], m])
+    ef = nb.follow(m, np.exp(-1 / (fast * SR)), np.exp(-1 / (0.03 * SR)))
+    es = nb.follow(m, np.exp(-1 / (slow * SR)), np.exp(-1 / (0.03 * SR)))
+    g = np.clip((es + 1e-6) / (ef + 1e-6), 0.2, 1.0) ** amount
+    g = nb.onepole(g, np.exp(-1 / (0.0007 * SR)))
+    if pre:
+        g = g[pre:]
+    return (st * g).reshape(x.shape)
+
+
+def tremulant(x, rate=5.4, amp=0.05, pitch_ms=0.12, circular=False):
+    """Organ tremulant: a gentle wavering of level and pitch."""
+    x = np.atleast_2d(np.asarray(x, dtype=np.float64))
+    n = x.shape[1]
+    if circular:
+        rate = max(1, round(rate * n / SR)) * SR / n
+    t = tvec(n)
+    lfo = np.sin(2 * np.pi * rate * t)
+    out = np.empty_like(x)
+    for c in range(x.shape[0]):
+        d = (1.0 + pitch_ms * (1 + np.sin(2 * np.pi * rate * t + c * 0.8))) * SR / 1000
+        out[c] = _mod_delay(x[c], d, circular)
+    return out * (1 + amp * lfo)
+
+
+def duck(x, times, depth=0.35, attack=0.008, release=0.22, circular=False):
+    """Side-chain style pumping: dip x at each time in `times` (seconds)."""
+    x = np.atleast_2d(np.asarray(x, dtype=np.float64))
+    n = x.shape[1]
+    g = np.zeros(n)
+    k = ns(release * 5)
+    tt = np.arange(k) / SR
+    shape = (1 - np.exp(-tt / max(attack, 1e-4))) * np.exp(-tt / release)
+    shape /= shape.max() + 1e-12
+    for t in times:
+        i = ns(t)
+        if circular:
+            idx = (i + np.arange(k)) % n
+            g[idx] = np.maximum(g[idx], shape)
+        elif i < n:
+            e = min(n, i + k)
+            g[i:e] = np.maximum(g[i:e], shape[: e - i])
+    return x * (1 - depth * g)
 
 
 def width(x, w=1.0):

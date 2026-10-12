@@ -1,102 +1,112 @@
-"""VI. October Snow — "First Snow".
+"""VI. October Snow — "First Snow" (rescored, Glass / Martinez).
 
-Celesta and sleigh bells, hushed and tender: the full theme slowed into a
-3/4 lullaby in A major, strings barely touching the string (sul tasto), tiny
-bells like snowflakes. 3/4 at 60 bpm in eighths: 40 bars = exactly 120 s.
-
-  bars  0-3   snowfall: glass, a sleigh-bell shimmer, single bells
-  bars  4-19  the theme (A) on the celesta, very slow
-  bars 20-35  the bridge (B) on soft violins, the celesta rocking beneath
-  bars 36-39  the motif on tiny bells, and the snow again
+Hushed and slow, in straight time. The harp cycles a broken chord in
+quarter notes while two glass voices move in dotted quarters - three
+against four, so the two patterns drift against each other and only meet
+again every three bars, like snowfall that never quite lines up. The glass
+pair interlocks: one plays the Ember's cell, the other its inversion, a
+dotted quarter apart, with a dotted-eighth echo. Over an A pedal the chords
+drift (A add9, F#m add9 over A, Dmaj7#11, E sus), one harp note changing at
+a time, with one brighter moment that stays in the mode - B major over A,
+the Lydian colour - like a light coming on in a window. A clarinet and a
+far-away solo violin enter in CANON with the cell augmented (two bars a
+note), the clarinet on A, the violin a fifth higher four bars later; a
+breathy flute holds the inversion; cello pizzicati drop onto the pedal like
+snow from a branch. A Lydian, 4/4 at 60, 34 bars = 136 s.
 """
-from hlaudio.core import rng
-from hlaudio.score import N, seq, prog, pad, bass_line, arpeggio, shift, humanize, Clock, transpose_prog
-from hlaudio.arrange import window, legato, shape, stretch, ranks
-from hlaudio import theme as TH
-from hlaudio import mallets as ML, bowed as BW, voice as VO, effects as FX
-from hlaudio.piece import Mix, finish_loop
+import numpy as np
+
+from hlaudio.score import N, prog, humanize, Clock
+from hlaudio.sampler import Curve
+from hlaudio.orch import Stage
+from hlaudio import process as PR
+from hlaudio import electro as EL, effects as FX
+from hlaudio.piece import finish_loop
 
 TITLE = "First Snow"
-BAR = 6
-BARS = 40
-BPM_UNIT = 120
-LOOP = BARS * BAR * 60 / BPM_UNIT  # 120 s
-T = 7  # D major theme -> A major
-FLAKES = [93, 97, 100, 102, 105, 107]  # A6 C#7 E7 F#7 A7 B7
+BAR = 4
+BARS = 34
+BPM = 60
+LOOP = BARS * BAR * 60 / BPM  # 136 s
+M = PR.Mode(57, "lydian")  # A (D#)
 
-BW.SECTIONS["violins_tasto"] = dict(body="violin", players=6, pan=(-0.6, 0.1), detune=6, vib=(5.0, 10), bright=0.5,
-                                    attack=0.45, release=0.9, noise=0.006,
-                                    eq=[("hp", 200, 0.7), ("peak", 2800, 0.8, -3), ("hs", 4500, 0.7, -6)])
+CYCLE = [("Aadd9", 2, [64, 69, 71, 73]), ("F#madd9/A", 2, [64, 66, 68, 73]),
+         ("Dmaj7#11/A", 2, [64, 66, 68, 73]), ("Esus4/A", 2, [64, 69, 71, 76])]
+PLAN = CYCLE + CYCLE + [("B/A", 2, [63, 66, 71, 75]), ("C#m7/A", 2, [64, 68, 71, 73]),
+                        ("Dmaj7#11/A", 2, [64, 66, 68, 73]),
+                        ("Esus4/A", 2, [64, 69, 71, 76])] + CYCLE + [("Aadd9", 2, [64, 69, 71, 73])]
 
 
 def bar(b):
     return b * BAR
 
 
-def harmony():
-    intro = prog("A:6 | F#m7:6 | Dmaj7:6 | E7sus4:3 E7:3")
-    a = transpose_prog(prog(TH.CHORDS_A)[1:], T, 2, bar(4))
-    b = transpose_prog(prog(TH.CHORDS_B), T, 2, bar(20))
-    outro = prog("A:6 | Dmaj7:6 | Bm7:6 | E7sus4:3 E7:3", bar(36))
-    return intro + a + b + outro
-
-
 def score():
-    pr = harmony()
-    assert abs(sum(d for _, d, _ in pr) - BARS * BAR) < 1e-6, sum(d for _, d, _ in pr)
+    pr = prog(" ".join(f"{c}:{b * BAR}" for c, b, _ in PLAN))
+    assert abs(sum(d for _, d, _ in pr) - BARS * BAR) < 1e-6, sum(d for _, d, _ in pr) / BAR
     P = {}
-    P["celesta"] = shift(stretch(TH.theme_a(0, T, vel=0.55), 2), dt=bar(4) - 12)
-    vb = shift(stretch(TH.theme_b(0, T, vel=0.5), 2), dt=bar(20))
-    P["violins"] = vb
-    P["bells"] = seq("A5:2 | F#6:4 E6:2 C#6:2 E6:8", bar(36) - 2, vel=0.42) + \
-        seq("A6:2 | F#7:4 E7:2 C#7:2 E7:8", bar(38) - 2, vel=0.25)
-    P["cel_rock"] = window(arpeggio(pr, 69, 88, 1.0, [0, 2, 3, 1, 3, 2], vel=0.26, n_tones=4), bar(20), bar(36))
-    pd = pad(pr, 57, 76, 3, vel=0.32, legato=0.3)
-    P["pad"] = shape(pd, [(0, 4, 0.8), (4, 20, 0.9), (20, 36, 0.75), (36, 40, 0.8)], BAR)
-    P["cello"] = bass_line(pr, 45, vel=0.32)
-    r = rng("flakes")
-    fl = []
-    t = 1.3
-    while t < BARS * BAR:
-        fl.append(N(t, 1.0, float(r.choice(FLAKES)), float(r.uniform(0.15, 0.32))))
-        t += r.uniform(3.0, 7.0)
-    P["flakes"] = fl
-    P["jingle"] = [N(bar(b), 1, 0, 0.32) for b in (0, 4, 8, 12, 16, 20, 24, 28, 32, 36)]
-    P["glass"] = seq("(A5 E6):24", bar(0), vel=0.3) + seq("(A5 E6):24", bar(36), vel=0.3)
+    hp, _ = PR.cycling([(s, b) for _, b, s in PLAN], [0, 2, 3, 1], 1.0, 0.0, 1, vel=0.42,
+                       accents=[1.0, .8, .9, .78], legato=2.5)
+    P["harp"] = hp
+    # the glass pair: the cell and its inversion in dotted quarters, a dotted quarter apart
+    g1, g2 = [], []
+    t = 0.0
+    while t < bar(BARS):
+        g1 += PR.realize(PR.cell("P"), M, 14, t, 1.5, vel=0.4)
+        g2 += PR.realize(PR.cell("I"), M, 18, t + 1.5, 1.5, vel=0.32)
+        t += 12.0                                   # three bars: the patterns meet again
+    P["g1"] = PR.fit([n for n in g1 if n.t < bar(BARS) - 1.0], pr)
+    P["g2"] = PR.fit([n for n in g2 if n.t < bar(BARS) - 1.0], pr)
+    P["vn2"] = PR.fit(PR.realize(PR.cell("P"), M, 7, bar(6), [8, 8, 8, 8, 12], vel=0.45), pr)    # A4 F#5 E5 C#5 E5
+    P["vn1"] = PR.fit(PR.realize(PR.cell("P"), M, 11, bar(10), [8, 8, 8, 8, 12], vel=0.45), pr)   # E5 C#6 B5 G#5 B5
+    P["flute"] = PR.fit(PR.realize(PR.cell("I"), M, 14, bar(20), [8, 8, 8, 8, 8], vel=0.4), pr)
+    P["pedal_vc"] = [N(bar(b), bar(8) + 1, 45.0, 0.4) for b in (2, 10, 18, 26)]
+    P["pedal_cb"] = [N(bar(6), bar(17), 33.0, 0.4)]
+    P["tri"] = [N(bar(16), 2, 0, 0.32), N(bar(24), 2, 0, 0.28)]
+    P["pz"] = [N(bar(b) + 0.0, 2.0, 45.0, 0.5) for b in range(2, 32)] + \
+        [N(bar(b) + 2.5, 1.5, 52.0, 0.36) for b in range(4, 30, 2)]
     return pr, P
 
 
 def render():
     pr, P = score()
-    clk = Clock(bpm=BPM_UNIT, rubato=(4 * BAR, 0.05))
-    S = lambda notes, seed, j=0.007: humanize(clk.notes(notes), seed, t_jit=j)
-    mix = Mix(LOOP, circular=True)
+    clk = Clock(bpm=BPM)
+    S = lambda notes, seed, j=0.015: humanize(clk.notes(notes), seed, t_jit=j)
+    sec = lambda b: clk.s(bar(b))
+    arc = Curve([(0, 0.2), (sec(6), 0.26), (sec(12), 0.36), (sec(16), 0.48), (sec(19), 0.52), (sec(24), 0.42),
+                 (sec(30), 0.26), (sec(33), 0.2), (LOOP, 0.2)], period=LOOP)
+    st = Stage(LOOP, circular=True)
+    shape = {"attack": 0.8, "swell": 0.15, "taper": 3.0}
 
-    ce = mix.track()
-    ML.render(ce, S(P["celesta"], 1), ML.celesta, gain=0.55, pan=0.05, pan_by_pitch=0.2, center_pitch=78)
-    ML.render(ce, S(P["cel_rock"], 2), ML.celesta, gain=0.3, pan=0.25, pan_by_pitch=0.3, center_pitch=78)
-    ce.buf = FX.eq(ce.buf, ("hp", 250, 0.7), ("hs", 5500, 0.7, -4), circular=True).astype("float32")
-    mix.add(ce, 1.0, {"hall": 0.4, "shimmer:cathedral": 0.15}, name="celesta")
+    hp = S(P["harp"], 1, 0.015)
+    for n in hp:
+        n.v = float(n.v * (0.85 + 0.5 * arc(n.t)))
+    st.play("harp", hp, "harp", seed=1, gain_db=0)
+    gl = st.stem("glass", {"shimmer:cathedral2": 0.45, "concert": 0.5}, depth=0.7)
+    EL.glass(gl, S(P["g1"], 2, 0.008), gain=0.45, seed=2, attack=0.15, release=2.5, pan_spread=0.0, breath=0.08,
+             bright=0.6)
+    EL.glass(gl, S(P["g2"], 3, 0.008), gain=0.35, seed=3, attack=0.15, release=2.5, pan_spread=0.0, breath=0.08,
+             bright=0.6)
+    gl.buf = FX.eq(gl.buf.astype(np.float64), ("lp", 4000, 0.7), circular=True)
+    gl.buf = (gl.buf + FX.echo(gl.buf, 0.75, fb=0.35, mix=0.3, lp=2400, circular=True)).astype("float32")
+    kw = dict(dyn=arc, shape=shape, lag=0.03)
+    st.play("clarinets", S(P["vn2"], 4), "clarinet", seed=4, gain_db=4, depth=0.75, **kw)
+    st.play("solo_violin", S(P["vn1"], 5), "solo_violin", seed=5, gain_db=3, depth=0.7, layer_bias=-0.3,
+            legato=True, slide=0.1, **kw)
+    pz = S(P["pz"], 11, 0.01)
+    for n in pz:
+        n.v = float(n.v * (0.7 + 0.5 * arc(n.t)))
+    st.play("cellos_pizz", pz, "cellos_pizz", seed=11, gain_db=0, seat="cellos")
+    st.play("flutes", S(P["flute"], 6), "flute_nv", seed=6, dyn=arc, gain_db=6, shape=shape, lag=0.03)
+    st.play("cellos", S(P["pedal_vc"], 7), "cellos", seed=7, dyn=arc, gain_db=-4, depth=0.8, shape=shape)
+    st.play("basses", S(P["pedal_cb"], 8), "basses", seed=8, dyn=arc, gain_db=-6, depth=0.8, shape=shape)
+    st.play("triangle", S(P["tri"], 9, 0.0), "triangle", seed=9, gain_db=0)
 
-    st = mix.track()
-    BW.strings(st, S(legato(P["violins"], 0.1), 3), "violins_tasto", gain=0.8, seed=3)
-    BW.strings(st, S(P["pad"], 4), "violas", gain=0.32, seed=4, style_over={"attack": 0.9, "release": 1.4})
-    BW.strings(st, S(P["cello"], 5), "cellos", gain=0.3, seed=5, style_over={"attack": 1.0, "release": 1.5})
-    st.buf = FX.eq(st.buf, ("hs", 4000, 0.7, -3), circular=True).astype("float32")
-    mix.add(st, 1.0, {"hall": 0.55, "sky": 0.15}, name="strings")
-
-    bl = mix.track()
-    ML.render(bl, S(P["bells"], 6), ML.bell, gain=0.4, pan=-0.1, pan_by_pitch=0.3, center_pitch=86, tone="hand")
-    ML.render(bl, S(P["flakes"], 7, 0.0), ML.bell, gain=0.13, pan_spread=0.7, tone="tiny")
-    for i, n in enumerate(S(P["jingle"], 8, 0.0)):
-        bl.add(n.t, ML.jingle(n.v, seed=i, shake=0.12, n_bells=6, bright=0.9), gain=0.5, pan=0.3)
-    VO.glass_pad(bl, S(P["glass"], 9, 0.0), gain=0.16, seed=9, attack=3.0, release=4.0)
-    mix.add(bl, 1.6, {"hall": 0.4, "shimmer:cathedral": 0.2}, name="bells")
-
-    out = mix.render({"hall": {"seed": 61}, "sky": {"seed": 62}, "shimmer:cathedral": {"seed": 63, "gens": 2, "fb": 0.4}})
-    return finish_loop("music", "snow", out, LOOP, 4, -17.0, 128, tilt_hs_db=-1.5,
-                       meta={"title": TITLE, "bpm": 60, "meter": "3/4", "beat": "quarter", "key": "A major",
-                             "instrument": "celesta and sleigh bells"})
+    out = st.render({"concert": {"seed": 61}, "cathedral2": {"seed": 62},
+                     "shimmer:cathedral2": {"seed": 63, "gens": 2, "fb": 0.45}}, warmth=0.3)
+    return finish_loop("music", "snow", out, LOOP, 4, -17.0, 192, tilt_hs_db=-1.5,
+                       meta={"title": TITLE, "bpm": BPM, "meter": "4/4", "beat": "quarter", "key": "A lydian",
+                             "instrument": "harp and glass"})
 
 
 if __name__ == "__main__":

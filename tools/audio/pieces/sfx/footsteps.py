@@ -9,20 +9,15 @@ and levelled. They stay dry and close-miked: the walk should sound like your own
 The originals are fetched into .cache/recorded/ the first time (git ignores them), and every step
 made from them is recorded in assets.lock.json as CC0, with its source.
 """
-import json
-import urllib.request
+import re
 
 import numpy as np
-from scipy.io import wavfile
 from scipy.signal import resample_poly
 
 from hlaudio.core import SR, ns
 from hlaudio.effects import chain, filt
-import re
-
-from hlaudio.piece import CACHE, OUT, finish_sfx, update_manifest
-
-AUTHOR = "Joseph SARDIN (BigSoundBank)"
+from hlaudio.piece import OUT, finish_sfx, update_manifest
+from hlaudio.recordings import entry, lock_cc0, original
 
 # group: (BigSoundBank id, title, page, how many steps, longest step (s), peak dB, extra treatment)
 # Steps come at least GAP s apart (a quicker walk in the snow).
@@ -36,24 +31,6 @@ SOURCES = {
     # The sea floor: very wet mud, a little lower and darker, as if heavy with water.
     "step-sand": ("0495", "Steps in the mud", "https://bigsoundbank.com/steps-in-the-mud-s0495.html", 5, 0.7, -7.0, "seabed"),
 }
-
-
-def original(sound_id):
-    """The recording, mono, at SR (fetched once into the cache)."""
-    path = CACHE / "recorded" / f"bsb-{sound_id}.wav"
-    if not path.exists():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        url = f"https://bigsoundbank.com/UPLOAD/bwf-en/{sound_id}.wav"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Hallowed Lanterns audio tools)"})
-        with urllib.request.urlopen(req, timeout=120) as r:
-            path.write_bytes(r.read())
-    rate, data = wavfile.read(path)
-    x = data.astype(np.float64)
-    if data.dtype.kind == "i":
-        x /= float(np.iinfo(data.dtype).max)
-    if x.ndim > 1:
-        x = x.mean(axis=1)
-    return resample_poly(x, SR, rate) if rate != SR else x
 
 
 def onsets(x, gap):
@@ -138,25 +115,6 @@ def treat(seg, how):
     return y
 
 
-def lock(entries):
-    """Record the steps as CC0 recordings: an entry replaces the older one for the same file
-    (in place), and entries for steps no longer made are dropped."""
-    path = OUT.parents[1] / "assets.lock.json"
-    data = json.loads(path.read_text()) if path.exists() else {"assets": []}
-    new = {e["path"]: e for e in entries}
-    ours = re.compile(r"^public/audio/sfx/(%s)-\d+\.mp3$" % "|".join(map(re.escape, SOURCES)))
-    assets = []
-    for a in data.get("assets", []):
-        p = a.get("path", "")
-        if p in new:
-            assets.append(new.pop(p))
-        elif not ours.match(p):
-            assets.append(a)
-    assets.extend(new.values())
-    data["assets"] = assets
-    path.write_text(json.dumps(data, indent=2) + "\n")
-
-
 def render():
     entries = []
     for group, (sid, title, page, n, longest, peak, how) in SOURCES.items():
@@ -171,14 +129,8 @@ def render():
         for i, seg in enumerate(steps):
             name = f"{group}-{i + 1}"
             finish_sfx(group, name, treat(seg, how), peak, max_s=longest + 0.15, kbps=128)
-            entries.append({
-                "path": f"public/audio/sfx/{name}.mp3",
-                "license": "CC0-1.0",
-                "source": page,
-                "author": AUTHOR,
-                "title": f"{title} (one step, trimmed and levelled)",
-            })
-    lock(entries)
+            entries.append(entry(name, page, f"{title} (one step, trimmed and levelled)"))
+    lock_cc0(entries, SOURCES)
 
 
 if __name__ == "__main__":
