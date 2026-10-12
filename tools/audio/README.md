@@ -1,9 +1,16 @@
 # tools/audio — the Hallowed Lanterns sound renderer
 
-Everything in `public/audio/` is **synthesised from scratch** by this folder:
-no samples, soundfonts or recordings. It is our own work (`"license": "own"`
-in `assets.lock.json`). Python + numpy/scipy, with a few sample-by-sample
-kernels compiled by numba; ffmpeg (libmp3lame) encodes and measures.
+Everything in `public/audio/` is **synthesised from scratch** by this folder
+(our own work: `"license": "own"` in `assets.lock.json`), except the footsteps.
+Python + numpy/scipy, with a few sample-by-sample kernels compiled by numba;
+ffmpeg (libmp3lame) encodes and measures.
+
+**Footsteps** (`pieces/sfx/footsteps.py`) are cut from real studio foley by
+Joseph Sardin at [BigSoundBank](https://bigsoundbank.com), released under CC0:
+gravel, dry leaves, grass, snow, and wet mud for the sea floor. The piece fetches
+the originals into `.cache/recorded/` (git ignores them), splits them into single
+steps, keeps the cleanest, and records each one in `assets.lock.json` as
+`CC0-1.0` with its source.
 
 ## Rendering
 

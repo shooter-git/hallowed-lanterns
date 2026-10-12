@@ -362,7 +362,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     terrain,
     music: 'hollow',
     ambience: 'hollow',
-    steps: 'step-gravel',
+    steps: 'step-leaves',
 
     enter() {
       ctx.glow.setBounds(...bounds);

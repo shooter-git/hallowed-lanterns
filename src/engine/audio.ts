@@ -103,6 +103,8 @@ export class AudioDirector {
   /** Most sounds at once (the budget is 32 on mid-range devices; keep some room). */
   maxVoices = 26;
   private readonly buffers = new Map<string, Promise<AudioBuffer | null>>();
+  /** The variation each sound last played, so the next one differs. */
+  private readonly lastPick = new Map<string, number>();
   private music: Loop | null = null;
   private ambience: Loop | null = null;
   private musicKey = '';
@@ -236,13 +238,17 @@ export class AudioDirector {
    */
   async sfx(
     key: string,
-    options: { volume?: number; rate?: number; at?: Vector3; spread?: number; send?: 'sfx' | 'ui' } = {},
+    options: { volume?: number; rate?: number; at?: Vector3; pan?: number; spread?: number; send?: 'sfx' | 'ui' } = {},
   ) {
     if (!this.started) return;
     const list = this.manifest?.sfx[key];
     if (!list?.length) return;
     if (this.active >= this.maxVoices - (this.music?.voices ?? 0) - (this.ambience?.voices ?? 0)) return;
-    const path = list[Math.floor(Math.random() * list.length)] as string;
+    // Never the same variation twice running (two identical footsteps give the game away).
+    let pick = Math.floor(Math.random() * list.length);
+    if (list.length > 1 && pick === this.lastPick.get(key)) pick = (pick + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length;
+    this.lastPick.set(key, pick);
+    const path = list[pick] as string;
     const buf = await this.file(path);
     if (!buf) return;
     this.playBuffer(buf, options);
@@ -259,7 +265,7 @@ export class AudioDirector {
 
   private playBuffer(
     buf: AudioBuffer,
-    options: { volume?: number; rate?: number; at?: Vector3; send?: 'sfx' | 'ui' | 'music' },
+    options: { volume?: number; rate?: number; at?: Vector3; pan?: number; send?: 'sfx' | 'ui' | 'music' },
   ) {
     const ctx = this.ctx;
     const src = ctx.createBufferSource();
@@ -276,6 +282,10 @@ export class AudioDirector {
       p.rolloffFactor = 1.1;
       p.maxDistance = 60;
       setPannerPosition(p, options.at);
+      node = node.connect(p);
+    } else if (options.pan) {
+      const p = ctx.createStereoPanner();
+      p.pan.value = options.pan;
       node = node.connect(p);
     }
     node.connect(this.sends.get(options.send ?? 'sfx') as AudioNode);

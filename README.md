@@ -71,11 +71,13 @@ in `vendor/`), so a server can follow it:
   Kraken's Wreck, the guitar).
 - `tools/blender/` — Blender scripts that model the longhorns, the octopus, the snowman, the
   ofrenda and the rest (`blender -b --factory-startup -P tools/blender/<name>.py`).
-- `tools/audio/` — the soundtrack and every sound, synthesised from scratch in Python
-  (see its README).
+- `tools/audio/` — the soundtrack and every sound, synthesised from scratch in Python, and the
+  footsteps, cut from CC0 recordings (see its README).
 - `node tools/lock-assets.mjs` — records new models and sounds in `assets.lock.json` as our own.
 
-Every picture, model and sound is made by this project's own tools; nothing is downloaded.
+Every picture, model and sound is made by this project's own tools, except the footsteps: real
+studio foley by Joseph Sardin ([BigSoundBank](https://bigsoundbank.com)), released under CC0. Thank
+you, Joseph.
 
 ## Privacy
 

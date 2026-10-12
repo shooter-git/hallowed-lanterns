@@ -348,24 +348,45 @@
       "sfx/step-grass-1.mp3",
       "sfx/step-grass-2.mp3",
       "sfx/step-grass-3.mp3",
-      "sfx/step-grass-4.mp3"
+      "sfx/step-grass-4.mp3",
+      "sfx/step-grass-5.mp3",
+      "sfx/step-grass-6.mp3"
     ],
     "step-gravel": [
       "sfx/step-gravel-1.mp3",
       "sfx/step-gravel-2.mp3",
       "sfx/step-gravel-3.mp3",
-      "sfx/step-gravel-4.mp3"
+      "sfx/step-gravel-4.mp3",
+      "sfx/step-gravel-5.mp3",
+      "sfx/step-gravel-6.mp3",
+      "sfx/step-gravel-7.mp3",
+      "sfx/step-gravel-8.mp3"
+    ],
+    "step-leaves": [
+      "sfx/step-leaves-1.mp3",
+      "sfx/step-leaves-2.mp3",
+      "sfx/step-leaves-3.mp3",
+      "sfx/step-leaves-4.mp3",
+      "sfx/step-leaves-5.mp3",
+      "sfx/step-leaves-6.mp3",
+      "sfx/step-leaves-7.mp3",
+      "sfx/step-leaves-8.mp3"
     ],
     "step-sand": [
       "sfx/step-sand-1.mp3",
       "sfx/step-sand-2.mp3",
-      "sfx/step-sand-3.mp3"
+      "sfx/step-sand-3.mp3",
+      "sfx/step-sand-4.mp3"
     ],
     "step-snow": [
       "sfx/step-snow-1.mp3",
       "sfx/step-snow-2.mp3",
       "sfx/step-snow-3.mp3",
-      "sfx/step-snow-4.mp3"
+      "sfx/step-snow-4.mp3",
+      "sfx/step-snow-5.mp3",
+      "sfx/step-snow-6.mp3",
+      "sfx/step-snow-7.mp3",
+      "sfx/step-snow-8.mp3"
     ],
     "tentacle-curl": [
       "sfx/tentacle-curl.mp3"

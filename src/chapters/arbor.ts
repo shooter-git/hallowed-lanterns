@@ -357,7 +357,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       shared.uFogHeight.value = 5;
       shared.uFogGlow.value = 0.55;
       ctx.audio.preload('arbor', ['pumpkin-flare', 'ember-chime-arbor', 'step-gravel']);
-      ctx.audio.preload('grove');
+      ctx.audio.preload('grove', ['step-leaves']);
     },
 
     update(dt) {

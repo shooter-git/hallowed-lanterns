@@ -1,123 +1,184 @@
-"""Footsteps: gravel (the arbor lane), grass, snow and soft sea-floor sand.
+"""Footsteps, cut from real recordings: studio foley by Joseph Sardin (BigSoundBank), released
+under CC0 (public domain). Gravel for the lanes, dry leaves for the woodland trails, grass, snow,
+and steps in very wet mud for the sea floor (the Deep muffles them further).
 
-Each step is a heel strike and a toe roll. Gravel and snow are granular:
-hundreds of tiny impacts (stones knocking, snow crystals fracturing) under
-the step's pressure envelope; grass is a soft swish over a muffled thud;
-sand is a fine, muffled shuffle.
+Each recording is split into single steps at their onsets; the cleanest, most even ones are kept
+(a quiet start, a tail that has died away, a level near the recording's typical step), trimmed
+and levelled. They stay dry and close-miked: the walk should sound like your own feet.
+
+The originals are fetched into .cache/recorded/ the first time (git ignores them), and every step
+made from them is recorded in assets.lock.json as CC0, with its source.
 """
+import json
+import urllib.request
+
 import numpy as np
+from scipy.io import wavfile
+from scipy.signal import resample_poly
 
-from hlaudio.core import SR, ns, rng, tvec
-from hlaudio.effects import chain, filt, reverb
-from hlaudio.piece import finish_sfx
+from hlaudio.core import SR, ns
+from hlaudio.effects import chain, filt
+import re
 
-PEAK = -6.0  # footsteps repeat a lot: keep them modest
+from hlaudio.piece import CACHE, OUT, finish_sfx, update_manifest
+
+AUTHOR = "Joseph SARDIN (BigSoundBank)"
+
+# group: (BigSoundBank id, title, page, how many steps, longest step (s), peak dB, extra treatment)
+# Steps come at least GAP s apart (a quicker walk in the snow).
+GAP = {"step-snow": 0.3}
+SOURCES = {
+    "step-gravel": ("1117", "Footsteps on gravels #2", "https://bigsoundbank.com/footsteps-on-gravels-2-s1117.html", 8, 0.6, -6.0, None),
+    "step-leaves": ("2889", "Feet in leaves #2", "https://bigsoundbank.com/feet-in-leaves-2-s2889.html", 8, 0.75, -6.5, None),
+    "step-grass": ("1253", "Steps in the grass, slow", "https://bigsoundbank.com/steps-in-the-grass-slow-s1253.html", 6, 0.75, -7.0, None),
+    # A quick walk: a step is over in a third of a second, before the next crunch.
+    "step-snow": ("3363", "Steps in the snow #3", "https://bigsoundbank.com/steps-in-the-snow-3-s3363.html", 8, 0.34, -6.0, None),
+    # The sea floor: very wet mud, a little lower and darker, as if heavy with water.
+    "step-sand": ("0495", "Steps in the mud", "https://bigsoundbank.com/steps-in-the-mud-s0495.html", 5, 0.7, -7.0, "seabed"),
+}
 
 
-def grains(n, times, r, lo, hi, dur=(0.0006, 0.003), amp=(0.2, 1.0), q=2.5):
-    y = np.zeros(n)
-    for t in times:
-        i = ns(t)
-        L = ns(r.uniform(*dur))
-        if i + L >= n or L < 2:
-            continue
-        f = np.exp(r.uniform(np.log(lo), np.log(hi)))
-        tt = tvec(L)
-        g = np.sin(2 * np.pi * f * tt + r.uniform(0, 6)) * np.exp(-tt / (L / SR / 3))
-        g += 0.25 * r.standard_normal(L) * np.exp(-tt / (L / SR / 4))
-        y[i:i + L] += g * r.uniform(*amp)
+def original(sound_id):
+    """The recording, mono, at SR (fetched once into the cache)."""
+    path = CACHE / "recorded" / f"bsb-{sound_id}.wav"
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        url = f"https://bigsoundbank.com/UPLOAD/bwf-en/{sound_id}.wav"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Hallowed Lanterns audio tools)"})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            path.write_bytes(r.read())
+    rate, data = wavfile.read(path)
+    x = data.astype(np.float64)
+    if data.dtype.kind == "i":
+        x /= float(np.iinfo(data.dtype).max)
+    if x.ndim > 1:
+        x = x.mean(axis=1)
+    return resample_poly(x, SR, rate) if rate != SR else x
+
+
+def onsets(x, gap):
+    """Where footfalls begin: sharp rises of the high band's level, smoothed over 40 ms so the
+    pebble clicks within one step don't count as steps, at least `gap` seconds apart. Each is
+    then moved back to where its first sound starts. The strictest rise that still finds a
+    walking pace is used: soft surfaces (grass, a carpet of leaves) rise gently."""
+    hop = ns(0.004)
+    hi = filt(x, chain(("hp", 400, 0.7)))
+    frames = len(hi) // hop
+    env = np.sqrt(np.mean(hi[: frames * hop].reshape(frames, hop) ** 2, axis=1)) + 1e-9
+    fast = 20 * np.log10(env)
+    slow = 10 * np.log10(np.convolve(env ** 2, np.ones(10) / 10, "same") + 1e-18)
+    floor = np.percentile(fast, 25)
+    rise = slow - np.concatenate([np.full(6, slow[0]), slow[:-6]])
+    seconds = len(x) / SR
+    for above, by in ((14, 6), (11, 5), (9, 4), (7, 3), (5, 2.5), (4, 2)):
+        out = []
+        for i in range(6, frames):
+            if slow[i] > floor + above and rise[i] > by and (not out or (i - out[-1]) * hop > ns(gap)):
+                out.append(i)
+        if len(out) / seconds >= 0.6:
+            break
+    starts = []
+    for i in out:
+        j = max(0, i - 15)
+        while j < i and fast[j] < floor + 8:
+            j += 1
+        starts.append(j * hop)
+    return starts
+
+
+def cut(x, starts, i, longest):
+    """One step: from just before its onset to just before the next (at most `longest` s)."""
+    a = max(0, starts[i] - ns(0.012))
+    end = starts[i + 1] - ns(0.02) if i + 1 < len(starts) else len(x)
+    b = min(end, a + ns(longest))
+    return x[a:b], a
+
+
+def score(x, seg, a, longest):
+    """Lower is better: a quiet run-up, a tail that has died away, a sensible length."""
+    if len(seg) < ns(0.22):
+        return np.inf
+    peak = np.max(np.abs(seg)) + 1e-9
+    # The footfall itself is at the start: a louder moment later on is the next step leaking in.
+    if np.argmax(np.abs(seg)) > 0.35 * len(seg):
+        return np.inf
+    pre = x[max(0, a - ns(0.03)):a]
+    pre_db = 20 * np.log10((np.sqrt(np.mean(pre ** 2)) if len(pre) else 1e-9) / peak + 1e-9)
+    tail = seg[-ns(0.05):]
+    tail_db = 20 * np.log10(np.sqrt(np.mean(tail ** 2)) / peak + 1e-9)
+    # A step cut short by the next one sounds clipped: prefer the whole step.
+    short = max(0.0, min(0.4, longest) - len(seg) / SR) * 30
+    return pre_db + tail_db + short
+
+
+def pick(x, n, longest, gap):
+    starts = onsets(x, gap)
+    steps = [cut(x, starts, i, longest) for i in range(len(starts))]
+    peaks = np.array([np.max(np.abs(s)) if len(s) else 0 for s, _ in steps])
+    if not len(peaks):
+        raise SystemExit("no steps found")
+    # Even steps only: not the stamps, not the scuffs.
+    lo, hi = np.percentile(peaks, 25), np.percentile(peaks, 90)
+    ok = [(score(x, s, a, longest), a, s) for (s, a), p in zip(steps, peaks) if lo <= p <= hi]
+    ok = [o for o in ok if np.isfinite(o[0])]
+    ok.sort(key=lambda o: o[0])
+    best = sorted(ok[:n], key=lambda o: o[1])  # in the order they were walked
+    return [s for _, _, s in best], len(starts)
+
+
+def treat(seg, how):
+    y = filt(seg, chain(("hp", 45, 0.7)))
+    if how == "seabed":
+        # a fifth of a tone heavier, and the top rolled away
+        y = resample_poly(y, 6, 5)
+        y = filt(y, chain(("lp", 2600, 0.7), ("lp", 3200, 0.7)))
+    # a soft close, so a cut never clicks (longer where the rustle carries on)
+    k = int(np.clip(len(y) * 0.22, ns(0.04), ns(0.15)))
+    y[-k:] *= 0.5 * (1 + np.cos(np.linspace(0, np.pi, k)))
     return y
 
 
-def thud(n, r, f=110.0, decay=0.03, lp=400.0, at=0.0):
-    t = tvec(n)
-    tt = np.maximum(t - at, 0)
-    x = r.standard_normal(n) * np.exp(-tt / decay) * (t >= at)
-    x = filt(x, chain(("lp", lp, 0.7), ("lp", lp, 0.7)))
-    x += 0.5 * np.sin(2 * np.pi * f * tt) * np.exp(-tt / (decay * 1.3)) * (t >= at)
-    return x
-
-
-def gravel(seed):
-    r = rng("gravel", seed)
-    n = ns(0.55)
-    heel = r.uniform(0.0, 0.005)
-    toe = heel + r.uniform(0.11, 0.17)
-    y = thud(n, r, r.uniform(90, 130), 0.025, 350, heel) * 0.6
-    y += thud(n, r, r.uniform(110, 150), 0.02, 300, toe) * 0.3
-    t1 = heel + r.beta(1.6, 4.0, int(r.integers(160, 260))) * 0.16
-    t2 = toe + r.beta(1.5, 3.0, int(r.integers(90, 160))) * 0.14
-    y += grains(n, t1, r, 700, 4200, amp=(0.05, 0.6))
-    y += 0.7 * grains(n, t2, r, 800, 4500, amp=(0.05, 0.5))
-    # a few distinct pebble clicks rolling off
-    t3 = toe + r.uniform(0.02, 0.2, int(r.integers(3, 8)))
-    y += grains(n, t3, r, 1800, 3800, dur=(0.002, 0.006), amp=(0.2, 0.6))
-    y = filt(y, chain(("hp", 60, 0.7), ("lp", 5000, 0.7), ("lp", 6000, 0.7), ("hs", 3000, 0.7, -4)))
-    return y
-
-
-def grass(seed):
-    r = rng("grass", seed)
-    n = ns(0.5)
-    t = tvec(n)
-    heel = 0.005
-    toe = heel + r.uniform(0.1, 0.16)
-    y = thud(n, r, r.uniform(80, 110), 0.035, 250, heel) * 1.1
-    y += thud(n, r, r.uniform(90, 120), 0.03, 220, toe) * 0.55
-    env = np.exp(-np.maximum(t - heel, 0) / 0.07) * (1 - np.exp(-np.maximum(t - heel, 0) / 0.01)) * (t > heel)
-    env += 0.6 * np.exp(-np.maximum(t - toe, 0) / 0.09) * (1 - np.exp(-np.maximum(t - toe, 0) / 0.015)) * (t > toe)
-    sw = filt(r.standard_normal(n), chain(("bp", r.uniform(1200, 1900), 1.2), ("lp", 3500, 0.7))) * env * 0.3
-    y += sw
-    stems = heel + r.uniform(0, 0.25, int(r.integers(5, 14)))
-    y += grains(n, stems, r, 1000, 3000, dur=(0.001, 0.004), amp=(0.05, 0.2))
-    return filt(y, chain(("hp", 50, 0.7), ("lp", 4500, 0.7), ("lp", 5500, 0.7)))
-
-
-def snow(seed):
-    r = rng("snowstep", seed)
-    n = ns(0.6)
-    heel = 0.005
-    toe = heel + r.uniform(0.13, 0.19)
-    y = thud(n, r, r.uniform(70, 100), 0.04, 220, heel) * 0.6
-    t1 = heel + r.beta(1.4, 2.4, int(r.integers(450, 700))) * 0.2
-    t2 = toe + r.beta(1.4, 2.4, int(r.integers(250, 400))) * 0.17
-    c = grains(n, t1, r, 500, 3200, dur=(0.0008, 0.003), amp=(0.05, 0.4))
-    c += 0.75 * grains(n, t2, r, 600, 3200, dur=(0.0008, 0.003), amp=(0.05, 0.4))
-    # cold-snow squeak: a narrow resonance riding the crunch
-    sq = filt(c, chain(("bp", r.uniform(900, 1300), 6.0)))
-    y += c + 0.6 * sq
-    return filt(y, chain(("hp", 50, 0.7), ("lp", 3200, 0.7), ("lp", 4200, 0.7)))
-
-
-def sand(seed):
-    r = rng("sand", seed)
-    n = ns(0.6)
-    t = tvec(n)
-    heel = 0.005
-    toe = heel + r.uniform(0.14, 0.2)
-    y = thud(n, r, r.uniform(60, 85), 0.05, 200, heel) * 0.8
-    y += thud(n, r, r.uniform(70, 95), 0.045, 180, toe) * 0.4
-    env = np.exp(-np.maximum(t - heel, 0) / 0.09) * (t > heel) * (1 - np.exp(-np.maximum(t - heel, 0) / 0.02))
-    env += 0.7 * np.exp(-np.maximum(t - toe, 0) / 0.1) * (t > toe) * (1 - np.exp(-np.maximum(t - toe, 0) / 0.02))
-    sh = filt(r.standard_normal(n), chain(("bp", r.uniform(700, 1100), 0.7))) * env * 0.4
-    y += sh
-    return filt(y, chain(("hp", 40, 0.7), ("lp", 1800, 0.7), ("lp", 2500, 0.7)))
-
-
-def _with_space(y, space, amt):
-    wet = reverb(y, space)[:, : y.shape[-1] + ns(0.4)]
-    dry = np.vstack([y, y])
-    dry = np.pad(dry, ((0, 0), (0, wet.shape[1] - dry.shape[1])))
-    return dry + amt * wet
+def lock(entries):
+    """Record the steps as CC0 recordings: an entry replaces the older one for the same file
+    (in place), and entries for steps no longer made are dropped."""
+    path = OUT.parents[1] / "assets.lock.json"
+    data = json.loads(path.read_text()) if path.exists() else {"assets": []}
+    new = {e["path"]: e for e in entries}
+    ours = re.compile(r"^public/audio/sfx/(%s)-\d+\.mp3$" % "|".join(map(re.escape, SOURCES)))
+    assets = []
+    for a in data.get("assets", []):
+        p = a.get("path", "")
+        if p in new:
+            assets.append(new.pop(p))
+        elif not ours.match(p):
+            assets.append(a)
+    assets.extend(new.values())
+    data["assets"] = assets
+    path.write_text(json.dumps(data, indent=2) + "\n")
 
 
 def render():
-    for i in range(4):
-        finish_sfx("step-gravel", f"step-gravel-{i + 1}", _with_space(gravel(i), "room", 0.08), PEAK, max_s=0.5)
-        finish_sfx("step-grass", f"step-grass-{i + 1}", _with_space(grass(i), "forest", 0.05), PEAK, max_s=0.45)
-        finish_sfx("step-snow", f"step-snow-{i + 1}", _with_space(snow(i), "room", 0.05), PEAK, max_s=0.55)
-    for i in range(3):
-        finish_sfx("step-sand", f"step-sand-{i + 1}", _with_space(sand(i), "underwater", 0.12), PEAK, max_s=0.5)
+    entries = []
+    for group, (sid, title, page, n, longest, peak, how) in SOURCES.items():
+        # Start the group afresh: no step left over from an earlier cut.
+        for old in (OUT / "sfx").glob(f"{group}-*.mp3"):
+            if re.fullmatch(rf"{re.escape(group)}-\d+\.mp3", old.name):
+                old.unlink()
+        update_manifest("sfx", group, [])
+        x = original(sid)
+        steps, found = pick(x, n, longest, GAP.get(group, 0.35))
+        print(f"  {group}: {found} steps found in '{title}', kept {len(steps)}")
+        for i, seg in enumerate(steps):
+            name = f"{group}-{i + 1}"
+            finish_sfx(group, name, treat(seg, how), peak, max_s=longest + 0.15, kbps=128)
+            entries.append({
+                "path": f"public/audio/sfx/{name}.mp3",
+                "license": "CC0-1.0",
+                "source": page,
+                "author": AUTHOR,
+                "title": f"{title} (one step, trimmed and levelled)",
+            })
+    lock(entries)
 
 
 if __name__ == "__main__":

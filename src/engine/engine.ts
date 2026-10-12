@@ -135,9 +135,12 @@ export class Engine {
         this.tap(innerWidth / 2, innerHeight / 2);
       }
     });
+    // Footsteps: left, right, left… each a touch to its side, and never quite the same.
+    let foot = 1;
     walker.onStep = () => {
       if (!this.chapter) return;
-      void audio.sfx(this.chapter.steps, { volume: 0.3, rate: 0.93 + Math.random() * 0.14, send: 'sfx' });
+      foot = -foot;
+      void audio.sfx(this.chapter.steps, { volume: 0.34, rate: 0.96 + Math.random() * 0.08, pan: foot * 0.14, send: 'sfx' });
     };
     ui.walkButton.addEventListener('click', () => {
       walker.auto = !walker.auto;
