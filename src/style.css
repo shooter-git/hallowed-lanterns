@@ -336,6 +336,37 @@ body .ats-touch .ats-touch-knob {
   }
 }
 
+/* Short screens (a phone on its side): the title on one line, the chapter card higher, and the
+   words low down between the joystick and the walk button, so nothing lands on anything else. */
+@media (max-height: 520px) {
+  .hl-title-inner {
+    max-width: 46rem;
+  }
+  .hl-title h1 {
+    margin: 0.1em 0 0.45em;
+    font-size: clamp(2rem, 12vh, 3.4rem);
+    white-space: nowrap;
+  }
+  .hl-kicker {
+    font-size: clamp(0.9rem, 4.2vh, 1.1rem);
+  }
+  .hl-small {
+    margin-top: 0.7em;
+  }
+  .hl-card {
+    top: 9%;
+  }
+  .hl-card h2 {
+    font-size: clamp(1.5rem, 9vh, 2.4rem);
+  }
+  .hl-line,
+  .hl-ui[data-touch="1"] .hl-line {
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    width: min(calc(100vw - 380px), 30rem);
+    font-size: clamp(0.95rem, 4.4vh, 1.15rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hl-card,
   .hl-title,

@@ -12,6 +12,7 @@ export class UI {
   private readonly controls = document.createElement('div');
   readonly walkButton = document.createElement('button');
   private readonly offers = new Set<HTMLButtonElement>();
+  private waiting: { text: string; seconds: number } | null = null;
   readonly menuButton = document.createElement('button');
   private readonly menu = document.createElement('div');
   private lineTimer = 0;
@@ -95,6 +96,9 @@ export class UI {
         this.title.classList.remove('hl-show');
         this.title.classList.add('hl-gone');
         setTimeout(() => this.title.remove(), 1600);
+        const waiting = this.waiting;
+        this.waiting = null;
+        if (waiting) setTimeout(() => this.say(waiting.text, waiting.seconds), 2600);
         resolve();
       };
       since -= 450;
@@ -119,6 +123,11 @@ export class UI {
 
   /** A short line of story, for a few seconds. */
   say(text: string, seconds = 5) {
+    // Nothing is said over the title: the latest line waits until the walk begins.
+    if (this.title.classList.contains('hl-show')) {
+      this.waiting = { text, seconds };
+      return;
+    }
     this.line.textContent = text;
     this.line.classList.add('hl-show');
     clearTimeout(this.lineTimer);
