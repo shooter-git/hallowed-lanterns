@@ -71,6 +71,8 @@ export class Engine {
     const walker = new Walker(portal, camera, renderer.domElement);
     const audio = new AudioDirector(portal);
     portal.input.define({ move: 'stick' });
+    // No joystick over the title: it appears when the walk begins.
+    if (portal.viewport.touch) portal.input.showTouchControls(false);
 
     portal.progress(0.15, 'Carving faces');
     const atlas = buildCarvingAtlas();
@@ -198,6 +200,7 @@ export class Engine {
 
   private begin() {
     const { ui, audio, walker, portal } = this.ctx;
+    if (portal.viewport.touch) portal.input.showTouchControls(true);
     audio.start();
     this.begun = true;
     // From the title theme, an unhurried handover: it plays on as the overture to the walk.

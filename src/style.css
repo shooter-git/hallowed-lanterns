@@ -277,18 +277,51 @@ body {
   letter-spacing: 0.1em;
 }
 
+/* "Walk with me" stays out of the way: small and see-through until it's on. */
+.hl-controls .hl-button {
+  min-height: 38px;
+  padding: 0 0.9em;
+  font-size: 0.82rem;
+  color: rgba(255, 245, 235, 0.82);
+  background: rgba(20, 14, 12, 0.26);
+  border-color: rgba(255, 240, 220, 0.16);
+}
+.hl-controls .hl-button:hover,
+.hl-controls .hl-button:focus-visible,
+.hl-controls .hl-button.hl-on {
+  color: rgba(255, 245, 235, 0.95);
+}
+.hl-controls .hl-button.hl-on {
+  background: rgba(120, 60, 15, 0.45);
+}
+
 /* On touch screens the SDK draws its joystick bottom-left: 132 px across (120 px in landscape),
-   20 px from the edges. The walk button sits right beside it, centred on the same row. */
+   20 px from the edges. In portrait the walk button sits beside it, centred on its row; in
+   landscape it goes to the other corner, under the right thumb. */
 .hl-ui[data-touch="1"] .hl-controls {
   right: auto;
   left: calc(166px + env(safe-area-inset-left));
-  bottom: calc(62px + env(safe-area-inset-bottom));
+  bottom: calc(67px + env(safe-area-inset-bottom));
 }
 @media (orientation: landscape) {
   .hl-ui[data-touch="1"] .hl-controls {
-    left: calc(154px + env(safe-area-inset-left));
-    bottom: calc(56px + env(safe-area-inset-bottom));
+    left: auto;
+    right: calc(22px + env(safe-area-inset-right));
+    bottom: calc(24px + env(safe-area-inset-bottom));
   }
+}
+
+/* The SDK's joystick, quieter: you should see the night through it. (More specific than the
+   SDK's own rules, so these win whichever stylesheet comes last.) */
+body .ats-touch .ats-touch-stick {
+  background: rgba(251, 249, 247, 0.07);
+  border-color: rgba(251, 249, 247, 0.22);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+body .ats-touch .ats-touch-knob {
+  background: rgba(251, 249, 247, 0.4);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
 }
 /* A narrow phone has room for "Walk" beside the joystick, not "Walk with me". */
 @media (orientation: portrait) and (max-width: 349px) {
