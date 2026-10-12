@@ -169,14 +169,15 @@
     },
     "picture-show": {
       "file": "music/picture-show.mp3",
-      "loopSeconds": 120.0,
+      "loopSeconds": 128.0,
       "tailSeconds": 4,
       "title": "The Picture Show",
-      "bpm": 132,
-      "meter": "3/4",
+      "bpm": 120,
+      "meter": "4/4",
       "beat": "quarter",
-      "key": "F major",
-      "instrument": "upright piano"
+      "key": "D major",
+      "instrument": "piano and pizzicato",
+      "filmSeconds": 64
     },
     "snow": {
       "file": "music/snow.mp3",
