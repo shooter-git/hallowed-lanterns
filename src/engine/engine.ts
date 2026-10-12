@@ -182,9 +182,16 @@ export class Engine {
       }
     }
 
-    await ui.showTitle(() => {
-      // Inside the tap itself, so every browser lets the sound start.
-      void portal.audio.context.resume();
+    // The title theme plays over the title: straight away if sound may already play, otherwise
+    // from the first tap (made inside the tap itself, so every browser lets it start).
+    await ui.showTitle({
+      soundReady: portal.audio.context.state === 'running',
+      onSound: () => {
+        void portal.audio.context.resume();
+        this.ctx.audio.start();
+        void this.ctx.audio.setScene('title', null, 1.5);
+      },
+      onBegin: () => void portal.audio.context.resume(),
     });
     this.begin();
   }
@@ -193,7 +200,8 @@ export class Engine {
     const { ui, audio, walker, portal } = this.ctx;
     audio.start();
     this.begun = true;
-    void audio.setScene(this.chapter?.music ?? null, this.chapter?.ambience ?? null, 3);
+    // From the title theme, an unhurried handover: it plays on as the overture to the walk.
+    void audio.setScene(this.chapter?.music ?? null, this.chapter?.ambience ?? null, audio.currentMusic === 'title' ? 6 : 3);
     ui.showControls();
     const info = CHAPTERS[this.index];
     if (info) setTimeout(() => ui.chapterCard(info.numeral, info.name, info.subtitle), 600);

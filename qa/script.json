@@ -1,7 +1,9 @@
 {
-  "$comment": "A first walk: begin, walk into the arbor, look around, touch a lantern, walk on. Positions are fractions of the screen.",
+  "$comment": "A first walk: hear the title theme, begin, walk into the arbor, look around, touch a lantern, walk on. Positions are fractions of the screen.",
   "steps": [
     { "wait": 2 },
+    { "tap": [0.5, 0.68] },
+    { "wait": 1.5 },
     { "tap": [0.5, 0.68] },
     { "wait": 3 },
     { "screenshot": "the-entrance" },

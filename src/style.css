@@ -93,6 +93,15 @@ body {
   box-shadow: 0 0 46px rgba(255, 150, 60, 0.45), inset 0 0 14px rgba(255, 170, 90, 0.25);
   outline: none;
 }
+/* The first tap's invitation breathes gently until it's taken. */
+.hl-listen {
+  animation: hl-breathe 2.8s ease-in-out infinite;
+}
+@keyframes hl-breathe {
+  50% {
+    box-shadow: 0 0 26px rgba(255, 170, 90, 0.45);
+  }
+}
 .hl-small {
   margin: 1.1em 0 0;
   font-size: 0.85rem;
@@ -299,6 +308,9 @@ body {
   .hl-title,
   .hl-line {
     transition-duration: 0.01s;
+  }
+  .hl-listen {
+    animation: none;
   }
 }
 

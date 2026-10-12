@@ -144,7 +144,18 @@ export class AudioDirector {
       this.filters.push(f);
     }
     this.sends.set('ui', this.portal.audio.bus('ui'));
+    // The night's space: sounds placed in the world send some of themselves here, so they sit out
+    // among the trees instead of in your ears. It returns into the effects group (and so is
+    // muffled underwater too).
+    const hall = ctx.createConvolver();
+    hall.buffer = hallImpulse(ctx);
+    const back = ctx.createGain();
+    back.gain.value = 0.55;
+    this.reverb = ctx.createGain();
+    this.reverb.connect(hall).connect(back).connect(this.sends.get('sfx') as AudioNode);
   }
+
+  private reverb: GainNode | null = null;
 
   private readonly filters: BiquadFilterNode[] = [];
 
@@ -187,6 +198,11 @@ export class AudioDirector {
     if (music) void this.file(music.file);
     if (amb) void this.file(amb.file);
     for (const key of sfx) for (const f of m.sfx[key] ?? []) void this.file(f);
+  }
+
+  /** The music playing now (its key in the manifest), or '' for none. */
+  get currentMusic(): string {
+    return this.musicKey;
   }
 
   /** Crossfades to a chapter's music and ambience. */
@@ -238,7 +254,7 @@ export class AudioDirector {
    */
   async sfx(
     key: string,
-    options: { volume?: number; rate?: number; at?: Vector3; pan?: number; spread?: number; send?: 'sfx' | 'ui' } = {},
+    options: { volume?: number; rate?: number; at?: Vector3; pan?: number; wet?: number; spread?: number; send?: 'sfx' | 'ui' } = {},
   ) {
     if (!this.started) return;
     const list = this.manifest?.sfx[key];
@@ -255,7 +271,7 @@ export class AudioDirector {
   }
 
   /** Plays one of a list's variations by index (e.g. the xylophone's notes). */
-  async sfxIndex(key: string, index: number, options: { volume?: number; at?: Vector3 } = {}) {
+  async sfxIndex(key: string, index: number, options: { volume?: number; at?: Vector3; wet?: number } = {}) {
     if (!this.started) return;
     const path = this.manifest?.sfx[key]?.[index];
     if (!path) return;
@@ -265,7 +281,7 @@ export class AudioDirector {
 
   private playBuffer(
     buf: AudioBuffer,
-    options: { volume?: number; rate?: number; at?: Vector3; pan?: number; send?: 'sfx' | 'ui' | 'music' },
+    options: { volume?: number; rate?: number; at?: Vector3; pan?: number; wet?: number; send?: 'sfx' | 'ui' | 'music' },
   ) {
     const ctx = this.ctx;
     const src = ctx.createBufferSource();
@@ -274,6 +290,13 @@ export class AudioDirector {
     const g = ctx.createGain();
     g.gain.value = options.volume ?? 1;
     let node: AudioNode = src.connect(g);
+    // Sounds out in the world take some of the night's space; footsteps and the interface don't.
+    const wet = options.wet ?? (options.at && options.send !== 'ui' ? 0.32 : 0);
+    if (wet > 0 && this.reverb) {
+      const w = ctx.createGain();
+      w.gain.value = wet;
+      g.connect(w).connect(this.reverb);
+    }
     if (options.at) {
       const p = ctx.createPanner();
       p.panningModel = 'HRTF';
@@ -341,4 +364,30 @@ function setPannerPosition(p: PannerNode, at: Vector3) {
   } else {
     (p as unknown as { setPosition: (x: number, y: number, z: number) => void }).setPosition(at.x, at.y, at.z);
   }
+}
+
+/**
+ * A room for the night, made rather than recorded: a short pre-delay, a few early reflections off
+ * the trees, then a dense tail that dies away over about 2.4 s, darker as it goes (the air and
+ * the leaves take the highs first).
+ */
+function hallImpulse(ctx: BaseAudioContext, seconds = 2.4, preDelay = 0.022): AudioBuffer {
+  const rate = ctx.sampleRate;
+  const n = Math.floor(rate * seconds);
+  const ir = ctx.createBuffer(2, n, rate);
+  for (let c = 0; c < 2; c++) {
+    const d = ir.getChannelData(c);
+    let lp = 0;
+    for (let i = Math.floor(preDelay * rate); i < n; i++) {
+      const t = i / rate - preDelay;
+      const k = 0.35 + 0.55 * Math.min(1, t / seconds);
+      lp = lp * k + (Math.random() * 2 - 1) * (1 - k);
+      d[i] = lp * Math.exp((-6.9 * t) / seconds) * Math.min(1, t / 0.012);
+    }
+    for (const [ms, gain] of [[9, 0.5], [17, 0.36], [26, 0.3], [38, 0.22], [51, 0.16]] as const) {
+      const i = Math.floor((preDelay + ms / 1000 + c * 0.0017) * rate);
+      if (i < n) d[i] = (d[i] ?? 0) + gain * (Math.random() < 0.5 ? -1 : 1) * 0.1;
+    }
+  }
+  return ir;
 }

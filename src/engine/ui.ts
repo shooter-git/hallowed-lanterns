@@ -48,34 +48,57 @@ export class UI {
     this.root.dataset.touch = touch ? '1' : '0';
   }
 
-  /** The opening title. Calls `onBegin` inside the tap itself, then resolves. */
-  showTitle(onBegin: () => void): Promise<void> {
-    this.title.innerHTML = `
-      <div class="hl-title-inner">
+  /**
+   * The opening title. If sound can't start yet (most phones need a tap first), it asks for one:
+   * that tap calls `onSound` (inside the tap, so the browser lets sound start) and the title theme
+   * plays while you look. Then a tap anywhere calls `onBegin` and resolves.
+   */
+  showTitle(options: { soundReady: boolean; onSound: () => void; onBegin: () => void }): Promise<void> {
+    const heading = `
         <p class="hl-kicker">One October night at the pumpkin patch</p>
-        <h1>Hallowed Lanterns</h1>
+        <h1>Hallowed Lanterns</h1>`;
+    const ready = () => {
+      this.title.innerHTML = `
+      <div class="hl-title-inner">${heading}
         <button type="button" class="hl-begin">Begin the walk</button>
         <p class="hl-small">Best with headphones</p>
       </div>`;
+    };
     this.title.classList.add('hl-show');
-    const button = this.title.querySelector('button') as HTMLButtonElement;
     return new Promise((resolve) => {
-      const go = () => {
-        onBegin();
+      let stage: 'listen' | 'begin' = options.soundReady ? 'begin' : 'listen';
+      let since = performance.now();
+      if (stage === 'begin') {
+        options.onSound();
+        ready();
+      } else {
+        this.title.innerHTML = `
+      <div class="hl-title-inner">${heading}
+        <button type="button" class="hl-begin hl-listen">Tap to hear the night</button>
+        <p class="hl-small">Sound on, best with headphones</p>
+      </div>`;
+      }
+      // A tap anywhere on the title does it (the buttons are there to be found by keyboard too).
+      const tap = () => {
+        if (performance.now() - since < 450) return;
+        if (stage === 'listen') {
+          options.onSound();
+          stage = 'begin';
+          since = performance.now();
+          ready();
+          (this.title.querySelector('.hl-begin') as HTMLButtonElement | null)?.focus();
+          return;
+        }
+        stage = 'begin';
+        this.title.removeEventListener('click', tap);
+        options.onBegin();
         this.title.classList.remove('hl-show');
         this.title.classList.add('hl-gone');
         setTimeout(() => this.title.remove(), 1600);
         resolve();
       };
-      // A tap anywhere on the title begins (the button is there to be found by keyboard too).
-      let begun = false;
-      const once = () => {
-        if (begun) return;
-        begun = true;
-        go();
-      };
-      button.addEventListener('click', once);
-      this.title.addEventListener('click', once);
+      since -= 450;
+      this.title.addEventListener('click', tap);
     });
   }
 
