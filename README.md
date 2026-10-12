@@ -48,17 +48,18 @@ This repository is shaped the way All the Spaces expects a creation from a repos
 in `vendor/`), so a server can follow it:
 
 1. On the server, allow this repository in a source definition — `sources/github.json` in the
-   install folder (and, for a private repository, a read-only token in `sources.env`):
+   install folder — and restart the server. The repository is public, so no token is needed:
 
    ```json
    { "id": "github", "displayName": "GitHub", "kind": "github",
-     "tokenEnv": "ATS_SOURCE_GITHUB_TOKEN", "repositories": ["shooter-git/hallowed-lanterns"] }
+     "repositories": ["shooter-git/hallowed-lanterns"] }
    ```
 
 2. In the Studio's **Creations** page, choose the object, then **Make a creation from a
    repository**: `shooter-git/hallowed-lanterns`, folder `/`, following **releases** (the default).
-3. Publish a release here (a tag) whenever you want the space to pick up changes; Architects see
-   it and press **Update**. Every version is checked on a phone, a tablet and a laptop first.
+3. Publish a GitHub release here whenever you want the space to pick up changes (a bare tag
+   isn't enough: the server asks GitHub for the latest release). Architects see it and press
+   **Update**. Every version is checked on a phone, a tablet and a laptop first.
 
 ## How it's made
 
