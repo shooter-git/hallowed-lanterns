@@ -303,13 +303,16 @@ body {
 }
 
 /* "Walk with me" stays out of the way: small and see-through until it's on. */
+/* It looks 38 px tall, but a 3 px clear rim makes it 44 px under a finger. */
 .hl-controls .hl-button {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 0.9em;
   font-size: 0.82rem;
   color: rgba(255, 245, 235, 0.82);
   background: rgba(20, 14, 12, 0.26);
-  border-color: rgba(255, 240, 220, 0.16);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 240, 220, 0.16);
 }
 .hl-controls .hl-button:hover,
 .hl-controls .hl-button:focus-visible,
@@ -318,6 +321,8 @@ body {
 }
 .hl-controls .hl-button.hl-on {
   background: rgba(120, 60, 15, 0.45);
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 1px rgba(255, 240, 220, 0.16), 0 0 22px rgba(255, 140, 50, 0.45);
 }
 
 /* On touch screens the SDK draws its joystick bottom-left: 132 px across (120 px in landscape),
@@ -325,14 +330,14 @@ body {
    landscape it goes to the other corner, under the right thumb. */
 .hl-ui[data-touch="1"] .hl-controls {
   right: auto;
-  left: calc(166px + env(safe-area-inset-left));
-  bottom: calc(67px + env(safe-area-inset-bottom));
+  left: calc(163px + env(safe-area-inset-left));
+  bottom: calc(64px + env(safe-area-inset-bottom));
 }
 @media (orientation: landscape) {
   .hl-ui[data-touch="1"] .hl-controls {
     left: auto;
-    right: calc(22px + env(safe-area-inset-right));
-    bottom: calc(24px + env(safe-area-inset-bottom));
+    right: calc(19px + env(safe-area-inset-right));
+    bottom: calc(21px + env(safe-area-inset-bottom));
   }
 }
 
