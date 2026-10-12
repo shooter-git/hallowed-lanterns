@@ -268,13 +268,29 @@ body {
   letter-spacing: 0.1em;
 }
 
-/* On touch screens in portrait, keep the walk button above the SDK's stick row. */
-@media (orientation: portrait) {
+/* On touch screens the SDK draws its joystick bottom-left: 132 px across (120 px in landscape),
+   20 px from the edges. The walk button sits right beside it, centred on the same row. */
+.hl-ui[data-touch="1"] .hl-controls {
+  right: auto;
+  left: calc(166px + env(safe-area-inset-left));
+  bottom: calc(62px + env(safe-area-inset-bottom));
+}
+@media (orientation: landscape) {
   .hl-ui[data-touch="1"] .hl-controls {
-    bottom: calc(172px + env(safe-area-inset-bottom));
+    left: calc(154px + env(safe-area-inset-left));
+    bottom: calc(56px + env(safe-area-inset-bottom));
   }
+}
+/* A narrow phone has room for "Walk" beside the joystick, not "Walk with me". */
+@media (orientation: portrait) and (max-width: 349px) {
+  .hl-ui[data-touch="1"] .hl-walk-more {
+    display: none;
+  }
+}
+/* In portrait, words and offers sit just above the joystick. */
+@media (orientation: portrait) {
   .hl-ui[data-touch="1"] .hl-line {
-    bottom: calc(240px + env(safe-area-inset-bottom));
+    bottom: calc(172px + env(safe-area-inset-bottom));
   }
 }
 
@@ -364,7 +380,7 @@ body {
 }
 @media (orientation: portrait) {
   .hl-ui[data-touch="1"] .hl-offer {
-    bottom: calc(238px + env(safe-area-inset-bottom));
+    bottom: calc(170px + env(safe-area-inset-bottom));
   }
 }
 .hl-ending {

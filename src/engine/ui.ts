@@ -30,7 +30,9 @@ export class UI {
     this.walkButton.type = 'button';
     this.walkButton.className = 'hl-button';
     this.walkButton.setAttribute('aria-pressed', 'false');
-    this.walkButton.innerHTML = `<span class="hl-ico" aria-hidden="true">${FOOTSTEPS}</span><span>Walk with me</span>`;
+    // The label shortens to "Walk" on narrow phones, beside the joystick; its name doesn't.
+    this.walkButton.setAttribute('aria-label', 'Walk with me');
+    this.walkButton.innerHTML = `<span class="hl-ico" aria-hidden="true">${FOOTSTEPS}</span><span>Walk<span class="hl-walk-more"> with me</span></span>`;
     this.menuButton.type = 'button';
     this.menuButton.className = 'hl-button hl-round';
     this.menuButton.setAttribute('aria-label', 'Chapters');
