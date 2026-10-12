@@ -31,7 +31,7 @@ import type { GlowLight } from '../engine/glowfield.ts';
 import { type Bounds, ground, GroundMask } from '../engine/ground.ts';
 import { stringLights } from '../engine/lanterns.ts';
 import type { LightSource } from '../engine/lights.ts';
-import { loadModel } from '../engine/models.ts';
+import { instanceModel, loadModel } from '../engine/models.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { Path } from '../engine/rig.ts';
 import { guitar } from '../scenes/guitar.ts';
@@ -63,6 +63,19 @@ function rng(seed: number) {
 
 const OFRENDA = new Vector3(0, 0, -10);
 const TREE = new Vector3(13, 0, -27);
+/** The Wishing Tree faces back up the path, towards where you come in. */
+const TREE_YAW = Math.atan2(11.5 - TREE.x, -18.5 - TREE.z);
+const UP = new Vector3(0, 1, 0);
+/** A point in the tree's own frame (x along its hedge, z out towards you) in the world. */
+const byTree = (x: number, z: number) => TREE.clone().add(new Vector3(x, 0, z).applyAxisAngle(UP, TREE_YAW));
+/** Whether a point is in the hedged room round the tree (with a margin round it). */
+const inTreeRoom = (x: number, z: number, margin: number) => {
+  const dx = x - TREE.x;
+  const dz = z - TREE.z;
+  const u = dx * Math.cos(TREE_YAW) - dz * Math.sin(TREE_YAW);
+  const v = dx * Math.sin(TREE_YAW) + dz * Math.cos(TREE_YAW);
+  return Math.abs(u) < 6.5 + margin && v > -1.5 - margin && v < 6.5 + margin;
+};
 const GUITAR = new Vector3(5.8, 0, -3);
 
 type Wish = {
@@ -287,8 +300,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       [9, -13],
       [11.5, -18.5],
       [12.5, -21.5],
+      // Into the hedged room round the Wishing Tree, where it opens out to the tree and the table.
+      [12.9, -24.8],
     ],
-    (s) => (s < 12 ? 6 : 4.5),
+    (s, total) => (s < 12 ? 6 : s > total - 4.5 ? 9 : 4.5),
   );
   const terrain = new Terrain(bounds, aroundPath(path, { profile: (s) => 0.02 * s + 0.15 * Math.sin(s / 6), bank: 0.04, rough: 0.35, seed: 8 }));
 
@@ -304,7 +319,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   // Woods all round, darker behind the ofrenda so the crest glows against them.
   const woodsAt = lineThePath(path.points, 8, { spacing: 5, depth: 2, seed: 41 }).filter(
-    (t) => Math.hypot(t.x - TREE.x, t.z - TREE.z) > 7 && Math.hypot(t.x - OFRENDA.x, t.z - OFRENDA.z) > 5,
+    (t) => !inTreeRoom(t.x, t.z, 1.5) && Math.hypot(t.x - OFRENDA.x, t.z - OFRENDA.z) > 5,
   );
   const woods = forest([
     { species: 'tall', at: woodsAt.filter((_, i) => i % 2 === 0) },
@@ -314,7 +329,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const canopy = woodland(path, {
     canopy: [5.5, 10], reach: 13, skyGap: 0.5, density: tier === 'low' ? 1.2 : 2, wallFrom: 5.5, wallTo: 15, wallHeight: 5, wallDensity: tier === 'low' ? 3 : 4,
     tint: new Color(0.38, 0.45, 0.4), seed: 61,
-    clear: (x, z, y) => Math.hypot(x - OFRENDA.x, z - OFRENDA.z) < 8 || (Math.hypot(x - TREE.x, z - TREE.z) < 6 && y < 6.5) || (Math.hypot(x - GUITAR.x, z - GUITAR.z) < 3.5 && y < 7.5),
+    clear: (x, z, y) => Math.hypot(x - OFRENDA.x, z - OFRENDA.z) < 8 || (inTreeRoom(x, z, 1) && y < 6.5) || (Math.hypot(x - GUITAR.x, z - GUITAR.z) < 3.5 && y < 7.5),
   });
   scene.add(canopy.mesh);
   scene.add(treeLine({ radius: 110, height: 16, color: new Color(0.004, 0.008, 0.012), under: new Color(0.03, 0.025, 0.012) }));
@@ -403,15 +418,34 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   (marigolds.mesh.material as MeshStandardMaterial).color.set(0.9, 0.42, 0.03);
   scene.add(marigolds.mesh);
 
-  // --- The Wishing Tree: a white branching cut-out in front of a boxwood hedge. ---
+  // --- The Wishing Tree: a white branching cut-out against a boxwood hedge that runs round it, open
+  // towards the path, with the wish table along one side. ---
   const wishing = await loadModel('wishing-tree');
   const anchors: Vector3[] = [];
   let treeRoot: Object3D;
   if (wishing) {
     treeRoot = wishing.root;
     treeRoot.position.copy(TREE);
-    treeRoot.rotation.y = Math.atan2(-(TREE.x - 11.5), -(TREE.z + 18.5)) + Math.PI;
+    // The model's front (where the leaves go) is +z, with its hedge behind.
+    treeRoot.rotation.y = TREE_YAW;
     scene.add(treeRoot);
+    // More of the same hedge: either side of the tree's own (a little behind it, where they
+    // overlap), then two arms reaching towards you. Each piece is 6 m long, standing just behind
+    // its origin, facing +z.
+    const hedgeAt = (x: number, z: number, turn: number, length: number) =>
+      new Matrix4().compose(byTree(x, z), new Quaternion().setFromAxisAngle(UP, TREE_YAW + turn), new Vector3(length / 6, 1, 1));
+    scene.add(
+      instanceModel(
+        wishing,
+        [
+          hedgeAt(-3, -0.08, 0, 6),
+          hedgeAt(3, -0.08, 0, 6),
+          hedgeAt(-6.04, 2.5, Math.PI / 2, 7),
+          hedgeAt(6.04, 2.5, -Math.PI / 2, 7),
+        ],
+        { only: 'hedge' },
+      ),
+    );
     treeRoot.updateMatrixWorld(true);
     wishing.node('leaf_anchors')?.traverse((o) => {
       if (o.name.startsWith('anchor_')) anchors.push(o.getWorldPosition(new Vector3()));
@@ -471,9 +505,10 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     card.position.set(-1.05 + k * 0.33, 0.765, (rnd() - 0.5) * 0.3);
     table.add(card);
   }
-  const TABLE = TREE.clone().add(new Vector3(-4.6, 0, 1.6));
+  // Along the right-hand arm of the hedge, inside, facing in: the tree is off to your left.
+  const TABLE = byTree(5.27, 2.8);
   table.position.copy(TABLE);
-  table.rotation.y = 0.5;
+  table.rotation.y = TREE_YAW - Math.PI / 2;
   scene.add(table);
   const tableBox = new Box3().setFromObject(table).expandByScalar(0.1);
 

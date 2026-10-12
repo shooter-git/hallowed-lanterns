@@ -287,10 +287,10 @@ body {
     display: none;
   }
 }
-/* In portrait, words and offers sit just above the joystick. */
+/* In portrait, an offer sits just above the joystick, and words above that. */
 @media (orientation: portrait) {
   .hl-ui[data-touch="1"] .hl-line {
-    bottom: calc(172px + env(safe-area-inset-bottom));
+    bottom: calc(236px + env(safe-area-inset-bottom));
   }
 }
 
