@@ -37,6 +37,9 @@ SEAT = {
     "triangle": dict(pan=0.35, width=0.4, depth=0.85),
     "sleighbells": dict(pan=0.3, width=0.6, depth=0.85),
     "belltree": dict(pan=-0.3, width=0.8, depth=0.85),
+    # the title's groove: the stand-up bass near and centre, the hand drums around it
+    "basses_pizz": dict(pan=0.04, width=0.35, depth=0.3),
+    "congas": dict(pan=0.3, width=0.45, depth=0.55),
 }
 
 # Per-instrument tone: tame the close-mic attack and the 2-6 kHz edge, warm
@@ -69,6 +72,10 @@ TONE = {
     "piano": dict(soften=0.65, eq=[("peak", 180, 0.8, 2.0), ("peak", 2500, 0.8, -3.0), ("hs", 3200, 0.7, -5.0),
                                    ("lp", 6000, 0.6)]),
     "harp": dict(soften=0.55, eq=[("peak", 200, 0.8, 1.0), ("peak", 3000, 0.9, -2.5), ("hs", 5000, 0.7, -5.0)]),
+    # the Spanish classical guitar (FreePats): its recordings were denoised dark, so the nail's presence
+    # is given back (the attack kept, 3 kHz lifted) and the body's boom tamed
+    "nylon": dict(soften=0.08, eq=[("hp", 80, 0.7), ("peak", 230, 0.8, -2.5), ("peak", 3000, 0.7, 3.0),
+                                   ("hs", 9000, 0.7, -2.0)]),
     "glock": dict(soften=0.85, eq=[("hs", 3000, 0.7, -6.0), ("lp", 5200, 0.7), ("lp", 6000, 0.7)]),
     "timpani": dict(soften=0.35, eq=[("peak", 2500, 0.9, -2.0), ("hs", 5000, 0.7, -4.0)]),
     "timpani_roll": dict(soften=0.2, eq=[("hs", 5000, 0.7, -4.0)]),
@@ -94,6 +101,13 @@ TONE = {
     "triangle": dict(soften=0.8, eq=[("hs", 4000, 0.7, -6.0), ("lp", 7000, 0.7)]),
     "sleighbells": dict(soften=0.7, eq=[("hs", 4000, 0.7, -6.0), ("lp", 7000, 0.7)]),
     "belltree": dict(soften=0.6, eq=[("hs", 4500, 0.7, -5.0), ("lp", 7500, 0.7)]),
+    # the stand-up bass: its wood (90 Hz) kept and the boom above it (250 Hz) tamed, the finger's click
+    # rounded off
+    "basses_pizz": dict(soften=0.3, eq=[("hp", 35, 0.7), ("peak", 90, 0.8, 1.5), ("peak", 260, 0.8, -3.0),
+                                        ("peak", 1200, 0.9, 1.0), ("hs", 4500, 0.7, -5.0)]),
+    # the hand drums: the skin's tone, the slap's click softened
+    "conga": dict(soften=0.45, eq=[("peak", 250, 0.8, 1.0), ("hs", 4000, 0.7, -6.0)]),
+    "tumba": dict(soften=0.45, eq=[("peak", 180, 0.8, 1.5), ("hs", 4000, 0.7, -6.0)]),
 }
 
 HALL = "concert"

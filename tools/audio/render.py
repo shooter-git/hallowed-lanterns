@@ -87,6 +87,10 @@ VCSL_MUSIC = (VSCO_MUSIC + " and Versilian Community Sample Library samples (CC0
               "https://github.com/sgossner/VCSL)")
 # The music that also plays VCSL instruments (zither, gong, finger cymbals, temple block, ocarina).
 USES_VCSL = ("garden", "marigold")
+FREEPATS_GUITAR = (" and the FreePats Spanish classical guitar (CC0, the FreePats project: "
+                   "https://freepats.zenvoid.org/Guitar/acoustic-guitar.html)")
+# The music that also plays the FreePats guitar.
+USES_FREEPATS = ("marigold",)
 SAMPLED_SFX = ("xylo-", "guitar-", "ember-chime-", "snowflake-", "sprinkle-burst", "wish-hang")
 # The ambiences with recorded wind in them, and the recordings they use (hlaudio/recordings.py).
 RECORDED_WIND = {"arbor": ("0907",), "garden": ("0907",), "grove": ("0907", "0595"), "hollow": ("0907",),
@@ -107,7 +111,11 @@ def _wind_source(name):
 def source_for(path):
     name = path.rsplit("/", 1)[-1]
     if "/audio/music/" in path:
-        return VCSL_MUSIC if name.removesuffix(".mp3") in USES_VCSL else VSCO_MUSIC
+        piece = name.removesuffix(".mp3")
+        base = VCSL_MUSIC if piece in USES_VCSL else VSCO_MUSIC
+        return base + FREEPATS_GUITAR if piece in USES_FREEPATS else base
+    if "/audio/sfx/" in path and name.startswith("passage-final"):
+        return _passage_source() + "; its far bell from the Versilian Community Sample Library (CC0, Versilian Studios)"
     if "/audio/sfx/" in path and name.startswith("passage-"):
         return _passage_source()
     if "/audio/sfx/" in path and name.startswith(SAMPLED_SFX):
@@ -130,7 +138,9 @@ def update_lock():
     for e in entries:
         e["source"] = source_for(e["path"])
     lock = root / "assets.lock.json"
-    ours = {SYNTH, VSCO_MUSIC, VCSL_MUSIC, VSCO_SFX, _passage_source(), *(_wind_source(k) for k in RECORDED_WIND)}
+    ours = {SYNTH, VSCO_MUSIC, VCSL_MUSIC, VSCO_SFX, _passage_source(), source_for("public/audio/sfx/passage-final.mp3"),
+            *(source_for(f"public/audio/music/{p}.mp3") for p in USES_FREEPATS),
+            *(_wind_source(k) for k in RECORDED_WIND)}
 
     def merged(data):
         assets = data.setdefault("assets", [])

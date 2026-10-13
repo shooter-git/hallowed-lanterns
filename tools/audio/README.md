@@ -6,7 +6,8 @@ and the instrument-like sound effects (xylophone notes, the big guitar's
 strings, the Ember's chimes, snowflakes, sprinkle-burst, wish-hang) are
 composed here and played by real orchestral samples from **VSCO 2 Community
 Edition**, with a few instruments from the **Versilian Community Sample
-Library** (see *Samples* below); everything else (ambiences, creatures, magic)
+Library** and the Marigold Garden's guitar from **FreePats** (see
+*Samples* below); everything else (ambiences, creatures, magic)
 is synthesised from scratch, and so are the Deep's analog synths. Python + numpy/scipy, with a few sample-by-sample
 kernels compiled by numba; ffmpeg (libmp3lame) encodes and measures.
 
@@ -21,7 +22,7 @@ birdsong in it, so it isn't used.) The **passage between chapters**
 
 **Footsteps** (`pieces/sfx/footsteps.py`) are cut from real studio foley by
 Joseph Sardin at [BigSoundBank](https://bigsoundbank.com), released under CC0:
-gravel, dry leaves, grass, snow, and wet mud for the sea floor. The piece fetches
+fine gravel, dry leaves, grass, snow, and wet mud for the sea floor. The piece fetches
 the originals into `.cache/recorded/` (git ignores them), splits them into single
 steps, keeps the cleanest, and records each one in `assets.lock.json` as
 `CC0-1.0` with its source.
@@ -46,10 +47,12 @@ git sparse-checkout set --no-cone /LICENSE /README.md /Readme.txt \
   "/Strings/Violin Section/Trem/" "/Strings/Viola Section/susvib/" "/Strings/Viola Section/spic/" \
   "/Strings/Viola Section/pizz/" "/Strings/Viola Section/trem/" "/Strings/Cello Section/susvib/" \
   "/Strings/Cello Section/spic/" "/Strings/Cello Section/pizzT/" "/Strings/Cello Section/trem/" \
-  "/Strings/Solo Contrabass/SusNV/" "/Strings/Solo Contrabass/Spic/" "/Strings/Solo Violin/Arco Vib/" \
+  "/Strings/Solo Contrabass/SusNV/" "/Strings/Solo Contrabass/Spic/" "/Strings/Solo Contrabass/Pizz/" \
+  "/Strings/Solo Violin/Arco Vib/" \
   "/Strings/Harp/" "/Brass/F Horn/" "/Brass/Tenor Trombone/" "/Brass/Tuba/" "/Keys/Organ/" "/Keys/Upright Nr1/" \
   "/Percussion/Timpani*" "/Percussion/BDrumNewhit*" "/Percussion/Glock*" "/Percussion/Marimba*" \
-  "/Percussion/Sleighbells*" "/Percussion/Triangle3*" "/Percussion/BellTree*" \
+  "/Percussion/Sleighbells*" "/Percussion/Triangle3*" "/Percussion/BellTree*" "/Percussion/Conga-*" \
+  "/Percussion/Tumba-*" \
   "/Woodwinds/Flute/stac/" "/Woodwinds/Flute/susNV/" "/Woodwinds/Flute/susvib/" "/Woodwinds/Clarinet/stac/" \
   "/Woodwinds/Clarinet/susLong/" "/Woodwinds/Oboe/Stacc/" "/Woodwinds/Oboe/Vib/" "/Woodwinds/Bassoon/stac/" \
   "/Woodwinds/Bassoon/sus/"
@@ -71,11 +74,13 @@ slide and release tails. What keeps the strings from sounding synthetic:
 * **re-bowing instead of looping**: a bowed or blown note longer than about
   5.5–7 s (`sampler.REBOW`) is split into overlapping notes, each with its
   own natural attack; loops are only a last resort;
-* **arranged to the library's strengths**: long lyrical lines go to the solo
-  violin, the woodwinds, horns, piano and organ; the string sections play
-  pizzicato (with a little room so it blooms, round-robins and varied
-  velocities), spiccato and short swells, and any long section sustain is
-  soft, low and deep in the hall under the organ or the glass;
+* **arranged to the library's strengths**: long lyrical lines go to the
+  oboe (every line the solo violin used to carry: near, little hall, note by
+  note, a touch of presence; `hlaudio/lead.py`), the other woodwinds, horns,
+  piano and organ; the string sections play pizzicato (with a little room so
+  it blooms, round-robins and varied velocities) and spiccato, and every
+  bowed sustain, swell, bass line or tremolo is only a quiet bed far back in
+  the hall (depth 0.95, no slides), where its legato can't be heard;
 * light processing: a gentle transient softener (the bow's attack is what
   makes them real), some air left on top. Then every instrument goes through its own
 tone chain (`orch.TONE`: a transient softener, warm low mids, the 2–6 kHz
@@ -129,6 +134,32 @@ some pitches are measured rather than read:
 
 The zither's own vibrato samples are not used (their vibrato rises ~30 cents
 above the note); the vibrato is drawn on the plain plucks instead.
+
+## Samples: FreePats (the Spanish classical guitar)
+
+The Marigold Garden's guitar is the **Spanish classical guitar** of the
+[FreePats project](https://freepats.zenvoid.org/Guitar/acoustic-guitar.html)
+(version 2019-06-18), **CC0 1.0**: one dynamic layer, every semitone from G1
+to C6, named by sounding pitch. Fetched and converted to WAV into
+`tools/audio/.cache/freepats/` (git-ignored, about 13 MB):
+
+```sh
+mkdir -p tools/audio/.cache/freepats/Guitar/SpanishClassicalGuitar && cd tools/audio/.cache
+curl -LO "https://freepats.zenvoid.org/Guitar/SpanishClassicalGuitar/SpanishClassicalGuitar-SFZ+FLAC-20190618.7z"
+7z x SpanishClassicalGuitar-SFZ+FLAC-20190618.7z
+for f in SpanishClassicalGuitar-SFZ+FLAC-20190618/samples/*.flac; do
+  ffmpeg -v error -i "$f" -c:a pcm_s16le "freepats/Guitar/SpanishClassicalGuitar/$(basename "$f" .flac).wav"
+done
+```
+
+It is the sampler's instrument `nylon` (catalogue `.cache/freepats-catalog.json`).
+The recordings sit 5–16 cents sharp and are corrected note by note; above B4
+they ring for barely a second, so the guitar keeps to the altar's broken
+chords (its lowest notes, C and B, are played an octave up, as a guitar
+would). It has one dynamic layer, so a repeated note is never the same pluck
+twice: `x["nb"]` plays it from the neighbouring note's recording (shifted to
+pitch), `x["skip"]` starts the pluck a few milliseconds in and `x["detune"]`
+moves it a few cents.
 
 ## Rendering
 
@@ -188,15 +219,15 @@ sounds in tune with what is playing:
 
 | piece    | title          | key / mode, meter                 | built from…                                         | chime on…          |
 |----------|----------------|-----------------------------------|-----------------------------------------------------|--------------------|
-| title    | Hallowed Lanterns | D (Lydian colours), 4/4 3+3+2 | felt-piano cycle, the theme emerging as its top voice; solo violin + clarinet canon; pizzicato pedal; glass pulse, swell | — |
-| arbor    | Sundown        | D, 4/4                            | piano figure phasing against the bar; clarinet/bassoon/flute/solo-violin canon of the augmented cell; pizzicato bass and canon; organ pedal; horns | felt piano + glass halo, D |
+| title    | Hallowed Lanterns | D (Lydian colours), 4/4 3+3+2 | felt-piano cycle, the theme emerging as its top voice; oboe + clarinet canon; cello pizzicato pedal, then a stand-up bass (12) and, at the swell's height, a short groove (16–19: the bass's syncopated pickups, tumba and conga); glass pulse, swell | — |
+| arbor    | Sundown        | D, 4/4                            | piano figure phasing against the bar; clarinet/bassoon/flute/oboe canon of the augmented cell; pizzicato bass and canon; organ pedal; horns | felt piano + glass halo, D |
 | grove    | Blue Hour      | B aeolian, 7/8 (2+2+3)            | glass arpeggio + mirror; pizzicato pedal; clarinet cell; stretto (solo violin, flute, bassoon); spiccato ticking | three variations: harp, high harp, felt piano + bell tree; D B A F# A |
-| garden   | Lantern Song   | G major pentatonic, 4/4 3+3+2     | a lantern festival: the zither (dan tranh as a guzheng) sings the cell with sweeps, slides and pressed vibrato over a low harp additive process and the organ's cycling; ocarina (as a xun) augmentation; fugue (winds, zither, ocarina, horn, solo violin), temple block, finger cymbals; drums and gong at the top; zither tremolo canon over the pedal augmentation | harp + glass halo, G E D B D |
-| pasture  | Gentle Giants  | D mixolydian, 4/4                 | brass canon/stretto; dotted spiccato ostinato; solo violin + clarinet inversion; one braam on G; the giants' gait (drums, bars 20–31) | felt piano + harp, D |
+| garden   | Lantern Song   | G major pentatonic, 4/4 3+3+2     | a lantern festival: the zither (dan tranh as a guzheng) sings the cell with sweeps, slides and pressed vibrato over a low harp additive process and the organ's cycling; ocarina (as a xun) augmentation; fugue (winds, zither, ocarina, horn, oboe), temple block, finger cymbals; drums and gong at the top; zither tremolo canon over the pedal augmentation | harp + glass halo, G E D B D |
+| pasture  | Gentle Giants  | D mixolydian, 4/4                 | brass canon/stretto; dotted spiccato ostinato; oboe + clarinet inversion; one braam on G; the giants' gait (drums, bars 20–31) | felt piano + harp, D |
 | hollow   | Sugar Rush     | D lydian, 4/4 (3+3+2)             | marimba cycling; pizzicato hocket of the diminished cell; woodwind additive; relative-minor lift | marimba + glass halo, D |
-| snow     | First Snow     | A lydian, 4/4 3+3+2               | a theme to hum, grown from the cell (A F# E C# E, answered a step lower with the Lydian D#, then climbing to B): felt piano, then solo violin (piano echoes, clarinet augmentation), a rising sequence over the horns' augmented cell, the full theme with flute and horns at the one swell (the Lydian B/A, soft drums 24–33); a glittering additive snowfall of harp eighths, glockenspiel and violin pizzicati, glass 3:4 above; the snow rises at the end (voicings climbing, a suspended B over A) | harp + soft glock, A |
-| deep     | Where the Lanterns Swim | F# dorian / A lydian, 4/4 | a 1980s analog-synth colour (`analog.py`): the five-note arp phasing through a resonant ladder filter on the tide; a sixteenth bass pulse; a sixteenth sequencer walking the cell; pad swells in the light; mirror glass; whale glass; horn + solo violin canon; drums in the light (22–38) | harp under water + glass, A F# E C# E |
-| marigold | Remember Me    | G with borrowed C minor, 4/4 (186.7 s) | a vigil at the ofrenda that becomes the walk's yearning swell: the guitar's cycle (harp through a guitar body; Cmaj7→Cm6 inside the figure, sixteenths added as it grows) over an organ pedal on G; ocarina: cell augmented; solo violin canon an octave down; the cell grown into a long line (violin, ocarina canon), then the swell in the bridge (violin + flute: D-B over Em9 up to E6, E-flat over the borrowed Cm6, C aching over D sus, resolving late), horns, organ opening up, marimba tremolo, a soft timpani heartbeat; afterglow, the horns' E-flat-to-D sigh, the ocarina's last leap left hanging; one far bell; no string pads | big guitar, G |
+| snow     | First Snow     | A lydian, 4/4 3+3+2               | a theme to hum, grown from the cell (A F# E C# E, answered a step lower with the Lydian D#, then climbing to B): felt piano, then oboe (piano echoes, clarinet augmentation), a rising sequence over the horns' augmented cell, the full theme with flute and horns at the one swell (the Lydian B/A, soft drums 24–33); a glittering additive snowfall of harp eighths, glockenspiel and violin pizzicati, glass 3:4 above; the snow rises at the end (voicings climbing, a suspended B over A) | harp + soft glock, A |
+| deep     | Where the Lanterns Swim | F# dorian / A lydian, 4/4 | a 1980s analog-synth colour (`analog.py`): the five-note arp phasing through a resonant ladder filter on the tide; a sixteenth bass pulse; a sixteenth sequencer walking the cell; pad swells in the light; mirror glass; whale glass; horn + oboe canon; drums in the light (22–38) | harp under water + glass, A F# E C# E |
+| marigold | Remember Me    | G with borrowed C minor, 4/4 (186.7 s) | a vigil at the ofrenda that becomes the walk's yearning swell: the guitar's cycle (FreePats classical guitar; Cmaj7→Cm6 inside the figure) over an organ pedal on G; ocarina: cell augmented; a singing analog synth (`analog.sing`: glides, growing vibrato, a filter that blooms on held notes; glass in unison) answers it at the cycle; then the swell in synths: the 1950s ballad's progressions (G Em C D7, Em B7 C D7; Em E7 Am D7, C → Cm under the held high D, G/D D7), a soft synth taking over the guitar's triplets, then pulsing the chords in 12/8 with every other change pushed, a heartbeat bass, pads opening, an electronic heartbeat at the height, soft horns, a glass halo; afterglow, the horns' E-flat-to-D sigh, the ocarina's last leap left hanging; one far bell | big guitar, G |
 | finale   | Hallowed Lanterns | D, 4/4 (one-shot)              | the title grown: theme emerging, three-voice canon, Zimmer build with drums (24–37), a prepared A-pedal lift, coda | — |
 | picture show | The Picture Show | F, 3/4 waltz (on purpose)   | upright piano, solo violin over pizzicato, clarinet, flute | — |
 
@@ -207,7 +238,7 @@ the key; no piece jumps to a remote key.
 28–40, a Chinese drum's weight under the gong), the Pasture's build (20–31,
 the giants' gait), the Deep's turn into the light (22–38), First Snow's one
 swell (24–33, soft), the finale's build and statement (24–37), and, barely,
-a timpani heartbeat under the height of the Marigold Garden's swell
+an electronic heartbeat under the height of the Marigold Garden's swell
 (34–39). `hlaudio/beats.py` writes them as a
 groove whose hits each have a weight and a gate on the swell: low timpani
 following the bass and the concert bass drum, in the piece's 3+3+2, the
@@ -227,7 +258,7 @@ hlaudio/             the library
   core.py            sample rate, note names, envelopes, noise, Track (circular stereo buffer)
   score.py           notes, a tiny text notation, chords, voice-leading, tempo clocks (rubato)
   arrange.py         arranging helpers (pads by rank, comping, dynamics shapes, augmentation)
-  sampler.py         the VSCO 2 CE + VCSL sampler (catalogues, tuning, layers, loops, legato,
+  sampler.py         the VSCO 2 CE + VCSL + FreePats sampler (catalogues, tuning, layers, loops, legato,
                      re-bowing, pitch curves for bends and vibrato)
   festival.py        the Garden's festival instruments on the stage (seats, tone chains) and the
                      guzheng's idioms: slide_in, vibrato, press, glissandi landing on the beat
@@ -236,6 +267,8 @@ hlaudio/             the library
   analog.py          vintage analog voices for the Deep: polyBLEP saws/pulses, drifting
                      oscillators, a 4-pole ladder filter with per-note envelopes, saturation;
                      bass, sequencer, swell and arp patches
+  lead.py            where the lines sit: the oboe lead near and present, the bowed-string bed
+                     far back in the hall (depth, sends, tone)
   orch.py            the orchestra on a stage: seats (pan/width/depth), per-instrument tone
                      chains, hall sends, stem loudness/D-R/brightness report, tape, air
   process.py         compositional processes: modes, the motif as a cell (P/I/R/RI, fragments),

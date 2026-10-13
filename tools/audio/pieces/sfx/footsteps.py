@@ -1,6 +1,7 @@
 """Footsteps, cut from real recordings: studio foley by Joseph Sardin (BigSoundBank), released
-under CC0 (public domain). Gravel for the lanes, dry leaves for the woodland trails, grass, snow,
-and steps in very wet mud for the sea floor (the Deep muffles them further).
+under CC0 (public domain). Fine gravel for the paths (the lanes and the woodland trails alike: their
+leaves lie beside the path), grass, snow, and steps in very wet mud for the sea floor (the Deep
+muffles them further).
 
 Each recording is split into single steps at their onsets; the cleanest, most even ones are kept
 (a quiet start, a tail that has died away, a level near the recording's typical step), trimmed
@@ -22,9 +23,13 @@ from hlaudio.recordings import entry, lock_cc0, original
 # group: (BigSoundBank id, title, page, how many steps, longest step (s), peak dB, extra treatment)
 # Steps come at least GAP s apart (a quicker walk in the snow).
 GAP = {"step-snow": 0.3}
+# Only whole steps, heel to toe: a crunch on gravel cut short sounds like a click. (Elsewhere,
+# anything from 0.22 s.)
+SHORTEST = {"step-gravel": 0.4}
+# Where a step's soft tail is kept down to (dB): a gravel crunch rolls on quietly.
+FLOOR = {"step-gravel": -64.0}
 SOURCES = {
-    "step-gravel": ("1117", "Footsteps on gravels #2", "https://bigsoundbank.com/footsteps-on-gravels-2-s1117.html", 8, 0.6, -6.0, None),
-    "step-leaves": ("2889", "Feet in leaves #2", "https://bigsoundbank.com/feet-in-leaves-2-s2889.html", 8, 0.75, -6.5, None),
+    "step-gravel": ("3202", "Footsteps on Gravels #3", "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html", 10, 0.62, -6.0, None),
     "step-grass": ("1253", "Steps in the grass, slow", "https://bigsoundbank.com/steps-in-the-grass-slow-s1253.html", 6, 0.75, -7.0, None),
     # A quick walk: a step is over in a third of a second, before the next crunch.
     "step-snow": ("3363", "Steps in the snow #3", "https://bigsoundbank.com/steps-in-the-snow-3-s3363.html", 8, 0.34, -6.0, None),
@@ -88,9 +93,10 @@ def score(x, seg, a, longest):
     return pre_db + tail_db + short
 
 
-def pick(x, n, longest, gap):
+def pick(x, n, longest, gap, shortest=0.22):
     starts = onsets(x, gap)
     steps = [cut(x, starts, i, longest) for i in range(len(starts))]
+    steps = [(s, a) for s, a in steps if len(s) >= ns(shortest)]
     peaks = np.array([np.max(np.abs(s)) if len(s) else 0 for s, _ in steps])
     if not len(peaks):
         raise SystemExit("no steps found")
@@ -124,11 +130,11 @@ def render():
                 old.unlink()
         update_manifest("sfx", group, [])
         x = original(sid)
-        steps, found = pick(x, n, longest, GAP.get(group, 0.35))
+        steps, found = pick(x, n, longest, GAP.get(group, 0.35), SHORTEST.get(group, 0.22))
         print(f"  {group}: {found} steps found in '{title}', kept {len(steps)}")
         for i, seg in enumerate(steps):
             name = f"{group}-{i + 1}"
-            finish_sfx(group, name, treat(seg, how), peak, max_s=longest + 0.15, kbps=128)
+            finish_sfx(group, name, treat(seg, how), peak, max_s=longest + 0.15, kbps=128, floor_db=FLOOR.get(group, -52.0))
             entries.append(entry(name, page, f"{title} (one step, trimmed and levelled)"))
     lock_cc0(entries, SOURCES)
 

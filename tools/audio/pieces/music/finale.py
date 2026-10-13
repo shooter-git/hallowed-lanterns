@@ -6,7 +6,7 @@ quarter = 80, the eighths grouped 3+3+2, D with Lydian colours.
 The felt piano's broken-chord cycle opens it exactly as the title does, one
 note of the voicing changing at a time, and the theme EMERGES as the top
 voice of the arpeggio (B A F# A | D C# B A). Then a three-voice CANON on the
-Ember's motif augmented: a solo violin (D B A F# A), the clarinet a fifth
+Ember's motif augmented: the oboe (D B A F# A), the clarinet a fifth
 below two bars later, the bassoon an octave below two bars after that, over
 cello pizzicati plucking the pedal. Then a Zimmer build by adding layers:
 spiccato sixteenths ticking in 3+3+2, a dotted ostinato in the low strings,
@@ -43,6 +43,7 @@ from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
 from hlaudio.beats import groove, drum_pitch
 from hlaudio.piece import finish_oneshot
+from hlaudio import lead as LD
 
 TITLE = "Hallowed Lanterns"
 BAR = 8            # eighths
@@ -234,7 +235,7 @@ def render():
     st.play("piano", S(P["coda"], 4, 0.012), "piano", seed=4, gain_db=9, layer_bias=-0.2, release=2.5)
 
     kw = dict(shape=shape, lag=0.025)
-    st.play("solo_violin", S(P["vn_canon"], 5), "solo_violin", seed=5, gain_db=4, legato=True, slide=0.1,
+    st.play("oboe", S(P["vn_canon"], 5), "oboe", seed=5, gain_db=10, **LD.lead(st),
             dyn=Curve([(sec(12), 0.45), (sec(14), 0.6), (sec(17.5), 0.55), (sec(18.2), 0.35)]), **kw)
     st.play("clarinets", S(P["vla_canon"], 6), "clarinet", seed=6, gain_db=4,
             dyn=Curve([(sec(14), 0.45), (sec(16), 0.6), (sec(19.5), 0.55), (sec(20.2), 0.35)]), **kw)
@@ -263,8 +264,8 @@ def render():
             lag=0.03)
     st.play("flutes", S(P["vn_full"], 16), "flute", seed=16, dyn=build, gain_db=2, **kw)
     st.play("bassoon", S(P["vc_canon2"], 17), "bassoon", seed=17, dyn=build, gain_db=-3, **kw)
-    st.play("violas", S(P["vla_sus"], 18), "violas", seed=18, dyn=build, gain_db=-12, depth=0.8, **kw)
-    st.play("basses", S(P["cb"], 19), "basses", seed=19, dyn=arc, gain_db=-9, depth=0.8, **kw)
+    st.play("violas", S(P["vla_sus"], 18), "violas", seed=18, dyn=build, gain_db=-19, **LD.bed(), **kw)
+    st.play("basses", S(P["cb"], 19), "basses", seed=19, dyn=arc, gain_db=-16, **LD.bed(), **kw)
     top = Curve([(sec(27.8), 0.35), (sec(28.5), 0.7), (sec(30.2), 0.85), (sec(37), 0.8), (sec(38.3), 0.3)])
     st.play("organ", S(P["org_full"], 20, 0.0), "organ", seed=20, dyn=top, gain_db=-12)
     st.play("organ", S(P["org_full_ped"], 21, 0.0), "organ_pedal", seed=21, dyn=top, gain_db=-8)

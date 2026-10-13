@@ -8,20 +8,28 @@ changes at a time. The melody is not sung on top: it EMERGES as the top
 voice of the arpeggio. First the pattern has no top voice; then the top
 voice appears once a bar (B A F# A, the tail of the Ember's call); then it
 crowns every group of the 3+3+2 and the theme is heard (B A F# A | D C# B A).
-Then the top voice withdraws and a solo violin takes the Ember's motif,
+Then the top voice withdraws and the oboe takes the Ember's motif,
 long and slow (D - B - A - F# - A, bars to a note), with the violas
 answering in canon at the fifth below on the clarinet. Underneath, a
 Martinez glass pulse on the 3+3+2 accents with a dotted-eighth echo and a
 soft sub; cello pizzicati pluck the D pedal in 3+3+2 and violin pizzicati
 answer the glass; a slow Zimmer swell of the organ pedal, distant horns and
-low strings far back rises to bar 18 and falls back through a Lydian G major
-seventh before the cycle closes, never leaving D.
+low strings far back rises to bar 18 and falls back through a Lydian G
+major seventh before the cycle closes, never leaving D.
+
+At the top of the swell it finds a groove, short and simple. A stand-up
+bass (the solo contrabass, plucked, near and centre) takes the pedal from
+the cellos at bar 12 (D, A, D in 3+3+2); for four bars at the height
+(16-19) it grooves - the same three notes and a syncopated pickup into each
+bar, A or C-sharp - with two hand drums under it: the tumba on the 3+3+2
+accents and the conga's open tone on the off-beats, gated by the swell so
+they arrive a hit at a time and leave before the loop comes round.
 D (Lydian colours), 24 bars = 72 s.
 
   bars  0-3   the arpeggio cycle alone, the D pedal, the glass pulse
-  bars  4-7   the top voice appears once a bar
-  bars  8-15  the theme as the crest of each group; the swell begins
-  bars 16-21  solo violin (the motif augmented), clarinet in canon; swell peak
+  bars  4-7   the top voice appears once a bar; cello pizzicati on the pedal
+  bars  8-15  the theme as the crest of each group; the swell begins; the stand-up bass (12)
+  bars 16-21  oboe (the motif augmented), clarinet in canon; swell peak; the groove (16-19)
   bars 22-23  G Lydian over D, then D again
 """
 import numpy as np
@@ -31,6 +39,8 @@ from hlaudio.sampler import Curve
 from hlaudio.orch import Stage, sustain_chords
 from hlaudio import electro as EL, effects as FX
 from hlaudio.piece import finish_loop
+from hlaudio.beats import groove
+from hlaudio import lead as LD
 
 TITLE = "Hallowed Lanterns"
 BAR = 8            # eighths
@@ -64,6 +74,16 @@ ACC = [1.0, .72, .8, .95, .72, .8, .92, .75]
 
 def bar(b):
     return b * BAR
+
+
+# the stand-up bass, one bar in eighths: (offset, pitch, velocity, eighths)
+BASS_IN = [(0, 38, 1.0, 2.5), (3, 33, 0.8, 1.5), (6, 38, 0.82, 1.5)]                        # D A D
+# the groove: the same, shorter, with a syncopated pickup into the next bar (A, then C-sharp)
+BASS_GROOVE = [[(0, 38, 1.0, 1.4), (3, 33, 0.85, 1.2), (6, 38, 0.9, 1.0), (7.5, p, 0.62, 0.45)] for p in (45, 37)]
+# the hand drums: (offset in eighths, part, pitch, weight, gate): the tumba on the 3+3+2 accents, the
+# conga's open tone on the off-beats; each hit waits for the groove's swell to reach its gate
+DRUMS = [(0, "tumba", 0, 1.0, 0.0), (3, "tumba", 0, 0.75, 0.1), (6, "tumba", 0, 0.82, 0.05),
+         (2.5, "conga", 0, 0.68, 0.3), (5, "conga", 0, 0.6, 0.45), (7.5, "conga", 0, 0.55, 0.6)]
 
 
 def harmony():
@@ -105,7 +125,7 @@ def score():
         lo = 38
         lh += [N(bar(b), bar(2) + 1, float(lo), 0.42), N(bar(b) + 4, bar(2) - 3, float(lo + 12), 0.3)]
     P["lh"] = lh
-    # the solo violin: the Ember's motif augmented, D (pickup) - B - A - F# - A
+    # the oboe: the Ember's motif augmented, D (pickup) - B - A - F# - A
     P["solo"] = [N(bar(15) + 4, 4, 74.0, 0.55), N(bar(16), bar(2), 83.0, 0.62), N(bar(18), bar(1), 81.0, 0.6),
                  N(bar(19), bar(1), 78.0, 0.56), N(bar(20), bar(2) + 4, 81.0, 0.6)]
     # the clarinet answers in canon at the fifth below: G - E - D - B - D
@@ -114,11 +134,19 @@ def score():
     # the swell: low strings (re-bowed every 8 bars, wrapping the loop), basses, organ, horns
     P["vc"] = [N(bar(b), bar(8) + 4, float(p), 0.5) for b in (4, 12, 20) for p in (38, 45)]
     P["cb"] = [N(bar(9), bar(15) + 2, 38.0, 0.5)]
-    # pizzicato under the pedal (3+3+2: D, A, D) and plucks answering the glass pulse
-    pz = []
-    for b in range(4, 22):
-        pz += [N(bar(b), 1.5, 38.0, 0.55), N(bar(b) + 3, 1.5, 45.0, 0.42), N(bar(b) + 6, 1.0, 50.0, 0.45)]
-    P["vc_pizz"] = pz
+    # pizzicato under the pedal (3+3+2: D, A, D) until the stand-up bass takes it (12)
+    P["vc_pizz"] = [N(bar(b) + o, d, p, v) for b in range(4, 12)
+                    for o, d, p, v in ((0, 1.5, 38.0, 0.55), (3, 1.5, 45.0, 0.42), (6, 1.0, 50.0, 0.45))]
+    # the stand-up bass: the pedal (12-15), the groove (16-19), the pedal again (20-21), one D (22)
+    bs = []
+    for b in range(12, 23):
+        fig = BASS_GROOVE[b % 2] if 16 <= b < 20 else (BASS_IN if b < 22 else [(0, 38, 0.8, 6.0)])
+        bs += [N(bar(b) + off, d, float(p), v) for off, p, v, d in fig]
+    P["bass"] = bs
+    # the hand drums, four bars at the height of the swell
+    g = Curve([(bar(15.5), 0.0), (bar(16), 0.3), (bar(17), 0.75), (bar(18), 1.0), (bar(19), 0.85),
+               (bar(19.8), 0.35), (bar(20), 0.0)])
+    P["drums"] = groove(bar(16), bar(20), BAR, DRUMS, g, vel=(0.3, 0.85), dur=1.0)
     ans = []
     for b in range(8, 22, 2):
         ans += [N(bar(b) + 1, 0.8, 81.0, 0.38), N(bar(b) + 4, 0.8, 78.0, 0.34), N(bar(b) + 7, 0.8, 76.0, 0.34)]
@@ -162,19 +190,31 @@ def render():
     for n in lh:
         n.v = float(n.v * (0.9 + 0.4 * arc(n.t)))
     st.play("piano", lh, "piano", seed=3, gain_db=6, layer_bias=-0.3, release=1.5)
-    st.play("solo_violin", S(P["solo"], 4, 0.01), "solo_violin", seed=4, gain_db=3,
+    st.play("oboe", S(P["solo"], 4, 0.01), "oboe", seed=4, gain_db=9, **LD.lead(st),
             dyn=Curve([(sec(15.5), 0.42), (sec(17), 0.6), (sec(18.5), 0.68), (sec(21), 0.62), (sec(22.4), 0.38)]),
-            shape=shape, legato=True, slide=0.12, lag=0.02)
+            shape=shape, lag=0.02)
     st.play("clarinets", S(P["vla"], 5, 0.01), "clarinet", seed=5, gain_db=3,
             dyn=Curve([(sec(17.5), 0.4), (sec(19), 0.58), (sec(21), 0.55), (sec(23.4), 0.3)]),
             shape=shape, legato=True, lag=0.02)
-    # the low strings stay soft and far back, under the organ
-    st.play("cellos", S(P["vc"], 6), "cellos", seed=6, dyn=swell, gain_db=-9, depth=0.78, shape=shape, lag=0.03)
-    st.play("basses", S(P["cb"], 7), "basses", seed=7, dyn=swell, gain_db=-11, depth=0.8, shape=shape, lag=0.03)
-    vp = S(P["vc_pizz"], 16, 0.006)
+    # the low strings: only a very quiet bed, far back, under the organ
+    st.play("cellos", S(P["vc"], 6), "cellos", seed=6, dyn=swell, gain_db=-18, shape=shape, lag=0.03,
+            **LD.bed())
+    st.play("basses", S(P["cb"], 7), "basses", seed=7, dyn=swell, gain_db=-18, shape=shape, lag=0.03,
+            **LD.bed())
+    vp = S(P["vc_pizz"], 18, 0.006)
     for n in vp:
         n.v = float(n.v * (0.65 + 0.5 * swell(n.t)))
-    st.play("cellos_pizz", vp, "cellos_pizz", seed=16, gain_db=5, seat="cellos")
+    st.play("cellos_pizz", vp, "cellos_pizz", seed=18, gain_db=5, seat="cellos")
+    # the stand-up bass and the hand drums
+    bp = S(P["bass"], 16, 0.006)
+    for n in bp:
+        n.v = float(n.v * (0.7 + 0.4 * swell(n.t)))
+    # near (little hall: a bass in the hall booms and goes far away) and under the piano
+    st.play("basses_pizz", bp, "basses_pizz", seed=16, gain_db=-2.5, release=0.25, humanize_v=0.06, depth=0.15,
+            sends={st.hall: 0.2})
+    D = P["drums"]
+    for k, (part, gdb) in enumerate((("tumba", 6), ("conga", 4))):
+        st.play("congas", S(D.get(part, []), 30 + k, 0.006), part, seed=30 + k, gain_db=gdb, seat="congas")
     st.play("violins_pizz", S(P["vn_pizz"], 17, 0.006), "violins_pizz", seed=17, gain_db=6, seat="violins")
     st.play("organ", S(P["org_ped"], 8, 0.0), "organ_soft_pedal", seed=8, dyn=swell, gain_db=-7)
     st.play("organ", S(P["org_full_ped"], 9, 0.0), "organ_pedal", seed=9,
@@ -198,13 +238,13 @@ def render():
     sub = S(P["sub"], 15, 0.0)
     for n in sub:
         n.v = float(n.v * (0.55 + 0.5 * swell(n.t)))
-    EL.sub_pulse(sb, sub, gain=0.4, seed=15, decay=0.35)
+    EL.sub_pulse(sb, sub, gain=0.26, seed=15, decay=0.35)
 
     out = st.render({"concert": {"seed": 1}, "cathedral2": {"seed": 2},
                      "shimmer:cathedral2": {"seed": 3, "gens": 2, "fb": 0.4}}, warmth=0.35)
     return finish_loop("music", "title", out, LOOP, 4, -16.0, 192,
                        meta={"title": TITLE, "bpm": 80, "meter": "4/4", "beat": "quarter", "key": "D lydian",
-                             "instrument": "piano", "theme": True})
+                             "instrument": "piano and stand-up bass", "theme": True})
 
 
 if __name__ == "__main__":

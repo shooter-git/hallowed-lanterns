@@ -79,7 +79,7 @@
     {
       "path": "public/audio/music/marigold.mp3",
       "license": "own",
-      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios) and Versilian Community Sample Library samples (CC0, Versilian Studios: https://github.com/sgossner/VCSL)"
+      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios) and Versilian Community Sample Library samples (CC0, Versilian Studios: https://github.com/sgossner/VCSL) and the FreePats Spanish classical guitar (CC0, the FreePats project: https://freepats.zenvoid.org/Guitar/acoustic-guitar.html)"
     },
     {
       "path": "public/audio/music/pasture.mp3",
@@ -282,30 +282,30 @@
     {
       "path": "public/audio/sfx/step-gravel-1.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/footsteps-on-gravels-2-s1117.html",
+      "source": "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Footsteps on gravels #2 (one step, trimmed and levelled)"
+      "title": "Footsteps on Gravels #3 (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-gravel-2.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/footsteps-on-gravels-2-s1117.html",
+      "source": "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Footsteps on gravels #2 (one step, trimmed and levelled)"
+      "title": "Footsteps on Gravels #3 (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-gravel-3.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/footsteps-on-gravels-2-s1117.html",
+      "source": "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Footsteps on gravels #2 (one step, trimmed and levelled)"
+      "title": "Footsteps on Gravels #3 (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-gravel-4.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/footsteps-on-gravels-2-s1117.html",
+      "source": "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Footsteps on gravels #2 (one step, trimmed and levelled)"
+      "title": "Footsteps on Gravels #3 (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-sand-1.mp3",
@@ -759,86 +759,30 @@
     {
       "path": "public/audio/sfx/step-gravel-5.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/footsteps-on-gravels-2-s1117.html",
+      "source": "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Footsteps on gravels #2 (one step, trimmed and levelled)"
+      "title": "Footsteps on Gravels #3 (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-gravel-6.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/footsteps-on-gravels-2-s1117.html",
+      "source": "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Footsteps on gravels #2 (one step, trimmed and levelled)"
+      "title": "Footsteps on Gravels #3 (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-gravel-7.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/footsteps-on-gravels-2-s1117.html",
+      "source": "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Footsteps on gravels #2 (one step, trimmed and levelled)"
+      "title": "Footsteps on Gravels #3 (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-gravel-8.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/footsteps-on-gravels-2-s1117.html",
+      "source": "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Footsteps on gravels #2 (one step, trimmed and levelled)"
-    },
-    {
-      "path": "public/audio/sfx/step-leaves-1.mp3",
-      "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/feet-in-leaves-2-s2889.html",
-      "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Feet in leaves #2 (one step, trimmed and levelled)"
-    },
-    {
-      "path": "public/audio/sfx/step-leaves-2.mp3",
-      "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/feet-in-leaves-2-s2889.html",
-      "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Feet in leaves #2 (one step, trimmed and levelled)"
-    },
-    {
-      "path": "public/audio/sfx/step-leaves-3.mp3",
-      "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/feet-in-leaves-2-s2889.html",
-      "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Feet in leaves #2 (one step, trimmed and levelled)"
-    },
-    {
-      "path": "public/audio/sfx/step-leaves-4.mp3",
-      "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/feet-in-leaves-2-s2889.html",
-      "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Feet in leaves #2 (one step, trimmed and levelled)"
-    },
-    {
-      "path": "public/audio/sfx/step-leaves-5.mp3",
-      "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/feet-in-leaves-2-s2889.html",
-      "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Feet in leaves #2 (one step, trimmed and levelled)"
-    },
-    {
-      "path": "public/audio/sfx/step-leaves-6.mp3",
-      "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/feet-in-leaves-2-s2889.html",
-      "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Feet in leaves #2 (one step, trimmed and levelled)"
-    },
-    {
-      "path": "public/audio/sfx/step-leaves-7.mp3",
-      "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/feet-in-leaves-2-s2889.html",
-      "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Feet in leaves #2 (one step, trimmed and levelled)"
-    },
-    {
-      "path": "public/audio/sfx/step-leaves-8.mp3",
-      "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/feet-in-leaves-2-s2889.html",
-      "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Feet in leaves #2 (one step, trimmed and levelled)"
+      "title": "Footsteps on Gravels #3 (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-grass-5.mp3",
@@ -1158,6 +1102,25 @@
       "path": "public/audio/sfx/passage-g.mp3",
       "license": "own",
       "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios), and wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind\" (https://bigsoundbank.com/wind-s0595.html)"
+    },
+    {
+      "path": "public/audio/sfx/step-gravel-9.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Footsteps on Gravels #3 (one step, trimmed and levelled)"
+    },
+    {
+      "path": "public/audio/sfx/step-gravel-10.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Footsteps on Gravels #3 (one step, trimmed and levelled)"
+    },
+    {
+      "path": "public/audio/sfx/passage-final.mp3",
+      "license": "own",
+      "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios), and wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind\" (https://bigsoundbank.com/wind-s0595.html); its far bell from the Versilian Community Sample Library (CC0, Versilian Studios)"
     }
   ]
 }

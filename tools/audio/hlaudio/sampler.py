@@ -29,6 +29,12 @@ start of the file name, an octave low; dynamics as words), it is catalogued
 separately (.cache/vcsl-catalog.json) and pitches that names cannot give are
 measured: the gong, cymbal and woodblock by their strongest partial, the
 zither's plucks well after the attack (a hard pluck starts sharp).
+A third, FreePats (CC0; tools/audio/.cache/freepats/, converted from its FLAC
+release, see README), gives the Marigold Garden a real Spanish classical
+guitar: one dynamic layer, every semitone from G1 to C6, named by its
+sounding pitch. Repeated plucks (a tremolo) are kept apart per note: `x["nb"]`
+plays the note from a neighbouring sample, `x["skip"]` starts the pluck a few
+milliseconds in (a softer finger) and `x["detune"]` moves it a few cents.
 Plucked and struck notes can carry a pitch curve: `x["bend"]` (time, semitone
 breakpoints: a guzheng press or slide) and `x["vib"]` (a pressed vibrato).
 """
@@ -52,7 +58,9 @@ VSCO = Path(__file__).resolve().parents[1] / ".cache" / "vsco"
 CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "vsco-catalog.json"
 VCSL = Path(__file__).resolve().parents[1] / ".cache" / "vcsl"
 VCSL_CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "vcsl-catalog.json"
-LIBS = {"vsco": (VSCO, CATALOG, 9), "vcsl": (VCSL, VCSL_CATALOG, 1)}
+FREEPATS = Path(__file__).resolve().parents[1] / ".cache" / "freepats"
+FREEPATS_CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "freepats-catalog.json"
+LIBS = {"vsco": (VSCO, CATALOG, 9), "vcsl": (VCSL, VCSL_CATALOG, 1), "freepats": (FREEPATS, FREEPATS_CATALOG, 1)}
 NOTE = {"C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5, "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11}
 
 # Timpani have no note names: principal (1,1)-mode frequencies measured from the
@@ -86,8 +94,8 @@ class Inst:
     pitch: str = "name"       # "name" | "organ" | "timp_hit" | "timp_roll" | "none"
     single_layer: bool = False
     organ_base: int = 0
-    lib: str = "vsco"         # "vsco" | "vcsl"
-    # VCSL measuring options
+    lib: str = "vsco"         # "vsco" | "vcsl" | "freepats"
+    # VCSL and FreePats measuring options
     tune_from: float = 0.04   # s after the attack where a pluck's tuning is read
     tune_n: int = 1           # how many 0.35 s windows (0.5 s apart)
     peak_band: tuple = ()     # pitch="peak": (lo, hi) Hz of the partial that names the pitch
@@ -171,6 +179,14 @@ INSTRUMENTS = {i.name: i for i in [
          width=0.6, body=0.2, layer_spread=0),
     Inst("belltree", "Percussion", "drum", match=r"BellTree", pitch="none", release=2.0, ref_db=-22, width=0.8,
          body=0.5, layer_spread=0, single_layer=True),
+    # the stand-up bass, plucked (the solo contrabass's pizzicato: two layers on the low strings, round
+    # robins), and the two hand drums of the title's groove
+    Inst("basses_pizz", "Strings/Solo Contrabass/Pizz", "short", octave=12, release=0.35, ref_db=-17, pan=0.05,
+         width=0.35, body=0.2),
+    Inst("conga", "Percussion", "drum", match=r"Conga-HitN", pitch="none", release=0.5, ref_db=-18, width=0.4,
+         body=0.12, layer_spread=12),
+    Inst("tumba", "Percussion", "drum", match=r"Tumba-HitN", pitch="none", release=0.6, ref_db=-17, width=0.4,
+         body=0.15, layer_spread=12),
     # ---- VCSL (CC0, Versilian Studios): the Lantern Garden's festival colour
     # dan tranh plucks: strings B C# D# F# G# (B pentatonic) from B2 to B5, mf/f/ff;
     # named an octave low; tuning read 0.6-1.6 s after the pluck
@@ -206,6 +222,10 @@ INSTRUMENTS = {i.name: i for i in [
     Inst("woodblock", "Idiophones/Struck Idiophones/Woodblock", "drum", lib="vcsl", match=r"^wood_click_",
          pitch="peak", peak_band=(900.0, 2000.0), peak_win=(0.0, 0.12), release=0.3, ref_db=-20,
          layer_spread=14, width=0.3, body=0.1),
+    # ---- FreePats (CC0): a Spanish classical guitar, one layer, G1-C6 by sounding pitch; above B4 the
+    # recordings ring for barely a second, so the tuning is read early
+    Inst("nylon", "Guitar/SpanishClassicalGuitar", "oneshot", lib="freepats", release=0.35, ref_db=-18,
+         layer_spread=0, width=0.4, body=0.3, single_layer=True, max_shift=3.0, tune_from=0.12, tune_n=1),
 ]}
 
 
@@ -278,7 +298,7 @@ def _peak_midi(mono, info, band, win):
 
 def _parse(inst: Inst, fname: str):
     """-> (midi or None, layer, rr) from a file name."""
-    if inst.lib == "vcsl":
+    if inst.lib != "vsco":
         return _parse_vcsl(inst, fname)
     stem = fname[:-4]
     if inst.pitch == "organ":
@@ -451,7 +471,7 @@ def _build_lib(lib, force=False):
             raise SystemExit(f"VSCO samples not found in {root} (see tools/audio/README.md)")
         if path.exists():
             return json.loads(path.read_text())
-        print(f"  (VCSL samples not found in {root}: its instruments are unavailable)", flush=True)
+        print(f"  ({lib} samples not found in {root}: its instruments are unavailable)", flush=True)
         return dict(instruments={})
     sig = {}
     for inst in insts:
@@ -459,7 +479,7 @@ def _build_lib(lib, force=False):
         for p in sorted(d.glob("*.wav")):
             if re.search(inst.match, p.name):
                 sig[str(p.relative_to(root))] = p.stat().st_size
-    if lib == "vcsl":
+    if lib != "vsco":
         # the measuring options are part of the signature, so retuning re-measures
         sig["__opts__"] = repr([(i.name, i.octave, i.pitch, i.tune_from, i.tune_n, i.peak_band, i.peak_win,
                                  i.fixed_midi, i.body, i.ref_db, i.layer_spread, i.single_layer, i.kind)
@@ -772,10 +792,11 @@ class Sampler:
 
     def note(self, midi, v, dur, *, dyn=None, legato_in=None, xf_in=None, release=None, tail=None,
              start_jitter=0.006, detune=0.0, layer_bias=0.0, avoid=None, slide=0.06, shape=None, skip=0.0,
-             bend=None, vib=None):
+             bend=None, vib=None, nb=0):
         """Render one note -> (stereo array, lead samples). `dyn` is an array of
         0..1 dynamics over the note's length (mod wheel) or None. `legato_in` is
-        the previous pitch when this note is entered legato."""
+        the previous pitch when this note is entered legato. A one-shot can be played from the
+        sample `nb` semitones away (shifted to pitch) and start `skip` seconds in."""
         inst = self.inst
         rel = inst.release if release is None else release
         tail = rel * 2.5 if tail is None else tail
@@ -784,8 +805,8 @@ class Sampler:
         if inst.kind in ("short", "oneshot", "drum"):
             lo, hi, mix = self.layer_for(np.clip(v + layer_bias, 0, 1))
             lay = hi if mix > 0.5 else lo
-            e = self.pick(midi, lay, avoid)
-            off = int(self.r.uniform(0, start_jitter) * SR)
+            e = self.pick(None if midi is None else midi + nb, lay, avoid)
+            off = int(self.r.uniform(0, start_jitter) * SR) + ns(skip)
             avail = int((raw(e).shape[1] - e["start"] - off) / 2 ** (((midi or 0) - (e["midi"] or 0)) / 12)) - 8
             pc = pitch_curve(min(avail, L), bend, vib, self.r) if (bend or vib) else None
             if pc is not None:
@@ -952,7 +973,7 @@ def play(track: Track, notes, inst, *, seed=0, gain_db=0.0, pan=None, width=None
                 det = detune + (r.uniform(3.0, 6.0) * (-1) ** d if d else 0.0)
                 dt = (r.uniform(0.010, 0.030) if d else 0.0) + lag
                 lb_d = (0.35 * (-1) ** d if d else 0.0)
-                skip_d = (r.uniform(0.05, 0.25) if (d and I.kind == "sus") else 0.0)
+                skip_d = (r.uniform(0.05, 0.25) if (d and I.kind == "sus") else nt.x.get("skip", 0.0))
                 leg = None
                 if I.kind == "sus" and legato and prev is not None and nt.x.get("legato", True) and \
                         (nt.t - (prev.t + prev.d)) <= legato_gap and d == 0:
@@ -973,10 +994,10 @@ def play(track: Track, notes, inst, *, seed=0, gain_db=0.0, pan=None, width=None
                     tt = nt.t + np.arange(ns(dur + (tail_n if tail_n is not None else I.release * 2.5))) / SR
                     dy = np.clip(dyn(tt) + 0.3 * (v - 0.6), 0, 1)
                 y, lead, _ = smp.note(nt.p if nt.p > 0 else None, v, dur, dyn=dy, legato_in=leg,
-                                      xf_in=xf, release=rel_n, tail=tail_n, detune=det,
+                                      xf_in=xf, release=rel_n, tail=tail_n, detune=det + nt.x.get("detune", 0.0),
                                       layer_bias=layer_bias + lb_d + nt.x.get("layer_bias", 0.0), slide=slide,
                                       shape=shape if I.kind == "sus" else None, skip=skip_d,
-                                      bend=nt.x.get("bend"), vib=nt.x.get("vib"))
+                                      bend=nt.x.get("bend"), vib=nt.x.get("vib"), nb=nt.x.get("nb", 0))
                 pn = pan + nt.x.get("pan", 0.0) + (r.uniform(-pan_spread, pan_spread) if pan_spread else 0.0) + \
                     (0.12 * (-1) ** d if d else 0.0)
                 stem.add(nt.t + dt - (0 if leg is not None else (nt.x.get("xf_pre", 0.0))) - lead / SR, y,

@@ -33,7 +33,7 @@ with no key changes.
                             thread; mock tension at bars 26-27 (52-56 s) in
                             light spiccato sixteenths and a timpani roll;
                             at bar 28 (56 s) a harp glissando and the flute
-                            (solo violin in B) rises with the motif up to a
+                            (the oboe in B) rises with the motif up to a
                             high D - into the moon - and it resolves on
                             D major 9 by 63 s, the piano cycle returning.
 """
@@ -45,6 +45,7 @@ from hlaudio.orch import Stage
 from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
 from hlaudio.piece import finish_loop
+from hlaudio import lead as LD
 
 TITLE = "The Picture Show"
 BAR = 8            # eighths
@@ -355,8 +356,8 @@ def render():
     rise = G("web.rise")
     st.play("flutes", S([n for n in rise if n.t < bar(32)], 37, 0.008), "flute", seed=37, gain_db=6, shape=shape,
             lag=0.02, dyn=Curve([(sec(28), 0.5), (sec(30), 0.62), (sec(31.5), 0.45)]))
-    st.play("solo_violin", S([n for n in rise if n.t >= bar(32)], 38, 0.008), "solo_violin", seed=38, gain_db=1,
-            shape=shape, lag=0.02, legato=True, slide=0.1,
+    st.play("oboe", S([n for n in rise if n.t >= bar(32)], 38, 0.008), "oboe", seed=38, gain_db=7,
+            shape=shape, lag=0.02, **LD.lead(st),
             dyn=Curve([(sec(60), 0.5), (sec(62), 0.62), (sec(63.5), 0.45)]))
     st.play("horns", S(G("web.hn_soft"), 39), "horns", seed=39, gain_db=-6, shape=long_, lag=0.03,
             dyn=Curve([(0, 0.5)]))

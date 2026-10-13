@@ -21,13 +21,13 @@ again, then E F# A, up to B and a sigh back to E, open, "this way!":
     A4 | F#5 - E5 C#5 | E5 - - G#4 | E5 - D#5 B4 | D#5 - - A4 |
          F#5 - E5 C#5 | E5 F#5 A5 - | B5 - A5 F#5 | E5 - - -
 
-The felt piano states it first, simply (bars 4-11). The solo violin sings it
+The felt piano states it first, simply (bars 4-11). The oboe sings it
 again (12-19) with the piano echoing the cell high up in its long notes and
 the clarinet holding the cell augmented below. Then the climbing half is
-developed as a rising sequence (20-27) - violin, then flute and violin a
+developed as a rising sequence (20-27) - oboe, then flute and oboe a
 step higher - over the horns' cell augmented (a bar a note), while the
 snowfall thickens and soft timpani and a far bass drum are born in 3+3+2.
-The one swell is the full theme (28-35): violin and flute in octaves, horns
+The one swell is the full theme (28-35): oboe and flute in octaves, horns
 and organ, and at its heart the Lydian light - the held D-sharp over B major
 above the A - before the drums leave and the theme's last phrase is sung
 alone. Then the snow starts to rise (36-39): the harp's voicing climbs note
@@ -38,7 +38,7 @@ the quiet snowfall.
 
   bars  0-3   the snowfall alone (harp, glockenspiel, glass), A pedal
   bars  4-11  the theme: felt piano; cello pizzicati
-  bars 12-19  the theme: solo violin; piano echoes; clarinet: the cell augmented
+  bars 12-19  the theme: oboe; piano echoes; clarinet: the cell augmented
   bars 20-27  development: rising sequence of the climb; horns' cell; the drums enter (24)
   bars 28-35  the swell: the full theme, the Lydian light (31); drums gone by 33
   bars 36-39  the snow rises: climbing voicings, a suspended B over A
@@ -52,6 +52,7 @@ from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
 from hlaudio.beats import groove
 from hlaudio.piece import finish_loop
+from hlaudio import lead as LD
 
 TITLE = "First Snow"
 BAR = 8            # eighths
@@ -161,10 +162,10 @@ def score():
         t += 24.0
     P["g1"] = PR.fit([n for n in g1 if n.t < bar(BARS) - 2.0], pr)
     P["g2"] = PR.fit([n for n in g2 if n.t < bar(BARS) - 2.0], pr)
-    # THE THEME: piano (bars 4-11), solo violin (12-19), the full statement (28-35)
+    # THE THEME: piano (bars 4-11), oboe (12-19), the full statement (28-35)
     P["piano_theme"] = line(THEME, bar(4) - 2, vel=0.5)
     P["vn_theme"] = line(THEME, bar(12) - 2, vel=0.52)
-    # piano echoes of the cell high up, in the violin's long notes
+    # piano echoes of the cell high up, in the oboe's long notes
     P["piano_echo"] = PR.fit(line([(81, 1), (90, 1), (88, 3)], bar(13) + 2, vel=0.36) +
                              line([(80, 1), (88, 1), (87, 3)], bar(15) + 2, vel=0.36) +
                              line([(81, 1), (90, 1), (88, 4)], bar(19) + 2, vel=0.34), pr)
@@ -176,7 +177,7 @@ def score():
     P["vn_dev"] = PR.fit(dev1 + dev2, pr)
     P["fl_dev"] = PR.fit([N(n.t, n.d, n.p, n.v * 0.9) for n in dev2], pr)               # in unison
     P["hn_aug"] = PR.fit(PR.realize(PR.cell("P"), M, 0, bar(20), [8, 8, 8, 8, 32], vel=0.5), pr)
-    # the swell: the full theme, violin and flute in octaves, horns and organ
+    # the swell: the full theme, oboe and flute in octaves, horns and organ
     full = line(THEME, bar(28) - 2, vel=0.6)
     P["vn_full"] = full
     P["fl_full"] = [N(n.t, n.d, n.p + 12, n.v * 0.85) for n in full if n.t < bar(32)]
@@ -244,8 +245,9 @@ def render():
     vdyn = Curve([(sec(11.5), 0.42), (sec(14), 0.5), (sec(19.5), 0.5), (sec(20), 0.45), (sec(24), 0.55),
                   (sec(27.8), 0.62), (sec(29), 0.72), (sec(31.5), 0.75), (sec(33), 0.6), (sec(35.8), 0.5)])
     vn = S(mono(P["vn_theme"] + P["vn_dev"] + P["vn_full"]), 13)
-    st.play("solo_violin", vn, "solo_violin", seed=13, dyn=vdyn, gain_db=3, shape=shape, legato=True, slide=0.09,
-            lag=0.02)
+    # the oboe a little further into the hall than the other pieces' leads: its slow notes melt into each other
+    st.play("oboe", vn, "oboe", seed=13, dyn=vdyn, gain_db=10, shape=shape,
+            lag=0.02, **LD.lead(st, wash=1.0))
     fdyn = Curve([(sec(23.5), 0.4), (sec(26), 0.5), (sec(28), 0.6), (sec(31.5), 0.64), (sec(32.2), 0.4)])
     st.play("flutes", S(mono(P["fl_dev"] + P["fl_full"]), 14), "flute", seed=14, dyn=fdyn, gain_db=2, shape=shape,
             lag=0.02)
@@ -271,7 +273,7 @@ def render():
                      "shimmer:cathedral2": {"seed": 63, "gens": 2, "fb": 0.45}}, warmth=0.3)
     return finish_loop("music", "snow", out, LOOP, 4, -17.0, 192, tilt_hs_db=-1.5,
                        meta={"title": TITLE, "bpm": 72, "meter": "4/4", "beat": "quarter", "key": "A lydian",
-                             "instrument": "piano, solo violin, harp and glockenspiel"})
+                             "instrument": "piano, oboe, harp and glockenspiel"})
 
 
 if __name__ == "__main__":

@@ -6,13 +6,13 @@ the chords move over a B pedal (Bm9, Gmaj7#11, Em9, F#7sus4), with a dotted,
 filtered delay behind it. A second glass voice enters with the MIRRORED
 figure a sixteenth late, so the two interlock; cello pizzicati pluck the
 pedal in 2+2+3. A clarinet carries the cell augmented (two bars a note);
-then fragments of the cell (D-B-A) enter in stretto - solo violin, flute,
+then fragments of the cell (D-B-A) enter in stretto - oboe, flute,
 bassoon - each three eighths a note so they slide across the 7/8 bar lines,
 while a cello spiccato ticks in sixteenths with 2+2+3 accents. The lift
 turns to the relative major, G to D, staying in the key (the arpeggio
 morphs into it note by note; soft divisi violas far back; pizzicati hocket
-with the glass) while distant horns sing the cell's inversion. Then a solo
-violin holds the cell high over everything and it all subtracts back to the
+with the glass) while distant horns sing the cell's inversion. Then the
+oboe holds the cell high over everything and it all subtracts back to the
 glass and the pedal. 7/8, eighth = 240, 76 bars = 133 s.
 """
 import numpy as np
@@ -23,6 +23,7 @@ from hlaudio.orch import Stage
 from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
 from hlaudio.piece import finish_loop
+from hlaudio import lead as LD
 
 TITLE = "Blue Hour"
 BAR = 7
@@ -154,30 +155,31 @@ def render():
     EL.sub_pulse(sb, subs, gain=0.6, seed=4, decay=0.35)
 
     kw = dict(dyn=arc, shape=shape, lag=0.03)
-    st.play("basses", S(P["cb"], 5), "basses", seed=5, gain_db=-9, depth=0.78, **kw)
+    st.play("basses", S(P["cb"], 5), "basses", seed=5, gain_db=-21, **LD.bed(), **kw)
     vp = S(P["vc_pizz"], 6, 0.006)
     for n in vp:
         n.v = float(n.v * (0.7 + 0.5 * arc(n.t)))
     st.play("cellos_pizz", vp, "cellos_pizz", seed=6, gain_db=3, seat="cellos")
     st.play("clarinets", S(P["vla"], 7), "clarinet", seed=7, gain_db=6, **kw)
     sh2 = {"attack": 0.25, "swell": 0.25, "taper": 2.0}
-    for part, inst, seat, g in (("vn", "solo_violin", "solo_violin", -2), ("cl", "flute", "flutes", 8),
+    for part, inst, seat, g in (("vn", "oboe", "oboe", 6), ("cl", "flute", "flutes", 8),
                                 ("vc", "bassoon", "bassoon", 2)):
         notes = [n for n in P["stretto"] if n.x["part"] == part]
-        st.play(seat, S(notes, 8, 0.012), inst, seed=8, gain_db=g, dyn=arc, shape=sh2, lag=0.02)
+        st.play(seat, S(notes, 8, 0.012), inst, seed=8, gain_db=g, dyn=arc, shape=sh2, lag=0.02,
+                **(LD.lead(st) if inst == "oboe" else {}))
     tk = S(P["tick"], 9, 0.006)
     for n in tk:
         n.v = float(n.v * (0.6 + 0.55 * arc(n.t)))
     st.play("cellos_spic", tk, "cellos_spic", seed=9, gain_db=2, seat="cellos")
-    st.play("violas", S(P["vla_div"], 10), "violas", seed=10, seat="violas", depth=0.78,
-            dyn=Curve([(sec(44), 0.3), (sec(50), 0.5), (sec(55), 0.55), (sec(56), 0.3)]), gain_db=-10,
+    st.play("violas", S(P["vla_div"], 10), "violas", seed=10, seat="violas", **LD.bed(),
+            dyn=Curve([(sec(44), 0.3), (sec(50), 0.5), (sec(55), 0.55), (sec(56), 0.3)]), gain_db=-17,
             shape=shape, lag=0.03)
     st.play("pizz", S(P["pizz"], 11, 0.006), "violas_pizz", seed=11, seat="violas", gain_db=10)
     st.play("horns", S(P["horns"], 12), "horns", seed=12, dyn=Curve([(sec(44), 0.4), (sec(48), 0.6), (sec(53), 0.45)]),
             gain_db=1, shape=shape, lag=0.03)
-    st.play("solo_violin", S(P["vn_hi"], 13), "solo_violin", seed=13, dyn=Curve([(sec(56), 0.5), (sec(60), 0.68),
-                                                                                  (sec(66), 0.58), (sec(68), 0.35)]),
-            gain_db=-1, shape=shape, lag=0.03, legato=True, slide=0.1)
+    st.play("oboe", S(P["vn_hi"], 13), "oboe", seed=13, dyn=Curve([(sec(56), 0.5), (sec(60), 0.68),
+                                                                    (sec(66), 0.58), (sec(68), 0.35)]),
+            gain_db=7, shape=shape, lag=0.03, **LD.lead(st))
     peak = Curve([(sec(55), 0.25), (sec(58), 0.65), (sec(66), 0.6), (sec(68), 0.2)])
     st.play("organ", S(P["org"], 14, 0.0), "organ_soft", seed=14, dyn=peak, gain_db=-12)
     st.play("organ", S(P["org_ped"], 15, 0.0), "organ_soft_pedal", seed=15, dyn=peak, gain_db=-9)

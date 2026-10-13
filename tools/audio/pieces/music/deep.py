@@ -11,8 +11,8 @@ never changes (E major's notes), but the pedal under it does: F# (Dorian,
 dark blue water) and then A (Lydian, the sea opening into light) - modal
 ambiguity instead of key changes. A gliding glass voice sings the cell
 augmented, like whale song; low strings and the organ's quiet stops swell
-like tides far back; in the light the horns state the cell and a solo
-violin answers with its inversion in canon. A soft sub pulses under it in
+like tides far back; in the light the horns state the cell and the
+oboe answers with its inversion in canon. A soft sub pulses under it in
 3+3+2.
 
 The 1980s colour (the synth scores of Carpenter, Tangerine Dream, Dixon and
@@ -32,7 +32,7 @@ as it grows) and leave before the water darkens again.
 
   bars  0-7   pad, filtered arpeggio, sub, organ pedal on F#
   bars  8-23  the whale voice; the mirror arpeggio; the bass pulse; the sequencer (16)
-  bars 24-39  the pedal moves to A: horns' cell, violins' canon, the filter opens;
+  bars 24-39  the pedal moves to A: horns' cell, the oboe's canon, the filter opens;
               pad swells; the drums (22-38)
   bars 40-55  back onto F#, layers falling away to the arpeggio
 """
@@ -46,6 +46,7 @@ from hlaudio import electro as EL, effects as FX
 from hlaudio import analog as AN
 from hlaudio.beats import groove
 from hlaudio.piece import finish_loop
+from hlaudio import lead as LD
 
 TITLE = "Where the Lanterns Swim"
 BAR = 8            # eighths
@@ -97,7 +98,7 @@ def score():
     P["whale"] = [N(bar(8) + 0.0, bar(2), 66.0, 0.55), N(bar(10), bar(2), 75.0, 0.62),
                   N(bar(12), bar(2), 73.0, 0.58), N(bar(14), bar(2), 69.0, 0.55), N(bar(16), bar(4), 73.0, 0.55),
                   N(bar(42), bar(2), 73.0, 0.45), N(bar(44), bar(2), 69.0, 0.42), N(bar(46), bar(4), 66.0, 0.4)]
-    # in the light: horns state the cell in A, the violins answer with the inversion in canon
+    # in the light: horns state the cell in A, the oboe answers with the inversion in canon
     P["horns"] = PR.realize(PR.cell("P"), MA, 0, bar(24), [16, 16, 16, 16, 32], vel=0.6)     # A3 F#4 E4 C#4 E4
     P["vn"] = PR.fit(PR.realize(PR.cell("I"), MA, 14, bar(28), [16, 16, 16, 16, 16], vel=0.55), pr)
     P["pad"] = sustain_chords(pr, 52, 69, 4, vel=0.55, overlap=1.5)
@@ -236,15 +237,18 @@ def render():
     st.play("organ", S(P["org_ped"], 7, 0.0), "organ_soft_pedal", seed=7, dyn=tide, gain_db=-7)
     shape = {"attack": 0.9, "swell": 0.25, "taper": 3.0}
     # the section strings only as soft tides far back, under the organ and the pad
-    st.play("cellos", S(P["vc"], 8), "cellos", seed=8, dyn=tide, gain_db=-12, depth=0.82, shape=shape, lag=0.04)
-    st.play("basses", S(P["cb"], 9), "basses", seed=9, dyn=tide, gain_db=-9, depth=0.82, shape=shape, lag=0.04)
-    st.play("violas", S(P["vla"], 10), "violas", seed=10, dyn=tide, gain_db=-13, depth=0.82, shape=shape, lag=0.04)
+    st.play("cellos", S(P["vc"], 8), "cellos", seed=8, dyn=tide, gain_db=-22, shape=shape, lag=0.04,
+            **LD.bed())
+    st.play("basses", S(P["cb"], 9), "basses", seed=9, dyn=tide, gain_db=-19, shape=shape, lag=0.04,
+            **LD.bed())
+    st.play("violas", S(P["vla"], 10), "violas", seed=10, dyn=tide, gain_db=-23, shape=shape, lag=0.04,
+            **LD.bed())
     st.play("horns", S(P["horns"], 11), "horns", seed=11,
             dyn=Curve([(sec(23.5), 0.4), (sec(26), 0.68), (sec(34), 0.62), (sec(38), 0.4)]), gain_db=-2,
             shape=shape, lag=0.03)
-    st.play("solo_violin", S(P["vn"], 12), "solo_violin", seed=12,
-            dyn=Curve([(sec(27.5), 0.35), (sec(31), 0.55), (sec(37), 0.52), (sec(40), 0.3)]), gain_db=1,
-            shape=shape, lag=0.03, layer_bias=-0.2, depth=0.65, legato=True, slide=0.12)
+    st.play("oboe", S(P["vn"], 12), "oboe", seed=12,
+            dyn=Curve([(sec(27.5), 0.35), (sec(31), 0.55), (sec(37), 0.52), (sec(40), 0.3)]), gain_db=9,
+            shape=shape, lag=0.03, **LD.lead(st))
     st.play("timpani", S(P["timp_roll"], 13, 0.0), "timpani_roll", seed=13,
             dyn=Curve([(sec(22), 0.02), (sec(24.2), 0.55), (sec(24.3), 0.2)]), gain_db=-8, release=0.6)
     D = P["drums"]

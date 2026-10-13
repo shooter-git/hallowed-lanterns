@@ -21,6 +21,7 @@ from hlaudio.orch import Stage
 from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
 from hlaudio.piece import finish_loop
+from hlaudio import lead as LD
 
 TITLE = "Sugar Rush"
 BAR = 16
@@ -126,7 +127,7 @@ def render():
     st.play("clarinets", shaped(P["cl"], 6), "clarinet_stac", seed=6, gain_db=4)
     st.play("glock", shaped(P["glock"], 7, 0.7, 0.4, 0.004), "glock", seed=7, gain_db=0)
     st.play("cellos_spic", shaped(P["spic"], 8), "cellos_spic", seed=8, gain_db=0, seat="cellos")
-    st.play("violas", S(P["vla_sus"], 9), "violas", seed=9, dyn=arc, gain_db=-12, depth=0.8,
+    st.play("violas", S(P["vla_sus"], 9), "violas", seed=9, dyn=arc, gain_db=-19, **LD.bed(),
             shape={"attack": 0.4, "swell": 0.2, "taper": 2.0}, lag=0.02)
     ar = st.stem("arp", {"concert": 0.45}, depth=0.6)
     EL.arp(ar, shaped(P["arp"], 10, 0.5, 0.6, 0.0), gain=0.45, seed=10, cutoff=cutoff, res=2.2, decay=0.12,

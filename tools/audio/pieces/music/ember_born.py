@@ -12,6 +12,7 @@ from hlaudio.sampler import Curve
 from hlaudio.orch import Stage
 from hlaudio import electro as EL, effects as FX, nb
 from hlaudio.piece import finish_oneshot
+from hlaudio import lead as LD
 
 
 def render():
@@ -44,13 +45,13 @@ def render():
 
     sw = Curve([(0.4, 0.2), (1.8, 0.62), (3.5, 0.55), (5.5, 0.3)])
     shape = {"attack": 0.9, "swell": 0.2, "taper": 2.5}
-    # a short string swell, soft and far back, under the organ
+    # a short string swell, only a very quiet bed far back, under the organ
     st.play("violins", [N(0.45, 4.6, float(p), 0.55) for p in (74, 78, 81, 88)], "violins", seed=4, dyn=sw,
-            gain_db=-8, shape=shape, layer_bias=-0.2, depth=0.78)
-    st.play("violas", [N(0.5, 4.5, float(p), 0.5) for p in (62, 69)], "violas", seed=5, dyn=sw, gain_db=-9,
-            shape=shape, depth=0.78)
-    st.play("cellos", [N(0.5, 4.5, float(p), 0.5) for p in (38, 50)], "cellos", seed=6, dyn=sw, gain_db=-9,
-            shape=shape, depth=0.78)
+            gain_db=-23, shape=shape, layer_bias=-0.2, **LD.bed())
+    st.play("violas", [N(0.5, 4.5, float(p), 0.5) for p in (62, 69)], "violas", seed=5, dyn=sw, gain_db=-16,
+            shape=shape, **LD.bed())
+    st.play("cellos", [N(0.5, 4.5, float(p), 0.5) for p in (38, 50)], "cellos", seed=6, dyn=sw, gain_db=-16,
+            shape=shape, **LD.bed())
     st.play("cellos_pizz", [N(0.02, 1.5, 38.0, 0.6), N(0.02, 1.5, 50.0, 0.45)], "cellos_pizz", seed=9, gain_db=0)
     st.play("organ", [N(0.3, 5.2, 38.0, 0.45)], "organ_soft_pedal", seed=7, dyn=sw, gain_db=-8)
     st.play("organ", [N(0.6, 4.8, float(p), 0.42) for p in (57, 62, 66)], "organ_soft", seed=8, dyn=sw, gain_db=-11)

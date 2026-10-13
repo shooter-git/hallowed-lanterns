@@ -1,6 +1,8 @@
 """Vintage analog synthesis: the 1980s synth-score sound (sequencers through
-resonant ladder filters, pulsing basses, brassy pad swells) for the one place
-where synths are the point, the Deep.
+resonant ladder filters, pulsing basses, brassy pad swells) for the places
+where synths are the point: the Deep, and the Marigold Garden's swell, whose
+lead SINGS (`sing`: a legato line gliding into each note, its vibrato growing
+and its filter blooming on the long notes).
 
 Built the way the old polysynths and modulars were, so it sounds like warm
 gear rather than a plug-in preset:
@@ -187,6 +189,80 @@ def play(track: Track, notes, p: Patch, gain=1.0, seed=0, sweep=None, pan=0.0, p
     return track
 
 
+def sing(track: Track, notes, p: Patch, gain=1.0, seed=0, gap=0.3, glide=0.16, vib=0.16, vib_rate=5.0,
+         bloom=0.7, dip=0.22, sweep=None, pan=0.0):
+    """A singing mono line, the lead of a synth ballad. Notes that touch are one phrase: the pitch glides
+    into each new note the way a voice does (starting just before it, slower across a wide leap); each
+    note is re-articulated with a small dip in level, so the melody is heard as notes rather than a
+    siren; the vibrato waits, then grows, deepest on the longest notes (`vib` semitones at 3 s and up);
+    and the filter follows the line's loudness and BLOOMS - opens slowly, up to `bloom` octaves - while
+    a long note is held. One amplitude envelope per phrase (the patch's a/d/s/r)."""
+    from .lines import phrases
+    from .core import smoothstep
+    for pi, ph in enumerate(phrases(sorted(notes, key=lambda n: n.t), gap)):
+        r = rng("sing", seed, pi)
+        t0 = ph[0].t
+        end = max(nt.t + nt.d for nt in ph)
+        n = ns(end - t0 + p.r * 5 + 0.05)
+        t = tvec(n)
+        semi = np.full(n, float(ph[0].p))
+        for k in range(1, len(ph)):
+            step = ph[k].p - ph[k - 1].p
+            g = glide * (0.7 + 0.06 * min(abs(step), 12.0))
+            semi += step * smoothstep((t - (ph[k].t - t0 - 0.4 * g)) / g)
+        vel = np.full(n, float(ph[0].v))
+        vibd = np.zeros(n)
+        blo = np.zeros(n)
+        art = np.ones(n)
+        for k, nt in enumerate(ph):
+            a = ns(nt.t - t0)
+            b = min(n, ns(nt.t + nt.d - t0)) if k + 1 < len(ph) else n
+            tt = t[a:b] - (nt.t - t0)
+            vel[a:] = nt.v
+            depth = vib * float(np.clip((nt.d - 0.5) / 2.5, 0.15, 1.0))
+            vibd[a:b] = depth * smoothstep((tt - 0.3) / (0.5 + 0.3 * nt.d))
+            held = float(np.clip((nt.d - 0.8) / 2.0, 0.0, 1.0))
+            blo[a:b] = bloom * held * smoothstep(tt / max(nt.d, 0.5))
+            if k:
+                art[a:b] *= 1 - dip * np.exp(-np.maximum(tt, 0) / 0.07)
+        # smooth the per-note steps (a hand on the expression pedal, not a switch)
+        k1 = np.exp(-1 / (0.06 * SR))
+        from . import nb
+        vel = nb.onepole(vel, k1)
+        vibd = nb.onepole(vibd, np.exp(-1 / (0.12 * SR)))
+        drift = 1 + 0.05 * np.sin(2 * np.pi * 0.6 * t + r.uniform(0, 6))
+        vphase = 2 * np.pi * np.cumsum(vib_rate * drift) / SR + r.uniform(0, 6)
+        semi_v = semi + vibd * np.sin(vphase)
+        f0 = 440.0 * 2.0 ** ((semi_v - 69.0) / 12.0)
+        mix = np.zeros(n)
+        for j, (kind, cents, octv, lvl, pw) in enumerate(p.oscs):
+            rj = rng("sing", seed, pi, j)
+            dr = p.drift * smooth_random(n, rj, 0.3) if p.drift else 0.0
+            f = f0 * 2.0 ** (octv + (cents + dr) / 1200.0)
+            if kind == "saw":
+                y = osc(f, 0, np.zeros(1), float(rj.uniform()))
+            else:
+                w = np.full(n, float(pw))
+                if p.pwm:
+                    w = w + p.pwm * np.sin(2 * np.pi * p.pwm_rate * (t0 + t) + 1.7 * j)
+                y = osc(f, 1, np.clip(w, 0.05, 0.95), float(rj.uniform()))
+            mix += lvl * y
+        if p.noise:
+            mix += p.noise * r.standard_normal(n)
+        hold = end - t0
+        aenv = adsr(n, p.a, p.d, p.s, p.r, hold=hold)
+        fenv = adsr(n, p.fa, p.fd, p.fs, p.fr, hold=hold)
+        base = sweep(t0 + t) if callable(sweep) else np.full(n, float(sweep or 1.0))
+        fc = p.cutoff * base * 2.0 ** (p.keytrack * (semi - 60) / 12.0 + p.env_oct * fenv +
+                                       p.vel_bright * (vel - 0.6) + blo)
+        fc = np.clip(fc, 30.0, p.fmax)
+        y = ladder(mix * p.pre, fc, 4.0 * p.res * 0.97, p.drive)
+        y = np.tanh(p.sat * y) / np.tanh(p.sat)
+        lvl = 10 ** (-p.vel_db * (1 - np.clip(vel, 0, 1)) ** 1.3 / 20)
+        track.add(t0, y * aenv * art * lvl * p.level, gain=gain, pan=pan)
+    return track
+
+
 # ----------------------------------------------------------------- patches
 
 # a dark pulsing bass: saw + pulse + a square an octave down, short filter blip
@@ -209,3 +285,9 @@ ARP = Patch(oscs=[("saw", -3.0, 0, 0.7, 0.5), ("pulse", 3.0, 0, 0.6, 0.5)],
             drift=2.5, cutoff=520.0, res=0.42, env_oct=1.6, keytrack=0.5, vel_bright=0.8,
             a=0.003, d=0.28, s=0.2, r=0.18, fa=0.002, fd=0.2, fs=0.0, fr=0.2,
             drive=1.4, sat=1.2, pre=0.45, fmax=5500.0, level=0.5, vel_db=20.0)
+# the Marigold's singing lead: a saw and a slowly-modulated pulse, a soft saw an octave below for body,
+# a gentle filter that tracks the line up (it is never thin at the top nor dull at the bottom)
+SINGER = Patch(oscs=[("saw", -4.0, 0, 0.8, 0.5), ("pulse", 4.0, 0, 0.5, 0.42), ("saw", 2.0, -1, 0.28, 0.5)],
+               drift=2.5, pwm=0.08, pwm_rate=0.3, cutoff=640.0, res=0.14, env_oct=0.5, keytrack=0.7,
+               vel_bright=1.2, a=0.14, d=0.9, s=0.86, r=1.4, fa=0.12, fd=1.0, fs=0.3, fr=1.2,
+               drive=1.1, sat=1.15, pre=0.4, fmax=4800.0, level=0.5, vel_db=14.0)

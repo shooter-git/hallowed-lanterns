@@ -23,7 +23,7 @@ flute and clarinet interlock in a hocket of the organ's figure.
 
 The FUGUE (bars 16-31): the subject is the cell with a falling tail (G E D B
 D | E-D B A G); clarinet, the zither answering at the fifth, a horn, the
-bassoon; a stretto of solo violin, ocarina, bassoon, zither, clarinet and
+bassoon; a stretto of oboe, ocarina, bassoon, zither, clarinet and
 flute a bar apart over pizzicato cellos and violas plucking the harmony in
 3+3+2. The drums are born in the stretto (bar 28): a big drum and the low
 timpani in 3+3+2 (a Chinese drum's weight, the temple gong on the downbeat
@@ -53,6 +53,7 @@ from hlaudio import electro as EL, effects as FX
 from hlaudio import festival as FE
 from hlaudio.beats import groove
 from hlaudio.piece import finish_loop
+from hlaudio import lead as LD
 
 TITLE = "Lantern Song"
 BAR = 8           # eighths
@@ -289,19 +290,20 @@ def render():
     st.play("ocarina", S(fo, 26, 0.01), "ocarina", seed=26, dyn=oc_dyn, gain_db=7, xf=0.07, slide=0.04,
             shape={"attack": 0.08, "swell": 0.12, "taper": 1.0}, lag=0.02)
 
-    # the fugue's other voices: winds, a horn and a solo violin (no section strings)
+    # the fugue's other voices: winds, a horn and the oboe (no section strings)
     insts = {"clarinet": ("clarinets", "clarinet", 6), "flute": ("flutes", "flute", 5), "horn": ("horns", "horns", -2),
-             "bassoon": ("bassoon", "bassoon", 1), "violin": ("solo_violin", "solo_violin", 2)}
+             "bassoon": ("bassoon", "bassoon", 1), "violin": ("oboe", "oboe", 8)}
     for part, (stem, inst, g) in insts.items():
         notes = [n for n in P["fugue"] if n.x["part"] == part]
         if notes:
             st.play(stem, S(notes, 6, 0.012), inst, seed=6, dyn=arc, gain_db=g,
-                    shape={"attack": 0.12, "swell": 0.15, "taper": 1.5}, lag=0.015)
+                    shape={"attack": 0.12, "swell": 0.15, "taper": 1.5}, lag=0.015,
+                    **(LD.lead(st) if inst == "oboe" else {}))
     top = Curve([(sec(31), 0.3), (sec(33), 0.8), (sec(38.5), 0.8), (sec(41), 0.35)])
     st.play("organ", S(P["ped_aug"], 7, 0.0), "organ_pedal", seed=7, dyn=top, gain_db=-6)
     st.play("organ", S(P["org_full"], 8, 0.0), "organ", seed=8, dyn=top, gain_db=-13)
     st.play("horns", S(P["horns"], 9), "horns", seed=9, dyn=top, gain_db=-5, shape=shape, lag=0.03)
-    st.play("violins2", S(P["vn"], 10), "violins", seed=10, dyn=arc, gain_db=-14, seat="violins2", depth=0.8,
+    st.play("violins2", S(P["vn"], 10), "violins", seed=10, dyn=arc, gain_db=-21, seat="violins2", **LD.bed(),
             shape=shape, lag=0.03)
     pv = S(P["pz_vc"], 11, 0.006)
     pa = S(P["pz_vla"], 12, 0.006)

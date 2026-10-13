@@ -26,6 +26,11 @@ type Progress = {
  * Runs the night: the renderer and its finishing, the walk, the Ember, sound, the chapters in
  * order and the fog-soft transitions between them.
  */
+/** The passage into a chapter: in its key, and into the last one, the farewell. */
+function passageFor(index: number) {
+  return index === CHAPTERS.length - 1 ? 'passage-final' : `passage-${CHAPTERS[index]?.key ?? 'd'}`;
+}
+
 export class Engine {
   private stage!: Stage;
   private ctx!: ChapterContext;
@@ -254,8 +259,7 @@ export class Engine {
     if (chapter.startYaw !== undefined) walker.yaw = chapter.startYaw;
     walker.autoTarget = null;
     // The passage on to the next chapter, ready before it's needed (it lands on a beat).
-    const next = CHAPTERS[this.index + 1];
-    if (next) audio.preload('', [`passage-${next.key}`]);
+    if (CHAPTERS[this.index + 1]) audio.preload('', [passageFor(this.index + 1)]);
     if (run) chapter.enter();
   }
 
@@ -288,10 +292,11 @@ export class Engine {
     this.transition = { t: 0, phase: 'out', target: index };
     // Whatever the chapter you're leaving was offering goes with it.
     this.ctx.ui.clearOffers();
-    // The passage: a bar that swells to the moment the next chapter appears, in its key. The
-    // music you're leaving steps back to let it through.
+    // The passage: a bar that swells to the moment the next chapter appears, in its key (into the
+    // last chapter, a farewell of its own). It's music, so it plays with the music, clear of the
+    // Deep's underwater muffling. The music you're leaving steps back to let it through.
     const info = CHAPTERS[index];
-    if (info) void this.ctx.audio.sfx(`passage-${info.key}`, { volume: 0.7 });
+    if (info) void this.ctx.audio.sfx(passageFor(index), { volume: 0.7, send: 'music' });
     this.ctx.audio.musicLevel(0.35, 2.4);
   }
 

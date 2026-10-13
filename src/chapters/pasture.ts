@@ -254,7 +254,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       shared.uFogGlow.value = 0.9;
       ctx.ember.presence = 1;
       ctx.ember.place(new Vector3(0, 1.8, 4));
-      ctx.audio.preload('hollow', ['giant-low', 'step-leaves', 'fly-buzz', 'flytrap-snap', 'flytrap-stir', 'flytrap-lunge', 'fly-buzz-trapped']);
+      ctx.audio.preload('hollow', ['giant-low', 'fly-buzz', 'flytrap-snap', 'flytrap-stir', 'flytrap-lunge', 'fly-buzz-trapped']);
     },
 
     update(dt) {

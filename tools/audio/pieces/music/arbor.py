@@ -8,7 +8,7 @@ note of the figure changes at a time. The left hand marks the bar in 3+3+2.
 Over a D pedal the harmony shifts underneath the same notes (D, Bm9, G
 Lydian, A sus) and never leaves D. The voices enter one by one with the
 cell AUGMENTED (a bar per note) in canon - clarinet on D, bassoon a fifth
-below, then the flute with the INVERSION, then a solo violin in stretto with
+below, then the flute with the INVERSION, then the oboe in stretto with
 the cell diminished - so the harmony grows out of overlapping long notes,
 over cello pizzicati plucking the bass in 3+3+2. A pizzicato canon of the
 cell (violins, then violas a fifth below) answers the piano. At the peak
@@ -19,7 +19,7 @@ piano alone.
 
   bars  0-5   piano figure alone; glass air
   bars  6-15  left hand (3+3+2), clarinet's canon entry, bassoon, pizzicato bass
-  bars 16-23  moving bass; flute (inversion), solo violin (stretto);
+  bars 16-23  moving bass; flute (inversion), oboe (stretto);
               glass interlocking pair in additive groups; pizzicato canon
   bars 24-31  the peak: organ pedal cell in the bass, horns' canon, timpani
   bars 32-41  E minor 9 over D, then layers fall away to the piano
@@ -32,6 +32,7 @@ from hlaudio.orch import Stage
 from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
 from hlaudio.piece import finish_loop
+from hlaudio import lead as LD
 
 TITLE = "Sundown"
 BAR = 8            # eighths
@@ -165,8 +166,8 @@ def render():
     st.play("clarinets", S(P["vla"], 3), "clarinet", seed=3, gain_db=7, **kw)
     st.play("bassoon", S(P["vc"], 4), "bassoon", seed=4, gain_db=7, **kw)
     st.play("flutes", S(P["vn2"], 5), "flute", seed=5, gain_db=6, **kw)
-    st.play("solo_violin", S(P["vn1"], 6), "solo_violin", seed=6, gain_db=-5, legato=True, slide=0.08, **kw)
-    st.play("basses", S(P["cb"], 7), "basses", seed=7, gain_db=-12, depth=0.8, **kw)
+    st.play("oboe", S(P["vn1"], 6), "oboe", seed=6, gain_db=6, **LD.lead(st), **kw)
+    st.play("basses", S(P["cb"], 7), "basses", seed=7, gain_db=-19, **LD.bed(), **kw)
     vp = S(P["vc_pizz"], 16, 0.006)
     for n in vp:
         n.v = float(n.v * (0.6 + 0.6 * arc(n.t)))

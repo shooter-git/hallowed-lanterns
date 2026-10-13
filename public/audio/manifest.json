@@ -146,7 +146,7 @@
       "meter": "4/4",
       "beat": "quarter",
       "key": "G major",
-      "instrument": "guitar"
+      "instrument": "guitar and synths"
     },
     "pasture": {
       "file": "music/pasture.mp3",
@@ -180,7 +180,7 @@
       "meter": "4/4",
       "beat": "quarter",
       "key": "A lydian",
-      "instrument": "piano, solo violin, harp and glockenspiel"
+      "instrument": "piano, oboe, harp and glockenspiel"
     },
     "title": {
       "file": "music/title.mp3",
@@ -191,7 +191,7 @@
       "meter": "4/4",
       "beat": "quarter",
       "key": "D lydian",
-      "instrument": "piano",
+      "instrument": "piano and stand-up bass",
       "theme": true
     }
   },
@@ -373,6 +373,9 @@
     "passage-d": [
       "sfx/passage-d.mp3"
     ],
+    "passage-final": [
+      "sfx/passage-final.mp3"
+    ],
     "passage-fs": [
       "sfx/passage-fs.mp3"
     ],
@@ -416,17 +419,9 @@
       "sfx/step-gravel-5.mp3",
       "sfx/step-gravel-6.mp3",
       "sfx/step-gravel-7.mp3",
-      "sfx/step-gravel-8.mp3"
-    ],
-    "step-leaves": [
-      "sfx/step-leaves-1.mp3",
-      "sfx/step-leaves-2.mp3",
-      "sfx/step-leaves-3.mp3",
-      "sfx/step-leaves-4.mp3",
-      "sfx/step-leaves-5.mp3",
-      "sfx/step-leaves-6.mp3",
-      "sfx/step-leaves-7.mp3",
-      "sfx/step-leaves-8.mp3"
+      "sfx/step-gravel-8.mp3",
+      "sfx/step-gravel-9.mp3",
+      "sfx/step-gravel-10.mp3"
     ],
     "step-sand": [
       "sfx/step-sand-1.mp3",

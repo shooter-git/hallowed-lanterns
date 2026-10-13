@@ -6,7 +6,7 @@ chords that move above the same bass (D5, C/D, G/D). The horns state the
 Ember's cell in whole-bar notes; a second horn answers it modally at the
 fifth two bars later; then the trombones and the tuba enter with it in
 STRETTO, each a bar after the last, while a dotted spiccato ostinato
-(long-short, long-short) grows in the cellos and basses. A solo violin and a
+(long-short, long-short) grows in the cellos and basses. The oboe and a
 clarinet hold the cell's inversion high in two-bar notes. The lift stays in
 the key - G over B, C, then D - with the one low braam of the piece on G;
 the full organ and timpani bring it home to D, and the layers come off one
@@ -30,6 +30,7 @@ from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
 from hlaudio.beats import groove, drum_pitch
 from hlaudio.piece import finish_loop
+from hlaudio import lead as LD
 
 TITLE = "Gentle Giants"
 BAR = 4
@@ -125,7 +126,7 @@ def render():
     st.play("trombones", S(P["tbn"], 3), "trombones", seed=3, dyn=arc, gain_db=-3, double=1, **br)
     st.play("tuba", S(P["tuba"], 4), "tuba", seed=4, dyn=arc, gain_db=-3, **br)
     st.play("horns", S(P["hn_top"], 5), "horns", seed=5, dyn=arc, gain_db=0, double=2, **br)
-    st.play("solo_violin", S(P["vn"], 6), "solo_violin", seed=6, dyn=arc, gain_db=0, legato=True, slide=0.1, **br)
+    st.play("oboe", S(P["vn"], 6), "oboe", seed=6, dyn=arc, gain_db=6, **LD.lead(st), **br)
     st.play("clarinets", S(P["vla"], 7), "clarinet", seed=7, dyn=arc, gain_db=2, **br)
     dv = S(P["dot_vc"], 8, 0.006)
     db_ = S(P["dot_cb"], 9, 0.006)
@@ -133,8 +134,8 @@ def render():
         n.v = float(n.v * (0.45 + 0.75 * arc(n.t)))
     st.play("cellos_spic", dv, "cellos_spic", seed=8, gain_db=1, seat="cellos")
     st.play("basses_spic", db_, "basses_spic", seed=9, gain_db=-1, seat="basses")
-    st.play("cellos", S(P["fifths"], 10), "cellos", seed=10, dyn=arc, gain_db=-5, depth=0.78, shape=shape)
-    st.play("basses", S(P["cb_ped"], 11), "basses", seed=11, dyn=arc, gain_db=-5, depth=0.8, shape=shape)
+    st.play("cellos", S(P["fifths"], 10), "cellos", seed=10, dyn=arc, gain_db=-12, shape=shape, **LD.bed())
+    st.play("basses", S(P["cb_ped"], 11), "basses", seed=11, dyn=arc, gain_db=-12, shape=shape, **LD.bed())
     st.play("cellos_pizz", S(P["pz"], 21, 0.006), "cellos_pizz", seed=21, gain_db=3, seat="cellos")
     st.play("organ", S(P["org_soft"], 12, 0.0), "organ_soft", seed=12, dyn=arc, gain_db=-9)
     st.play("organ", S(P["org_ped"], 13, 0.0), "organ_soft_pedal", seed=13, dyn=arc, gain_db=-6)

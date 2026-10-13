@@ -254,7 +254,7 @@ export class AudioDirector {
    */
   async sfx(
     key: string,
-    options: { volume?: number; rate?: number; at?: Vector3; pan?: number; wet?: number; spread?: number; send?: 'sfx' | 'ui' } = {},
+    options: { volume?: number; rate?: number; at?: Vector3; pan?: number; wet?: number; spread?: number; send?: 'sfx' | 'ui' | 'music' } = {},
   ) {
     if (!this.started) return;
     const list = this.manifest?.sfx[key];

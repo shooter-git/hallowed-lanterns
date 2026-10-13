@@ -38,7 +38,7 @@ violet and peach, and purple and orange path lights run along both edges.
   at you, waits, and darts off into the trees.
 
 *Music — "Sundown":* a felt-piano figure turning against the bar, the Ember's motif slowed into a
-canon for clarinet, bassoon, flute and solo violin, plucked bass, an organ pedal and distant horns.
+canon for clarinet, bassoon, flute and oboe, plucked bass, an organ pedal and distant horns.
 *Around you:* the last birds of the day giving way to the first crickets, gravel under your feet,
 distant happy voices.
 
@@ -59,7 +59,7 @@ you walk.
   fog.
 
 *Music — "Blue Hour":* in 7/8: a glass arpeggio and its mirror image, a plucked pedal, the motif in
-clarinet then in close canon for solo violin, flute and bassoon, over ticking strings. *Around
+clarinet then in close canon for oboe, flute and bassoon, over ticking strings. *Around
 you:* leaves in the wind, crickets, the hush of the fog.
 
 ## III. The Lantern Garden — nightfall
@@ -81,7 +81,7 @@ crickets come closer, and the lanterns overhead sway as one in a warm breeze.
 *Music — "Lantern Song":* a lantern festival in G major's pentatonic. A zither like a guzheng
 sweeps up and sings the Ember's notes with pressed bends, answered by a clay flute; a harp
 pattern grows a note at a time under a cycling organ; a small fugue for zither, winds, horn and
-violin, its climax carried by a big drum and a temple gong; finger cymbals and a temple block.
+oboe, its climax carried by a big drum and a temple gong; finger cymbals and a temple block.
 *Around you:* the wind in the trees and the reed fences, soft wind chimes.
 
 ## IV. The Pasture of Giants — deep night
@@ -102,7 +102,7 @@ of hay bales, white benches, strings of purple and blue globe lights overhead, g
 the bales. Sit on a bench and watch the film — a shadow-puppet tale of the Ember's own night.
 
 *Music — "Gentle Giants":* brass entering in canon over a dotted string ostinato, a clarinet and
-solo violin turning the motif upside down, and one deep swell, with the timpani and a big drum
+an oboe turning the motif upside down, and one deep swell, with the timpani and a big drum
 walking under it like the giants themselves. *Around you:* an open field of
 crickets and the quiet hum of the night.
 
@@ -148,7 +148,7 @@ trees. Everything goes hushed, and you can see your breath.
 - Catch snowflakes (tap them); each one rings a tiny bell.
 
 *Music — "First Snow":* a theme of its own, grown from the Ember's notes — sung first by the felt
-piano, then by a solo violin, then climbing through flute and horns to the night's one brighter
+piano, then by an oboe, then climbing through flute and horns to the night's one brighter
 chord — over a snowfall of harp, glockenspiel and pizzicato, a soft drum under the swell; at the
 end the music lifts, like the snowflakes starting to rise. *Around you:* the muffled hush of snow, soft crunching
 steps.
@@ -174,7 +174,7 @@ a rush of bubbles, a long low groan as something enormous stretches. It turns to
 - Jellyfish pulse brighter as you pass beneath them. Tap a pufferfish and it puffs up.
 
 *Music — "Where the Lanterns Swim":* a five-note arpeggio sliding through a slow tidal filter,
-mirrored glass, gliding whale-like glass tones, and a horn and violin canon, with the warm analog
+mirrored glass, gliding whale-like glass tones, and a horn and oboe canon, with the warm analog
 synths of an 1980s film score — a sequencer pulse, a dark bass, filters sweeping like the tide —
 and, as the music turns into the light, a slow, deep drumbeat.
 
@@ -202,12 +202,14 @@ little lamp, pencils and leaf cards is where people write them.
 - The Ember settles on a branch and becomes a leaf of light. The lanterns in every chapter glow
   once, all together, and the night fades gently out.
 
-*Music — "Remember Me":* a quiet altar at night: a guitar's broken chord that turns from major to
-minor inside its own figure, a soft organ like the church at the cemetery's edge, a far bell, a
-marimba's rolls, and the Ember's notes on a clay flute, answered by a solo violin. It grows into
-the most yearning moment of the night — violin and flute climbing over horns and the opening
-organ to the borrowed minor chord at its heart — then draws back to the altar, its last phrase
-left hanging. At the Wishing Tree the full "Hallowed Lanterns" theme plays.
+*Music — "Remember Me":* a quiet altar at night: a classical guitar's broken chord that turns from
+major to minor inside its own figure, a soft organ like the church at the cemetery's edge, a far
+bell, a marimba's rolls, and the Ember's notes on a clay flute, answered by a voice not of this
+world — a synth, singing. It grows into the most yearning moment of the night, and the sky opens
+in synths: the guitar's triplets turn to light, then pulse like a 1950s ballad's over a bass that
+beats like a heart, as the line climbs by wide, aching leaps to a high note held while the
+harmony turns to the borrowed minor chord beneath it — then draws back to the altar, its last
+phrase left hanging. At the Wishing Tree the full "Hallowed Lanterns" theme plays.
 
 ## Together
 
