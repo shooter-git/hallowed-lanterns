@@ -514,6 +514,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     const off = (rnd() - 0.5) * 2 * (rnd() < 0.6 ? 3.5 : 8);
     const pos = new Vector3(tmp.x - tan.y * off, 2.6 + rnd() * 3.8, tmp.y + tan.x * off);
     if (Math.hypot(pos.x - WRECK.x, pos.z - WRECK.z) < 6.5) continue;
+    // Over the path they float high, so their ribbons end above your head, not in your face.
+    const overPath = Math.abs(off) < 2.6;
+    if (overPath) pos.y = Math.max(pos.y, 4.2);
     const r = 0.16 + rnd() * 0.12;
     const purple = rnd() < 0.5;
     jellies.push(specs.length);
@@ -527,7 +530,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       phase: rnd(),
       hang: 9 - pos.y,
     });
-    const len = 1.1 + rnd() * 1.6;
+    const len = Math.min(1.1 + rnd() * 1.6, overPath ? (pos.y - 2.4) / 1.1 : 99);
     for (let k = 0; k < (tier === 'low' ? 4 : 7); k++) {
       const a = (k / 8) * Math.PI * 2;
       ribbons.push({ p: pos.clone().add(new Vector3(Math.cos(a) * r * 0.7, -r * 0.45, Math.sin(a) * r * 0.7)), len: len * (0.6 + rnd() * 0.5), phase: rnd() });
@@ -802,7 +805,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
         const d = Math.hypot(w.position.x - KEEPER.x, w.position.z - KEEPER.z);
         if (!rising && d < 22) {
           rising = true;
-          void ctx.audio.sfx('keeper-rise', { at: KEEPER.clone().setY(2), volume: 1 });
+          void ctx.audio.sfx('keeper-rise', { volume: 1 });
           ctx.ui.say('Something enormous is rising…', 5);
         }
         if (rising) risen = Math.min(1, risen + dt / 7);

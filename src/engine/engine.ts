@@ -249,6 +249,7 @@ export class Engine {
     chapter.scene.add(sky.mesh, ember.group, ember.trail);
     lights.attach(chapter.scene);
     this.people?.enter(chapter.scene, this.index);
+    walker.seated = false;
     walker.setPath(chapter.path, 0);
     if (chapter.startYaw !== undefined) walker.yaw = chapter.startYaw;
     walker.autoTarget = null;

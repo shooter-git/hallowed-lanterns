@@ -164,7 +164,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     [10.6, -34.0],
     [11.9, -33.6],
     [12.9, -33.0],
-    [4.6, -31],
+    [5.3, -30.4],
   ];
   for (const [x, z] of hooks) {
     hookLanterns.push(specs.length);

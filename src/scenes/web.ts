@@ -308,7 +308,7 @@ function pumpkinSpider(model: LoadedModel, home: Pose, away: (from: Pose) => Pos
         setOff(home, false);
       }
       // Fidgets, when it's standing about.
-      if ((state === 'home' || (state === 'wait' && clock > 0.8)) && !feel && legs.every((l) => !l.step)) {
+      if (legs.length && (state === 'home' || (state === 'wait' && clock > 0.8)) && !feel && legs.every((l) => !l.step)) {
         fidget -= dt;
         if (fidget <= 0) {
           fidget = 2.5 + Math.random() * 5;
@@ -395,10 +395,18 @@ function pumpkinSpider(model: LoadedModel, home: Pose, away: (from: Pose) => Pos
         [lag, 15, 11],
         [babyLag, 9, 4],
       ] as const) {
-        s.vx += (-f * f * s.x - damp * s.vx) * dt - ax;
-        s.vz += (-f * f * s.z - damp * s.vz) * dt - az;
-        s.x += s.vx * dt;
-        s.z += s.vz * dt;
+        s.vx -= ax;
+        s.vz -= az;
+        // In small steps, so the spring stays steady however slowly the frames come.
+        const steps = Math.ceil(dt / 0.016);
+        const h = dt / steps;
+        for (let k = 0; k < steps; k++) {
+          s.vx += (-f * f * s.x - damp * s.vx) * h;
+          s.vz += (-f * f * s.z - damp * s.vz) * h;
+          s.x += s.vx * h;
+          s.z += s.vz * h;
+        }
+        if (!Number.isFinite(s.x + s.z + s.vx + s.vz)) s.x = s.z = s.vx = s.vz = 0;
       }
       body.pitch = Math.max(-0.12, Math.min(0.12, lag.z * 1.1)) - rear * 0.08;
       body.roll = Math.max(-0.1, Math.min(0.1, -lag.x * 1.1)) + (w ? going * Math.sin(Math.PI * 2 * phase) * 0.02 : 0);
@@ -641,7 +649,7 @@ export async function web(ctx: ChapterContext, at: Vector3, yaw: number): Promis
 
   // Pumpkins wrapped in web, with little neon spiders on them, hanging on threads from the web.
   const hangAt: Vector3[] = [];
-  for (let tries = 0; hangAt.length < 12 && tries < 200; tries++) {
+  for (let tries = 0; hangAt.length < 12 && tries < 800; tries++) {
     const side = hangAt.length % 2 ? 1 : -1;
     const lx = side * (2.1 + Math.random() * 1.6);
     const lz = (Math.random() - 0.5) * 14;

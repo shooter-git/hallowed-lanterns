@@ -1,19 +1,18 @@
 """The passage between chapters: passage-d, -b, -g, -a and -fs, one for each key a chapter's music
 is in (the way into a chapter is in that chapter's key, so it hands over to its music cleanly).
 
-The fog closes in for 2.6 s, then the next chapter blooms. That 2.6 s is one bar of eight
-eighths, grouped 3+3+2, and the passage is built on it:
+Bittersweet: glad you're here, sorry the night is passing. The fog closes in for 2.6 s, one bar of
+eight eighths grouped 3+3+2, and the next chapter blooms on the downbeat:
 
-  - a pulse that quickens: low timpani and the concert bass drum on the 3+3+2 accents, soft and
-    growing, with two ghost notes leading in, under a rising pizzicato arpeggio (root, fifth,
-    ninth; cellos, then violas, then violins join, a Glass-like adding of voices);
-  - a swell under it: string tremolo from nothing, a suspended cymbal's crescendo and a rush of
-    real recorded wind (Joseph Sardin, BigSoundBank, CC0) sweeping up across the stereo field,
-    with a reversed shimmer drawing in and a harp glissando in the last half-second;
-  - the downbeat as the new place appears: one deep hit (bass drum, timpani, a sub under them),
-    then the bloom - soft organ and strings on root, fifth and ninth (no third, so it sits in
-    any of the modes), glockenspiel sparks, a bowed cymbal shimmering, and the pulse answering
-    twice in the pizzicato as it fades.
+  - the bar rises over the key's relative chord - its minor for a major key (an ache under the
+    lift), its major for a minor one - a soft heartbeat of low timpani and the concert bass drum
+    on the 3+3+2 accents, a rising pizzicato arpeggio, string tremolo from nothing, a suspended
+    cymbal's crescendo and a rush of real recorded wind (Joseph Sardin, BigSoundBank, CC0), a
+    reversed shimmer drawing in and a harp glissando in the last half-second;
+  - on the downbeat it resolves home: one soft, deep hit, then soft horns and the organ on the
+    chord, and a solo violin sighing down a step above them (the sixth falling to the fifth; in a
+    minor key the fourth to the third), three glockenspiel notes falling away, and the pulse
+    answering twice, falling, in the pizzicato as it fades.
 
 Orchestra: VSCO 2 Community Edition (CC0, Versilian Studios), in the same hall as the music."""
 from __future__ import annotations
@@ -36,10 +35,10 @@ E = 0.325          # one eighth: the bar of eight lasts the fog's 2.6 s
 DOWN = 8 * E       # the downbeat, when the next chapter appears
 LENGTH = 9.0
 
-# Each key's home note (MIDI, around middle C): D for the Arbor, Pasture and Hollow, B for the
-# Grove (B minor over its pedal), G for the Garden and the Marigold Garden, A for the Snow, F#
-# for the Deep.
-KEYS = {"d": 62, "b": 59, "g": 55, "a": 57, "fs": 54}
+# Each key's home note (MIDI, around middle C) and mode: D major for the Arbor, Pasture and Hollow,
+# B minor for the Grove, G major for the Garden and the Marigold Garden, A major for the Snow, and
+# F# minor (Dorian) for the Deep.
+KEYS = {"d": (62, "major"), "b": (59, "minor"), "g": (55, "major"), "a": (57, "major"), "fs": (54, "minor")}
 
 
 def _wav(rel):
@@ -94,46 +93,51 @@ def _air(seed):
 
 
 def passage(key):
-    home = KEYS[key]
+    home, mode = KEYS[key]
+    minor = mode == "minor"
     r = rng("passage", home)
     st = Stage(LENGTH, circular=False)
     low = home - 12
+    third = 3 if minor else 4
+    # The chord the bar rises over: the relative minor (vi) of a major key, the relative major of a
+    # minor one (VI in B minor; III, A major, in the Deep's F# Dorian, whose VI isn't in the mode).
+    rel = {"b": home + 8 - 12, "fs": home + 3 - 12}.get(key, home + 9 - 12)
+    rel_third = 4 if minor else 3
     acc = (0, 3, 6)  # the 3+3+2 accents
 
-    # The pulse: timpani and bass drum on the accents, growing, two ghost notes leading in, and
-    # the downbeat. (A pulse for one bar only: it marks this moment and goes.)
+    # A soft heartbeat: timpani and bass drum on the accents, two ghost notes leading in, and a
+    # gentle downbeat. (A pulse for one bar only: it marks this moment and goes.)
     timp, bd = [], []
     for k, i in enumerate(acc):
-        v = 0.42 + 0.14 * k
-        timp.append(N(i * E, 1.2, float(low), v))
-        bd.append(N(i * E, 1.4, 0.0, v - 0.12))
-    for g, t in ((0.3, 7 * E), (0.42, 7.5 * E)):
-        timp.append(N(t, 0.6, float(low), g))
-    timp.append(N(DOWN, 2.5, float(low), 0.92))
-    bd.append(N(DOWN, 3.0, 0.0, 0.82))
-    st.play("timpani", timp, "timpani", seed=1, gain_db=-1)
-    st.play("drums", bd, "bass_drum", seed=2, gain_db=-4, seat="bass_drum")
+        v = 0.34 + 0.1 * k
+        timp.append(N(i * E, 1.2, float(rel - 12), v))
+        bd.append(N(i * E, 1.4, 0.0, v - 0.14))
+    for g, t in ((0.24, 7 * E), (0.32, 7.5 * E)):
+        timp.append(N(t, 0.6, float(rel - 12), g))
+    timp.append(N(DOWN, 2.5, float(low), 0.74))
+    bd.append(N(DOWN, 3.0, 0.0, 0.6))
+    st.play("timpani", timp, "timpani", seed=1, gain_db=-2)
+    st.play("drums", bd, "bass_drum", seed=2, gain_db=-6, seat="bass_drum")
     sub = st.stem("sub", {}, depth=0.1)
-    sub.add(DOWN, _sub(home), gain=0.32)
+    sub.add(DOWN, _sub(home), gain=0.24)
 
-    # The arpeggio: root, fifth, ninth climbing through the bar, voices added as it goes.
-    arp = [0, 7, 14, 7, 12, 14, 12, 19]
-    pz = [N(i * E, 0.6, float(low + arp[i]), 0.36 + 0.05 * i + (0.12 if i in acc else 0)) for i in range(8)]
-    st.play("cellos_pizz", pz + [N(DOWN, 1.4, float(low - 12 if low - 12 >= 36 else low), 0.8)],
+    # The arpeggio: the relative chord climbing through the bar, voices added as it goes.
+    arp = [0, 7, 12 + rel_third, 7, 12, 14, 12 + rel_third, 19]
+    pz = [N(i * E, 0.6, float(rel - 12 + arp[i]), 0.32 + 0.04 * i + (0.1 if i in acc else 0)) for i in range(8)]
+    st.play("cellos_pizz", pz + [N(DOWN, 1.4, float(low - 12 if low - 12 >= 36 else low), 0.66)],
             "cellos_pizz", seed=3)
-    st.play("violas_pizz", [N(n.t, n.d, n.p + 12, n.v * 0.9) for n in pz[3:]] + [N(DOWN, 1.2, float(low + 7), 0.66)],
-            "violas_pizz", seed=4, gain_db=-2)
-    st.play("violins_pizz", [N(n.t, n.d, n.p + 24, n.v * 0.85) for n in pz[5:]] + [N(DOWN, 1.2, float(home + 14), 0.6)],
-            "violins_pizz", seed=5, gain_db=-3)
-    # ... and answered twice as the bloom fades, the pulse's afterglow.
-    st.play("cellos_pizz", [N(DOWN + 3 * E, 1.0, float(low), 0.48), N(DOWN + 6 * E, 1.0, float(low + 7), 0.36)],
+    st.play("violas_pizz", [N(n.t, n.d, n.p + 12, n.v * 0.85) for n in pz[3:]] + [N(DOWN, 1.2, float(low + 7), 0.5)],
+            "violas_pizz", seed=4, gain_db=-3)
+    st.play("violins_pizz", [N(n.t, n.d, n.p + 24, n.v * 0.8) for n in pz[5:]], "violins_pizz", seed=5, gain_db=-4)
+    # ... and answered twice, falling, as the bloom fades: the pulse's afterglow.
+    st.play("cellos_pizz", [N(DOWN + 3 * E, 1.0, float(low + 7), 0.4), N(DOWN + 6 * E, 1.4, float(low), 0.3)],
             "cellos_pizz", seed=6)
 
-    # The swell: tremolo strings from nothing to the downbeat.
-    rise = Curve([(0.15, 0.08), (1.4, 0.35), (2.45, 0.82), (2.62, 0.85)])
-    st.play("violins", [N(0.15, DOWN - 0.12, float(p), 0.6) for p in (home + 12, home + 19)], "violins_trem",
-            seed=7, dyn=rise, gain_db=-5, shape={"attack": 0.6, "swell": 0.1, "taper": 0.12})
-    st.play("cellos", [N(0.2, DOWN - 0.16, float(low), 0.6)], "cellos_trem", seed=8, dyn=rise, gain_db=-6,
+    # The swell: tremolo strings from nothing to the downbeat, on the relative chord.
+    rise = Curve([(0.15, 0.08), (1.4, 0.3), (2.45, 0.7), (2.62, 0.72)])
+    st.play("violins", [N(0.15, DOWN - 0.12, float(p), 0.55) for p in (rel + 12, rel + 12 + rel_third)], "violins_trem",
+            seed=7, dyn=rise, gain_db=-6, shape={"attack": 0.6, "swell": 0.1, "taper": 0.12})
+    st.play("cellos", [N(0.2, DOWN - 0.16, float(rel - 12), 0.55)], "cellos_trem", seed=8, dyn=rise, gain_db=-7,
             shape={"attack": 0.6, "swell": 0.1, "taper": 0.12})
 
     # A suspended cymbal swelling into the downbeat, and the rush of air.
@@ -142,43 +146,42 @@ def passage(key):
     cym = cym[:, : ns(peak + 0.25)]
     k = ns(0.25)
     cym[:, -k:] *= np.cos(np.linspace(0, np.pi / 2, k)) ** 2
-    cym = filt(cym, chain(("lp", 9000, 0.7), ("hs", 5000, 0.7, -3.0)))
-    st.stem("cymbal", depth=0.7).add(DOWN - peak, cym, gain=0.5)
-    st.stem("air", {st.hall: 0.4}, depth=0.4).add(0.0, _air(home), gain=0.06)
+    cym = filt(cym, chain(("lp", 8000, 0.7), ("hs", 5000, 0.7, -4.0)))
+    st.stem("cymbal", depth=0.7).add(DOWN - peak, cym, gain=0.38)
+    st.stem("air", {st.hall: 0.4}, depth=0.4).add(0.0, _air(home), gain=0.05)
 
-    # A reversed shimmer drawing in: a glockenspiel chord's reverb, backwards, ending on the beat.
+    # A reversed shimmer drawing in: the home chord's reverb, backwards, ending on the beat.
     chord = Stage(4.5, circular=False)
-    chord.play("glock", [N(0.0, 1.5, float(home + 24 + iv), 0.5) for iv in (0, 7, 14)], "glock", seed=9,
+    chord.play("glock", [N(0.0, 1.5, float(home + 24 + iv), 0.45) for iv in (0, 7, 14)], "glock", seed=9,
                sends={})
     g = chord.render({}, warmth=0.0, air=None)
     wet = reverb(g, "cathedral2")[:, : ns(3.6)]
-    st.stem("reverse", {}, depth=0.3).add(DOWN - wet.shape[1] / SR, wet[:, ::-1], gain=0.55)
+    st.stem("reverse", {}, depth=0.3).add(DOWN - wet.shape[1] / SR, wet[:, ::-1], gain=0.45)
 
-    # A harp glissando through root, ninth and fifth, landing on the beat.
-    gl = [low + o + iv for o in (0, 12, 24) for iv in (0, 2, 7)] + [low + 36]
-    st.play("harp", [N(DOWN - 0.44 + i * 0.44 / len(gl), 2.0, float(p), 0.36 + 0.025 * i) for i, p in enumerate(gl)],
-            "harp", seed=10, gain_db=-3)
+    # A harp glissando up through the relative chord, landing home on the beat.
+    gl = [rel + o + iv for o in (-12, 0, 12) for iv in (0, rel_third, 7)] + [home + 12]
+    st.play("harp", [N(DOWN - 0.44 + i * 0.44 / len(gl), 2.0, float(p), 0.32 + 0.022 * i) for i, p in enumerate(gl)],
+            "harp", seed=10, gain_db=-4)
 
-    # The bloom.
-    bloom = Curve([(DOWN, 0.4), (DOWN + 0.35, 0.62), (DOWN + 2.5, 0.48), (LENGTH - 1.0, 0.12)])
-    shape = {"attack": 0.3, "swell": 0.15, "taper": 2.5}
-    st.play("organ", [N(DOWN, 5.4, float(p), 0.5) for p in (low, low + 7, home, home + 2, home + 7)],
-            "organ_soft", seed=11, dyn=bloom, gain_db=-9)
-    st.play("organ_ped", [N(DOWN, 5.6, float(low - 12 if low - 12 >= 29 else low), 0.5)], "organ_soft_pedal",
-            seed=12, dyn=bloom, gain_db=-10, seat="organ")
-    st.play("violins", [N(DOWN + 0.02, 5.2, float(p), 0.55) for p in (home + 7, home + 14)], "violins", seed=13,
-            dyn=bloom, gain_db=-8, shape=shape, layer_bias=-0.2)
-    st.play("violas", [N(DOWN + 0.02, 5.2, float(home), 0.5)], "violas", seed=14, dyn=bloom, gain_db=-9, shape=shape)
-    st.play("cellos", [N(DOWN + 0.02, 5.2, float(low), 0.5)], "cellos", seed=15, dyn=bloom, gain_db=-9, shape=shape)
-    sparks, t = [], DOWN + 0.03
-    for i, iv in enumerate((24, 31, 26, 36, 33, 38, 43)):
-        sparks.append(N(t, 1.6, float(home + iv), max(0.18, 0.5 - 0.05 * i)))
-        t += r.uniform(0.09, 0.22)
-    st.play("glock", sparks, "glock", seed=16, gain_db=-4, sends={"shimmer:cathedral2": 0.35, st.hall: 0.6})
+    # The bloom: soft horns and the organ on the home chord (no section strings), and above them a
+    # solo violin's sigh, a step down.
+    bloom = Curve([(DOWN, 0.36), (DOWN + 0.4, 0.55), (DOWN + 2.5, 0.42), (LENGTH - 1.0, 0.1)])
+    st.play("organ", [N(DOWN, 5.4, float(p), 0.48) for p in (low, low + 7, home, home + 2, home + third + 12)],
+            "organ_soft", seed=11, dyn=bloom, gain_db=-10)
+    st.play("organ_ped", [N(DOWN, 5.6, float(low - 12 if low - 12 >= 29 else low), 0.48)], "organ_soft_pedal",
+            seed=12, dyn=bloom, gain_db=-11, seat="organ")
+    st.play("horns", [N(DOWN + 0.05, 4.8, float(p), 0.42) for p in (low + 7, low + 12 + third)], "horns", seed=13,
+            dyn=bloom, gain_db=-9, shape={"attack": 0.35, "swell": 0.1, "taper": 2.2})
+    sigh = (home + 17, home + 15) if minor else (home + 21, home + 19)
+    st.play("solo_violin", [N(DOWN + 0.12, 1.15, float(sigh[0]), 0.5), N(DOWN + 1.27, 3.2, float(sigh[1]), 0.44)],
+            "solo_violin", seed=14, gain_db=-5, shape={"attack": 0.25, "swell": 0.15, "taper": 1.6})
+    # Three glockenspiel notes falling away: fifth, third, root, high up.
+    falls = [N(DOWN + 0.45 + 0.42 * i, 1.8, float(home + iv), 0.3 - 0.05 * i) for i, iv in enumerate((31, 24 + third, 24))]
+    st.play("glock", falls, "glock", seed=16, gain_db=-7, sends={"shimmer:cathedral2": 0.3, st.hall: 0.6})
     bow = _wav("Percussion/susCymb1-bow-2.wav")
-    bow = filt(bow, chain(("hp", 400, 0.7), ("lp", 9000, 0.7)))
+    bow = filt(bow, chain(("hp", 400, 0.7), ("lp", 8000, 0.7)))
     fade = np.minimum(1, np.linspace(0, 6, bow.shape[1]))
-    st.stem("bowed", depth=0.85).add(DOWN + 0.05, bow * fade, gain=0.22)
+    st.stem("bowed", depth=0.85).add(DOWN + 0.05, bow * fade, gain=0.18)
 
     out = st.render({"concert": {"seed": 31}, "cathedral2": {"seed": 32},
                      "shimmer:cathedral2": {"seed": 33, "gens": 2, "fb": 0.4}}, warmth=0.3)

@@ -171,9 +171,6 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
         w.rotation.z = (rest[i] ?? 0) + side * (Math.sin(time * 0.8) * 0.02 + lift);
         w.rotation.x = (restX[i] ?? 0) + twist;
       });
-      // The body rises a touch with each downstroke.
-      const beating = display >= RAISE && display < RAISE + 2 * BEAT;
-      if (model) model.root.position.y = beating ? Math.max(0, lift + UP) * 0.12 : 0;
       if (blink > 0) {
         blink -= dt;
         if (head >= 0) pumpkins.setCarve(head, blink > 0 ? -1 : 100 + CARVE.owlEyes);

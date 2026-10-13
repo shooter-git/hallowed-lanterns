@@ -284,18 +284,19 @@ export class Walker {
         this.position.x -= -t.y * push * sign;
         this.position.z -= t.x * push * sign;
       }
-      // Don't walk off either end.
+      // Don't walk off either end (only near it: a path that curls back on itself would otherwise
+      // put its own start "past" its end).
       const first = this.path.points[0] as Vector2;
       const last = this.path.points[this.path.points.length - 1] as Vector2;
       const t0 = this.path.tangents[0] as Vector2;
       const t1 = this.path.tangents[this.path.tangents.length - 1] as Vector2;
       const back = (this.position.x - first.x) * t0.x + (this.position.z - first.y) * t0.y;
-      if (back < 0) {
+      if (back < 0 && n.s < 1) {
         this.position.x -= t0.x * back;
         this.position.z -= t0.y * back;
       }
       const over = (this.position.x - last.x) * t1.x + (this.position.z - last.y) * t1.y;
-      if (over > 0) {
+      if (over > 0 && n.s > this.path.length - 1) {
         this.position.x -= t1.x * over;
         this.position.z -= t1.y * over;
       }

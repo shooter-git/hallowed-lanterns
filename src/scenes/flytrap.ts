@@ -300,7 +300,6 @@ export async function flytrap(ctx: ChapterContext, at: Vector3, yaw: number): Pr
   // behind it, so it shows round its rim).
   const halo = new Sprite(new SpriteMaterial({ map: haloTexture(), color: new Color(1, 0.25, 0.15), blending: AdditiveBlending, transparent: true, depthWrite: false, opacity: 0 }));
   halo.scale.setScalar(4.6);
-  halo.visible = false;
   objects.push(halo);
   ctx.audio.preload('', ['flytrap-snap', 'fly-buzz']);
 
@@ -309,7 +308,7 @@ export async function flytrap(ctx: ChapterContext, at: Vector3, yaw: number): Pr
     ...pumpkins.glowLights(1.5, 0.2),
     { x: hinge.x, z: hinge.z, radius: 4, color: new Color(1, 0.1, 0.08), intensity: 0.3, flicker: 0 },
   ];
-  const red: LightSource = { position: hinge.clone().add(new Vector3(0, -0.4, 1.4)), color: new Color(1, 0.2, 0.15), intensity: 4, distance: 6 };
+  const red: LightSource = { position: hinge.clone().add(new Vector3(0, -0.4, 1.4)), color: new Color(1, 0.2, 0.15), intensity: 4, distance: 6, rank: 4 };
 
   // ---- The plant's state -------------------------------------------------------------------
   type Phase = 'open' | 'snap' | 'caught' | 'digest' | 'reopen' | 'lunge';
@@ -969,11 +968,10 @@ export async function flytrap(ctx: ChapterContext, at: Vector3, yaw: number): Pr
         group.worldToLocal(mouth.copy(head));
       }
       (chain[2] ?? trap)?.getWorldPosition(stemMid);
-      halo.visible = flash > 0.03;
-      if (halo.visible) {
+      halo.material.opacity = flash > 0.03 ? 0.7 * flash * flash : 0;
+      if (flash > 0.03) {
         halo.position.copy(pointOnGround(head));
         halo.position.addScaledVector(tmp.copy(halo.position).sub(ctx.camera.position).normalize(), 1.3);
-        halo.material.opacity = 0.7 * flash * flash;
       }
       stepFly(dt);
       spores.update(dt, 0);

@@ -8,6 +8,9 @@ export interface LightSource {
   distance: number;
   /** Flicker phase, or undefined for a steady light. */
   phase?: number;
+  /** How strongly it claims one of the few lamps (its intensity if not given): give a light whose
+   * intensity flashes and pulses its steady strength here, so it doesn't push others out. */
+  rank?: number;
 }
 
 /**
@@ -41,7 +44,7 @@ export class LightPool {
         const dz = s.position.z - camera.z;
         const d = Math.hypot(dx, dy, dz);
         const ahead = (dx * forward.x + dy * forward.y + dz * forward.z) / Math.max(d, 0.001);
-        return { s, score: d * (1.3 - 0.5 * ahead) / Math.max(0.2, s.intensity) };
+        return { s, score: d * (1.3 - 0.5 * ahead) / Math.max(0.2, s.rank ?? s.intensity) };
       })
       .sort((a, b) => a.score - b.score);
     const ease = 1 - Math.exp(-dt * 6);
