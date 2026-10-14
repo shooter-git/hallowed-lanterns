@@ -1,4 +1,4 @@
-// Lists every file in public/ that isn't in assets.lock.json yet as our own work ("own"):
+// Lists every file in public/ and pwa/ that isn't in assets.lock.json yet as our own work ("own"):
 // everything in this creation is modelled or synthesised by its own tools (tools/blender,
 // tools/audio). Run after rendering new models or sounds: node tools/lock-assets.mjs [projectDir]
 import { readdir, readFile, writeFile } from 'node:fs/promises';
@@ -21,14 +21,14 @@ async function walk(dir) {
 const lock = JSON.parse(await readFile(lockPath, 'utf8'));
 const listed = new Set(lock.assets.map((a) => a.path));
 let added = 0;
-for (const file of await walk(join(root, 'public'))) {
+for (const file of [...(await walk(join(root, 'public'))), ...(await walk(join(root, 'pwa')))]) {
   const path = relative(root, file).split('\\').join('/');
   if (!EXT.has(path.split('.').pop().toLowerCase()) || listed.has(path)) continue;
   const source = path.startsWith('public/audio/')
     ? 'Synthesised with tools/audio (Hallowed Lanterns)'
     : path.startsWith('public/models/')
       ? 'Modelled procedurally with tools/blender (Hallowed Lanterns)'
-      : path.startsWith('public/icons/')
+      : path.startsWith('public/icons/') || path.startsWith('pwa/icons/')
         ? 'The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)'
         : 'Made for Hallowed Lanterns';
   lock.assets.push({ path, license: 'own', source });

@@ -77,8 +77,12 @@ None of this reaches All the Spaces:
   a sealed frame, whose policy would refuse it);
 - the service worker (`tools/pwa-sw.js`, written into the build by `tools/pwa.mjs`) is only in
   `pnpm build`: the platform builds with its own settings and ignores `vite.config.ts`;
-- the icons in `public/icons/` are listed in `assets.lock.json`, and `node tools/icons.mjs` makes
-  them again from the engine's own view of the Arbor of Faces.
+- so are the manifest and its icons, which live in `pwa/` (not `public/`, which every build
+  copies): the platform's checks refuse to serve a manifest, and its download is lighter without
+  them. Only the favicon and the iPhone's home-screen icon, which the page links itself, are in
+  `public/icons/`;
+- the icons are listed in `assets.lock.json`, and `node tools/icons.mjs` makes them again from
+  the engine's own view of the Arbor of Faces.
 
 Before the first release that publishes it, set **Settings → Pages → Source** to **GitHub
 Actions**, and in **Settings → Environments → github-pages**, add a deployment tag rule `v*`

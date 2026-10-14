@@ -417,17 +417,17 @@
       "source": "The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)"
     },
     {
-      "path": "public/icons/icon-192.png",
+      "path": "pwa/icons/icon-192.png",
       "license": "own",
       "source": "The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)"
     },
     {
-      "path": "public/icons/icon-512.png",
+      "path": "pwa/icons/icon-512.png",
       "license": "own",
       "source": "The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)"
     },
     {
-      "path": "public/icons/icon-maskable-512.png",
+      "path": "pwa/icons/icon-maskable-512.png",
       "license": "own",
       "source": "The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)"
     },

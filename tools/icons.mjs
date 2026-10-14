@@ -2,9 +2,10 @@
 // looking down the lane, as the engine draws it.
 //
 //   node tools/icons.mjs [projectDir]
-//     Crops and grades tools/icons/arbor-at-sunset.png into public/icons/: the home-screen icons
-//     (iPhone, Android, Android's maskable), the ones for installing on a computer, and the
-//     favicon. Needs ImageMagick (`convert`).
+//     Crops and grades tools/icons/arbor-at-sunset.png into the icons: the manifest's (Android,
+//     Android's maskable, installing on a computer) into pwa/icons/, which only the app's own build
+//     carries, and the ones the page links itself (the favicon, the iPhone's home-screen icon) into
+//     public/icons/. Needs ImageMagick (`convert`).
 //
 //   node tools/icons.mjs --capture [projectDir]
 //     Draws that frame again first, from the dev server (`pnpm dev`, on http://localhost:5199 by
@@ -21,7 +22,9 @@ const capture = args.includes('--capture');
 const root = resolve(args.find((a) => !a.startsWith('--')) ?? process.cwd());
 const frame = join(root, 'tools/icons/arbor-at-sunset.png');
 const out = join(root, 'public/icons');
+const app = join(root, 'pwa/icons');
 mkdirSync(out, { recursive: true });
+mkdirSync(app, { recursive: true });
 
 if (capture) {
   const where = process.env.PLAYWRIGHT ?? 'playwright';
@@ -75,13 +78,14 @@ const rounded = (size) => [
 ];
 
 const write = (name) => ['-strip', join(out, name)];
+const writeApp = (name) => ['-strip', join(app, name)];
 
 // Shown as they are (installing on a computer, the browser's own lists): rounded.
-for (const size of [192, 512]) magick(square(size, 0.875), rounded(size), write(`icon-${size}.png`));
+for (const size of [192, 512]) magick(square(size, 0.875), rounded(size), writeApp(`icon-${size}.png`));
 // Shaped by the device: the iPhone rounds the corners itself, and Android cuts its mask from the
 // middle 80%, where the lane and its lanterns are.
 magick(square(180, 0.875), write('apple-touch-icon.png'));
-magick(square(512, 0.875), write('icon-maskable-512.png'));
+magick(square(512, 0.875), writeApp('icon-maskable-512.png'));
 // The favicon is closer in, so the lit lanterns still read at 32 px.
 magick(square(32, 0.66), rounded(32), write('favicon-32.png'));
-console.log(`icons written to ${out}`);
+console.log(`icons written to ${out} and ${app}`);
