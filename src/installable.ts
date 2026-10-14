@@ -59,3 +59,17 @@ function fitHomeScreen() {
     setTimeout(fit, 400);
   });
 }
+
+/**
+ * The quality to start at when opened on its own, chosen the way the All the Spaces app chooses
+ * it (its space-view quality.ts, without the advice it learns from other devices): phones at mid
+ * unless they say they're small, computers at high only with plenty of cores and memory. The
+ * SDK's stand-in would say 'high' everywhere, and on a phone that loads it far harder than in a
+ * space: hard enough on an iPhone for the music to stutter.
+ */
+export function standaloneTier(): 'low' | 'mid' | 'high' {
+  const cores = navigator.hardwareConcurrency ?? 4;
+  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4;
+  if (matchMedia('(pointer: coarse)').matches) return cores <= 2 || memory <= 2 ? 'low' : 'mid';
+  return cores >= 8 && memory >= 8 ? 'high' : 'mid';
+}
