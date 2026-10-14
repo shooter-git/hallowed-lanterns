@@ -373,6 +373,7 @@ export class UI {
 
   toggleMenu(show = this.menu.hidden) {
     this.menu.hidden = !show;
+    document.documentElement.classList.toggle('hl-menu-open', !this.menu.hidden);
     this.menuButton.setAttribute('aria-expanded', show ? 'true' : 'false');
   }
 }

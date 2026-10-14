@@ -255,8 +255,10 @@ body {
   top: calc(68px + env(safe-area-inset-top));
   right: calc(12px + env(safe-area-inset-right));
   width: min(300px, calc(100vw - 90px));
-  max-height: calc(100dvh - 140px);
+  /* From under its button to just above the bottom edge (and the home indicator), scrolling. */
+  max-height: calc(100% - 84px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 10px;
   border-radius: 18px;
   border: 1px solid var(--hl-edge);
@@ -300,6 +302,22 @@ body {
   color: var(--hl-dim);
   font-size: 0.85rem;
   letter-spacing: 0.1em;
+}
+
+/* A phone held upright: a sheet across the screen under its button, not a narrow column. */
+@media (orientation: portrait) and (max-width: 560px) {
+  .hl-menu {
+    left: calc(12px + env(safe-area-inset-left));
+    width: auto;
+  }
+  .hl-menu-item {
+    min-height: 44px;
+  }
+}
+/* With the menu open you're not walking: the joystick and the walk button step aside. */
+html.hl-menu-open .hl-controls,
+html.hl-menu-open .ats-touch {
+  visibility: hidden;
 }
 
 /* The settings, under the chapters: two sound levels and a way back to the mix as made. */
@@ -596,4 +614,19 @@ body .ats-touch .ats-touch-knob {
 .hl-ending {
   background: radial-gradient(ellipse at 50% 50%, rgba(10, 6, 8, 0.2), rgba(5, 3, 6, 0.75) 80%);
   pointer-events: auto;
+}
+
+/* On an iPhone home screen, the page is laid out shorter than the screen by the status bar
+   (src/installable.ts measures it): the world, the interface and the joystick fill the real
+   height, so things pinned to the bottom sit just above the home indicator. */
+html.hl-ios-app,
+html.hl-ios-app body {
+  height: var(--hl-app-h);
+}
+html.hl-ios-app body > canvas,
+html.hl-ios-app .hl-ui,
+html.hl-ios-app .ats-touch {
+  box-sizing: border-box; /* the joystick's layer has padding */
+  bottom: auto !important;
+  height: var(--hl-app-h) !important;
 }
