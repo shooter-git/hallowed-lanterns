@@ -271,12 +271,17 @@ body {
   margin: 4px 8px 8px;
   font: 400 0.8rem / 1 var(--hl-serif);
   letter-spacing: 0.3em;
+  /* Centred: the letter-spacing trails the last letter, so the same space leads the first. */
+  padding-left: 0.3em;
+  text-align: center;
   text-transform: uppercase;
   color: var(--hl-dim);
 }
+/* Each row's numeral and name sit together in the middle of the row. */
 .hl-menu-item {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.8em;
   width: 100%;
   min-height: 46px;
@@ -284,7 +289,7 @@ body {
   border: 0;
   border-radius: 12px;
   background: transparent;
-  text-align: left;
+  text-align: center;
   font: 400 1rem / 1.2 var(--hl-serif) !important;
   cursor: pointer;
 }
@@ -298,7 +303,6 @@ body {
   cursor: default;
 }
 .hl-menu-num {
-  width: 2.2em;
   color: var(--hl-dim);
   font-size: 0.85rem;
   letter-spacing: 0.1em;
