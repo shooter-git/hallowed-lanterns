@@ -3,11 +3,15 @@
 //
 // - The shell (the page, every script and stylesheet, the icons) is cached when this version
 //   installs, so the whole night's code is there offline from the first visit.
+// - The page itself, the manifest and the icons come from the network whenever it answers (in a
+//   few seconds), so a new version, its name and its icon show the next time it's opened. Offline,
+//   they come from the cache, with the scripts they were cached with.
+// - Scripts and stylesheets have a hash in their names, so the cached ones are always right.
 // - Sounds and models are cached as each chapter first loads them, then served from the cache.
 //   Each carries the revision it was cached at, so one that changes in a later version is fetched
 //   again and the rest stay put.
-// - A new version waits until the old one isn't open anywhere, then takes over on the next launch:
-//   a night half-walked never has its files swapped underneath it.
+// - A new version's caches take over once the old one isn't open anywhere: a night half-walked
+//   never has its files swapped underneath it.
 const BUILD = /* BUILD */ null;
 const SHELL = `hl-shell-${BUILD.version}`;
 const FILES = 'hl-files';
@@ -49,14 +53,34 @@ self.addEventListener('fetch', (event) => {
   url.search = '';
   url.hash = '';
   // Any page in scope (`?chapter=3` too) is the one page.
-  if (request.mode === 'navigate') return event.respondWith(fromShell(at('./'), request));
-  if (shell.has(url.href)) return event.respondWith(fromShell(url.href, request));
+  if (request.mode === 'navigate') return event.respondWith(fresh(at('./'), request));
+  if (shell.has(url.href))
+    return event.respondWith(
+      url.href.startsWith(at('assets/')) ? fromShell(url.href, request) : fresh(url.href, request),
+    );
   const rev = files.get(url.href);
   if (rev) event.respondWith(fromFiles(event, url.href, rev));
 });
 
 async function fromShell(url, request) {
   return (await caches.match(url, { cacheName: SHELL })) ?? fetch(request);
+}
+
+/**
+ * From the network if it answers within a few seconds, otherwise from the cache. What the network
+ * sends isn't cached: offline, the cached page must go with the cached scripts.
+ */
+async function fresh(url, request) {
+  const network = fetch(request);
+  network.catch(() => {}); // answered from the cache meanwhile
+  const late = new Promise((resolve) => setTimeout(resolve, 4000));
+  try {
+    const response = await Promise.race([network, late]);
+    if (response?.ok) return response;
+  } catch {
+    // Offline.
+  }
+  return (await caches.match(url, { cacheName: SHELL })) ?? network;
 }
 
 async function fromFiles(event, url, rev) {
