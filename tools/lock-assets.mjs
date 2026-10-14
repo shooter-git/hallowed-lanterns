@@ -28,7 +28,9 @@ for (const file of await walk(join(root, 'public'))) {
     ? 'Synthesised with tools/audio (Hallowed Lanterns)'
     : path.startsWith('public/models/')
       ? 'Modelled procedurally with tools/blender (Hallowed Lanterns)'
-      : 'Made for Hallowed Lanterns';
+      : path.startsWith('public/icons/')
+        ? 'The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)'
+        : 'Made for Hallowed Lanterns';
   lock.assets.push({ path, license: 'own', source });
   added++;
 }

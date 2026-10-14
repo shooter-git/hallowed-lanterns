@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "Hallowed Lanterns",
+  "short_name": "Lanterns",
+  "description": "One October night at the pumpkin patch: follow a runaway ember from a sunset tunnel of jack-o'-lanterns, through glowing giants, October snow and a deep blue sea, to the Wishing Tree.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#0b0809",
+  "theme_color": "#0b0809",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

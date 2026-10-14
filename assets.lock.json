@@ -407,6 +407,31 @@
       "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios)"
     },
     {
+      "path": "public/icons/apple-touch-icon.png",
+      "license": "own",
+      "source": "The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/icons/favicon-32.png",
+      "license": "own",
+      "source": "The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/icons/icon-192.png",
+      "license": "own",
+      "source": "The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/icons/icon-512.png",
+      "license": "own",
+      "source": "The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)"
+    },
+    {
+      "path": "public/icons/icon-maskable-512.png",
+      "license": "own",
+      "source": "The Arbor of Faces as the engine draws it, cropped by tools/icons.mjs (Hallowed Lanterns)"
+    },
+    {
       "path": "public/models/arbor.glb",
       "license": "own",
       "source": "Modelled procedurally with tools/blender/arbor.py (Hallowed Lanterns)"
@@ -1184,6 +1209,11 @@
       "source": "https://bigsoundbank.com/steps-in-the-long-grass-s0855.html",
       "author": "Joseph SARDIN (BigSoundBank)",
       "title": "Steps in the long grass (one step, trimmed and levelled)"
+    },
+    {
+      "path": "tools/icons/arbor-at-sunset.png",
+      "license": "own",
+      "source": "The Arbor of Faces at sunset, drawn by the engine (node tools/icons.mjs --capture); the icons are cropped from it"
     }
   ]
 }

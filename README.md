@@ -61,6 +61,29 @@ in `vendor/`), so a server can follow it:
    isn't enough: the server asks GitHub for the latest release). Architects see it and press
    **Update**. Every version is checked on a phone, a tablet and a laptop first.
 
+## On its own, as an app
+
+Each release is also published on its own at
+**https://shooter-git.github.io/hallowed-lanterns/** (GitHub Pages, by
+`.github/workflows/pages.yml`). There it can be added to a home screen: Share → **Add to Home
+Screen** on an iPhone or iPad, ⋮ → **Add to Home screen** (or **Install app**) in Chrome on
+Android, the install icon in the address bar on a computer. It opens full screen with its own
+icon, and once the night has been walked through it plays offline. Candles and wishes are kept on
+that device.
+
+None of this reaches All the Spaces:
+
+- the manifest is added by `src/installable.ts` only when it's opened directly (in a space it's
+  a sealed frame, whose policy would refuse it);
+- the service worker (`tools/pwa-sw.js`, written into the build by `tools/pwa.mjs`) is only in
+  `pnpm build`: the platform builds with its own settings and ignores `vite.config.ts`;
+- the icons in `public/icons/` are listed in `assets.lock.json`, and `node tools/icons.mjs` makes
+  them again from the engine's own view of the Arbor of Faces.
+
+Before the first release that publishes it, set **Settings → Pages → Source** to **GitHub
+Actions**, and in **Settings → Environments → github-pages**, add a deployment tag rule `v*`
+(releases deploy from their tag).
+
 ## How it's made
 
 - `src/engine/` — the renderer (HDR, bloom, AgX), the glow field that lets hundreds of lanterns
