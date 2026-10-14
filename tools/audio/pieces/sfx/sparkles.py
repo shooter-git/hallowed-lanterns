@@ -70,7 +70,9 @@ def bubble(i):
     tr = Track(0.6)
     k = [1, 2, 3, 2][i]
     for j in range(k):
-        tr.add(j * r.uniform(0.05, 0.12), NA.bubble(r.uniform(800, 1700), seed=i * 10 + j, decay=r.uniform(0.012, 0.03),
+        # each bubble on a note of the Deep's F# dorian (G#5 .. F#6)
+        f = float(r.choice([830.61, 880.0, 987.77, 1108.73, 1244.51, 1318.51, 1479.98]))
+        tr.add(j * r.uniform(0.05, 0.12), NA.bubble(f, seed=i * 10 + j, decay=r.uniform(0.012, 0.03),
                                                     rise=r.uniform(0.15, 0.4)), gain=r.uniform(0.6, 1.0))
     y = eq(tr.buf.astype(float), ("lp", 4000, 0.7))
     return _verb(y, "room", 0.12, 0.6)

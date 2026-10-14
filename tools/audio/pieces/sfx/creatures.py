@@ -129,7 +129,7 @@ def butterflies():
             t += 1.0 / rate * r.uniform(0.9, 1.1)
             k += 1
     for k, (tt, p) in enumerate([(0.4, 91), (0.75, 95), (1.1, 98)]):  # G6 B6 D7
-        tr.add(tt, ML.bell(p, 0.3, seed=k, tone="tiny"), gain=0.06, pan=[-0.4, 0.3, 0.0][k])
+        tr.add(tt, ML.bell(p, 0.3, seed=k, tone="hand"), gain=0.06, pan=[-0.4, 0.3, 0.0][k])   # in tune
     y = tr.buf.astype(float)
     wet = reverb(y, "forest")
     y = np.pad(y, ((0, 0), (0, wet.shape[1] - y.shape[1]))) + 0.25 * wet

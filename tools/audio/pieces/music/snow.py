@@ -1,12 +1,12 @@
 """VI. October Snow — "First Snow": impossibly, it begins to snow. The hush of
-a snowy wood and your breath in the cold air; a music box turning in the
+a snowy wood (its wind is the chapter's ambience, not the music); a music box turning in the
 falling snow; a snowman in striped gourds raising his corn-cob mug in a
 toast as you pass; and at the end the flakes slow, stop and begin to rise.
 
 The way of the Marigold Garden (the stillness of Cliff Martinez, the turning
 figure and the quiet beat of Ólafur Arnalds, a swell in the way of Hans
 Zimmer; their ways, none of their tunes), made of the chapter's own sounds:
-real wind shaped into breaths, snowflakes ringing like tiny bells, a jazz
+snowflakes ringing like tiny bells, a jazz
 double bass that rings as it does on a concert stage (Meatbass); and the
 winter's own percussion, played as an orchestra plays it, not a drum kit -
 sleigh bells, a woodblock for the snowman's steps, the triangle, finger
@@ -20,7 +20,7 @@ keeps to the Lydian's notes, so nothing rubs against it. The Snow theme (A |
 F# E C# | E, answered a step lower with the D-sharp, then climbing to B) is
 the top voice of piano chords, never one instrument alone.
 
-  bars  0-5   the hush: glass chords over the organ's far A; breaths; snowflakes ringing
+  bars  0-5   the hush: glass chords over the organ's far A; snowflakes ringing
   bars  6-13  the music box, the piano beside it; the double bass (10), ringing; the bass slides to
               F# and E
   bars 14-21  the theme in piano chords; the sleigh bells come in far off, softly on the 3+3+2's
@@ -34,7 +34,7 @@ the top voice of piano chords, never one instrument alone.
               cymbal at the top; at the peak the bass lifts once, A to B - the Lydian light
   bars 34-37  the flakes rise: the bell tree, reversed piano and glockenspiel swelling upward, a harp
               sweeping up, a glass line climbing octave over octave; the triangle's last glints
-  bars 38-47  the hush again: the music box alone, far and soft; breaths; snowflakes
+  bars 38-47  the hush again: the music box alone, far and soft; snowflakes
 48 bars = 160 s.
 
 THE MIX MOVES (as the Marigold's): every voice has a near and a far seat and travels between them,
@@ -45,7 +45,7 @@ import numpy as np
 from hlaudio.core import SR, Track
 from hlaudio.score import N, humanize, Clock, chord_pcs
 from hlaudio.sampler import Curve
-from hlaudio import sampler as SM, effects as FX, electro as EL, recordings as RW
+from hlaudio import sampler as SM, effects as FX, electro as EL
 from hlaudio.orch import Stage, TONE
 from hlaudio.piece import finish_loop
 
@@ -82,7 +82,6 @@ VOICE_EQ = {
     "piano": [("hp", 70, 0.7), ("peak", 260, 0.9, -3.0), ("peak", 2800, 0.9, 1.5), ("hs", 7000, 0.7, 2.0)],
     "glass": [("hp", 300, 0.7), ("hs", 6000, 0.7, 3.0)],
     "flakes": [("hp", 500, 0.7)],
-    "breath": [("hp", 300, 0.7), ("lp", 3500, 0.7)],
     "bass": [("hp", 32, 0.7), ("peak", 75, 0.8, 1.5), ("peak", 250, 0.9, -2.0), ("peak", 700, 0.9, 1.5),
              ("hs", 4500, 0.7, -3.5)],
     "bells": [("hp", 500, 0.7), ("hs", 8000, 0.7, 1.0)],
@@ -102,7 +101,7 @@ VOICE_EQ = {
 }
 # each voice's width (mid/side) and side (-1 left .. 1 right)
 STAGE = {"musicbox": (1.2, 0.15), "piano": (1.1, 0.0), "glass": (1.7, 0.0), "flakes": (1.6, 0.0),
-         "breath": (1.2, 0.0), "bells": (1.2, 0.0), "steps": (0.5, 0.2), "drum": (0.8, 0.0), "bass": (0.4, 0.05), "riff": (0.9, -0.3), "clarinet": (0.7, 0.3), "horns": (0.8, -0.3),
+         "bells": (1.2, 0.0), "steps": (0.5, 0.2), "drum": (0.8, 0.0), "bass": (0.4, 0.05), "riff": (0.9, -0.3), "clarinet": (0.7, 0.3), "horns": (0.8, -0.3),
          "strings": (1.6, 0.1), "organ": (1.2, -0.2), "timp": (0.8, 0.25), "roll": (0.8, 0.2), "harp": (1.2, -0.25),
          "climb": (1.4, 0.0), "cymbal": (1.7, 0.0), "rise": (1.4, 0.0)}
 ROOM_EQ = [("hp", 180, 0.7), ("peak", 400, 0.8, -2.0)]
@@ -295,7 +294,7 @@ def render():
         st.stem(f"{name}~near", dict(near), depth=near_depth).mix((x * np.cos(d * np.pi / 2) * g).astype(np.float32))
         st.stem(f"{name}~far", dict(far), depth=far_depth).mix((x * np.sin(d * np.pi / 2) * g).astype(np.float32))
 
-    # ---- the hush: glass colours, the organ's far A, breaths of real wind, snowflakes ringing
+    # ---- the hush: glass colours, the organ's far A, snowflakes ringing (the wind is the ambience's)
     gl = Track(LOOP, True)
     EL.glass(gl, S(P["glass"], 1, 0.0), gain=0.48, seed=1, attack=1.6, release=3.5, bright=0.85, pan_spread=0.5,
              breath=0.25)
@@ -307,18 +306,6 @@ def render():
     org.mix(sampled(S(P["organ_ch"], 4, 0.0), "organ_soft", 4, gain_db=-10, dyn=C([(28, 0.3), (31, 0.6), (33.9, 0.6)])))
     place("organ", org, C([(0, 0.85), (28, 0.6), (31, 0.45), (34, 0.85)]), C([(0, -3.0), (30, 1.0), (34, -3.0), (48, -3.0)]),
           near=(("chamber", 0.3),), far=(("cathedral2", 0.7),), near_depth=0.5, far_depth=0.9)
-    w = RW.original("0595")
-    br = Track(LOOP, True)
-    breaths = [t for t in np.arange(1.0, sec(14), 7.5)] + [t for t in np.arange(sec(38) + 1.0, LOOP - 5, 7.5)]
-    for k, t0 in enumerate(breaths):
-        n = int(SR * 4.2)
-        a = int(SR * (5 + 9 * (k % 8)))
-        seg = w[a: a + n].copy()
-        u = np.linspace(0, 1, n)
-        seg *= np.sin(np.pi * u) ** 1.6 * (0.8 + 0.2 * np.sin(2 * np.pi * u))
-        br.add(float(t0), seg / (np.max(np.abs(seg)) + 1e-9) * 0.5, pan=(-0.2 if k % 2 else 0.2))
-    place("breath", br, C([(0, 0.2)]), C([(0, -10.0), (14, -14.0), (38, -10.0)]), near=(("room", 0.3),),
-          far=(("concert", 0.5),), near_depth=0.2, far_depth=0.6)
     fl = sampled(S(P["flakes"], 5, 0.0), "glock", 5, gain_db=10, release=1.5)
     fl.mix(sampled(S(P["fcymb"], 6, 0.0), "finger_cymbal", 6, gain_db=8))
     place("flakes", fl, C([(0, 0.45)]), C([(0, -6.0), (14, -8.0), (38, -6.0)]), near=(("chamber", 0.3),),

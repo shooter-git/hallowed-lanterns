@@ -335,7 +335,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
           const s = specs[i] as LanternSpec;
           if (lanterns.level(i) < 1 && s.position.z > e.position.z - 0.4) {
             lanterns.setLevel(i, 1);
-            if (Math.random() < 0.18) void ctx.audio.sfx('lantern-light', { at: s.position, volume: 0.35, rate: 0.9 + Math.random() * 0.25 });
+            // as written (A D F#) or a fourth up (D G B): both in the Garden's G
+            if (Math.random() < 0.18)
+              void ctx.audio.sfx('lantern-light', { at: s.position, volume: 0.35, rate: 2 ** (([0, 5][Math.floor(Math.random() * 2)] ?? 0) / 12) });
           }
         }
         litUpTo = e.position.z;

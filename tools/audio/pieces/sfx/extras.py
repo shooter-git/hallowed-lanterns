@@ -57,7 +57,7 @@ def guitar_string(p, i):
 def owl_hoot(i):
     """Great horned owl: hoo, h'hoo — hoo — hoo, low and soft."""
     r = rng("ghowl", i)
-    f0 = [285.0, 255.0][i]
+    f0 = [293.66, 246.94][i]                    # D4, B3: in the Lantern Garden's G
     pattern = [(0.0, 0.32, 1.0), (0.52, 0.11, 0.7), (0.66, 0.34, 0.95), (1.2, 0.36, 0.85), (1.78, 0.42, 0.8)]
     n = ns(2.4)
     y = np.zeros(n)
@@ -73,7 +73,7 @@ def owl_hoot(i):
         y[i0:i0 + L] += a * env * (tone + br)
     # a gentle magical shimmer: two faint glass tones high above, after the call
     t = tvec(n)
-    for k, (tt, mult) in enumerate([(0.65, 4.0), (1.25, 5.0)]):
+    for k, (tt, mult) in enumerate([(0.65, 4.0), (1.25, 6.0)]):     # two octaves, and the fifth above: in key
         e = np.where(t > tt, np.exp(-(t - tt) / 0.6) * (1 - np.exp(-(t - tt) / 0.05)), 0)
         y += 0.05 * e * np.sin(2 * np.pi * f0 * mult * t)
     y = filt(y, chain(("hp", 120, 0.7), ("lp", 3500, 0.7)))
@@ -86,7 +86,7 @@ def web_stretch(i):
     n = ns(1.4)
     t = tvec(n)
     st = 0.45 + 0.1 * i
-    f_lo, f_hi = [(170.0, 300.0), (210.0, 360.0)][i]
+    f_lo, f_hi = [(164.81, 293.66), (220.0, 369.99)][i]   # E3 to D4, A3 to F#4: in the Hollow's D
     f = np.where(t < st, f_lo + (f_hi - f_lo) * smoothstep(t / st), f_hi * (1 + 0.03 * np.exp(-(t - st) / 0.05)))
     f = f * (1 + 0.012 * np.sin(2 * np.pi * 7.5 * t) * (t > st))
     ph = 2 * np.pi * np.cumsum(f) / SR
@@ -142,10 +142,11 @@ def kraken_groan():
     """A slow, friendly 'hmmm?' from something enormous: a low moan that lifts
     at the end, a little wooden creak in its throat, deep water around it."""
     dur = 3.0
-    y = VO.whale_call(72.0, dur, contour=[(0.0, -2.0), (0.35, 1.5), (0.7, 0.5), (0.92, 4.0), (1.0, 3.5)],
-                      seed=5, rough=0.12, bright=0.7)
-    y += 0.45 * VO.whale_call(108.0, dur, contour=[(0.0, -2.0), (0.35, 1.5), (0.7, 0.5), (0.92, 4.0), (1.0, 3.5)],
-                              seed=6, rough=0.08, bright=0.5)
+    # on F#, the Deep's key: it rests on E, then F#, and lifts at the end to A (a question), gliding only briefly
+    # between them, so its notes are the key's
+    contour = [(0.0, -2.0), (0.18, -2.0), (0.3, 0.0), (0.72, 0.0), (0.84, 3.0), (1.0, 3.0)]
+    y = VO.whale_call(92.50, dur, contour=contour, seed=5, rough=0.12, bright=0.7)
+    y += 0.45 * VO.whale_call(138.59, dur, contour=contour, seed=6, rough=0.08, bright=0.5)
     cr = NA.creak(seed=40, dur=1.6, rate=(9, 16), res=(180, 320, 520))
     cr = filt(cr, chain(("lp", 1200, 0.7)))
     out = np.zeros(ns(dur + 0.2))

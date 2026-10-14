@@ -44,7 +44,7 @@
     {
       "path": "public/audio/music/arbor.mp3",
       "license": "own",
-      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios)"
+      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios) and Versilian Community Sample Library samples (CC0, Versilian Studios: https://github.com/sgossner/VCSL)"
     },
     {
       "path": "public/audio/music/deep.mp3",

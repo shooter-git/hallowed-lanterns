@@ -326,10 +326,15 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       if (ray.distanceSqToPoint(pointOnGround(SNOWMAN.clone().add(new Vector3(0, 1.6, 0)))) < 1.2)
         return () => {
           toast = 0.001;
-          void ctx.audio.sfx('snowflake', { at: SNOWMAN, volume: 0.7, rate: 0.8 });
+          void ctx.audio.sfx('snowflake', { at: SNOWMAN, volume: 0.7, rate: 2 ** (-5 / 12) }); // a fourth down: still A Lydian
         };
       // Anywhere else: catch a snowflake.
-      return () => void ctx.audio.sfx('snowflake', { volume: 0.35, rate: 1 + Math.random() * 0.5 });
+      return () =>
+        void ctx.audio.sfx('snowflake', {
+          volume: 0.35,
+          // as it is, a tone up or a fifth up: every one of the flakes' notes lands on the Snow's A Lydian
+          rate: 2 ** (([0, 2, 7][Math.floor(Math.random() * 3)] ?? 0) / 12),
+        });
     },
 
     finished() {

@@ -287,6 +287,12 @@ INSTRUMENTS = {i.name: i for i in [
     # recordings ring for barely a second, so the tuning is read early
     Inst("nylon", "Guitar/SpanishClassicalGuitar", "oneshot", lib="freepats", release=0.35, ref_db=-18,
          layer_spread=0, width=0.4, body=0.3, single_layer=True, max_shift=3.0, tune_from=0.12, tune_n=1),
+    # the vibraphone (VCSL; named an octave low): soft mallets, and bowed (a slow swell into a long glassy ring)
+    Inst("vibes", "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets", "oneshot", lib="vcsl", octave=12,
+         release=1.5, ref_db=-20, pan=0.1, width=0.5, body=0.4, layer_spread=8, max_shift=2.5, tune_from=0.3, tune_n=2),
+    Inst("vibes_bowed", "Idiophones/Struck Idiophones/Vibraphone/Bowed", "oneshot", lib="vcsl", octave=12,
+         release=2.0, ref_db=-20, pan=0.0, width=0.6, body=1.0, single_layer=True, max_shift=4.0, tune_from=1.0,
+         tune_n=2, level="peak"),
     # the jazz double bass (Meatbass): its pluck rings until the next note stops the string
     Inst("upright", "Samples/pizz", "oneshot", lib="meatbass", match=r"^(a|c|eb|gb)\d_vl\d_rr\d", release=0.3,
          ref_db=-17, pan=0.05, width=0.35, body=0.4, layer_spread=10, max_shift=2.0, tune_from=0.2, tune_n=2),
@@ -886,6 +892,11 @@ class Sampler:
                 avail = int(avail / 2 ** (max(0.0, float(np.max(pc))) / 12)) - 8
                 pc = pc[:max(1, min(avail, L))]
             y = self._voice(e, midi, min(avail, L), offset=off, detune=detune, glide=pc)
+            if off > 0:
+                # started inside its recording (a softer pluck, a jittered start): fade in over 4 ms, or the first
+                # sample lands mid-waveform and clicks
+                k = min(y.shape[1], ns(0.004))
+                y[:, :k] *= (0.5 - 0.5 * np.cos(np.linspace(0, np.pi, k))).astype(np.float32)
             gain = undb(-22 * (1 - np.clip(v, 0, 1)) ** 1.3 + 6 * (mix - 0.5) * (len(self.layers) > 1) * 0.3)
             y = y * gain
             if inst.kind == "oneshot" or inst.kind == "short":

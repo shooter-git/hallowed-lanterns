@@ -37,8 +37,10 @@ violet and peach, and purple and orange path lights run along both edges.
 - Near the end of the lane, one lantern sputters and its flame hops out: **the Ember**. It looks
   at you, waits, and darts off into the trees.
 
-*Music — "Sundown":* a felt-piano figure turning against the bar, the Ember's motif slowed into a
-canon for clarinet, bassoon, flute and oboe, plucked bass, an organ pedal and distant horns.
+*Music — "Sundown":* a felt piano's triplets, its pedal held down, turning in B minor; the Ember's
+motif slowly on a vibraphone, a bowed vibraphone and glass holding its long notes, then singing it
+slower still over a dark analog bass; a swell of deep booms and timpani, and the piano alone again.
+When the Ember is born, the vibraphone sings its motif just as the song does.
 *Around you:* the last birds of the day giving way to the first crickets, gravel under your feet,
 distant happy voices.
 
@@ -148,7 +150,7 @@ trees. Everything goes hushed, and you can see your breath.
 - Catch snowflakes (tap them); each one rings a tiny bell.
 
 *Music — "First Snow":* a music box turning in the falling snow, a felt piano beside it, and a
-jazz double bass ringing low beneath them; breaths of real wind in the cold air. The snowman's
+jazz double bass ringing low beneath them. The snowman's
 theme rises in the piano's chords; sleigh bells far off, the glint of a triangle, his footsteps on
 a woodblock as he toasts you — a stop, the clink of his mug, a warm chord on the horns. Then the
 swell, and at the end the flakes slow, stop and begin to rise: a bell tree, a harp, a line of

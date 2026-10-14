@@ -7,7 +7,7 @@ export const CHAPTERS: ChapterInfo[] = [
     numeral: 'I',
     name: 'The Arbor of Faces',
     subtitle: 'Sunset, and the lanterns are waking',
-    key: 'd',
+    key: 'b',
     load: () => import('./arbor.ts'),
   },
   {

@@ -50,7 +50,7 @@ def whoosh(dur=0.5, f0=350, f1=1600, seed=0, low=0.5):
 
 def pumpkin_flare(i):
     r = rng("flare", i)
-    knock = PC.knock(r.uniform(150, 200), 0.9, seed=i, hollow=1.6)
+    knock = PC.knock([146.83, 164.81, 185.0][i], 0.9, seed=i, hollow=1.6)   # D3 E3 F#3: in the B minor chapters
     wh = whoosh(0.7, 300, 1400 + 200 * i, seed=i)
     chime = ML.celesta([86, 90, 93][i], 0.55, dur=0.6, seed=i)  # D6, F#6, A6
     y = place(1.6, (0.0, knock, 1.0), (0.02, wh, 0.22), (0.09, chime, 0.35))

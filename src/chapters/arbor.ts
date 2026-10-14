@@ -412,8 +412,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
           emberClock = 0;
           e.place(tmp.copy(ep).add(new Vector3(0, -0.02, 0.1)));
           e.agility = 1.6;
+          // the cue sings the motif itself (the chime answers a few seconds later, as the Ember leads on)
           void ctx.audio.cue('ember-born', 0.9);
-          void ctx.audio.sfx('ember-chime-arbor', { at: ep, volume: 0.9 });
         }
       }
       if (emberStage === 2) {
@@ -427,7 +427,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
         if (emberClock > 4.5) {
           emberStage = 3;
           e.agility = 2.0;
-          void ctx.audio.sfx('ember-chime-arbor', { at: e.position, volume: 0.7 });
+          // its chime once the birth cue has sung the motif through (the two never overlap)
+          setTimeout(() => void ctx.audio.sfx('ember-chime-arbor', { at: e.position, volume: 0.7 }), 3600);
         }
       }
       if (emberStage === 3) {
@@ -456,7 +457,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
           happyUntil.set(i, { until: time + 4, carve: s.carve });
           pumpkins.setCarve(i, CARVE.happy[Math.floor(Math.random() * CARVE.happy.length)] as number);
         }
-        void ctx.audio.sfx('pumpkin-flare', { at: s.position, volume: 0.8, rate: 0.9 + Math.random() * 0.2 });
+        void ctx.audio.sfx('pumpkin-flare', { at: s.position, volume: 0.8 }); // its chime at its own pitch (in key)
       };
     },
 

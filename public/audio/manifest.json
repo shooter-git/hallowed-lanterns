@@ -66,14 +66,14 @@
   "music": {
     "arbor": {
       "file": "music/arbor.mp3",
-      "loopSeconds": 134.4,
+      "loopSeconds": 128.0,
       "tailSeconds": 4,
       "title": "Sundown",
-      "bpm": 75,
-      "meter": "4/4",
-      "beat": "quarter",
-      "key": "D major",
-      "instrument": "piano"
+      "bpm": 60,
+      "meter": "12/8",
+      "beat": "dotted quarter",
+      "key": "B minor",
+      "instrument": "piano, vibraphone, glass and synths"
     },
     "deep": {
       "file": "music/deep.mp3",
@@ -89,9 +89,9 @@
     "ember-born": {
       "file": "music/ember-born.mp3",
       "oneShot": true,
-      "seconds": 6.5,
+      "seconds": 8.82,
       "title": "The Ember",
-      "key": "D major",
+      "key": "B minor",
       "stinger": true
     },
     "finale": {

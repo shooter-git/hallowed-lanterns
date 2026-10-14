@@ -85,8 +85,8 @@ VSCO_MUSIC = ("Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Commu
 VSCO_SFX = "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios)"
 VCSL_MUSIC = (VSCO_MUSIC + " and Versilian Community Sample Library samples (CC0, Versilian Studios: "
               "https://github.com/sgossner/VCSL)")
-# The music that also plays VCSL instruments (zither, gong, finger cymbals, woodblock, ocarina, shaker).
-USES_VCSL = ("garden", "marigold", "snow")
+# The music that also plays VCSL instruments (vibraphone, zither, gong, finger cymbals, woodblock, ocarina, shaker).
+USES_VCSL = ("arbor", "garden", "marigold", "snow")
 FREEPATS_GUITAR = (" and the FreePats Spanish classical guitar (CC0, the FreePats project: "
                    "https://freepats.zenvoid.org/Guitar/acoustic-guitar.html)")
 # The music that also plays the FreePats guitar (none now: the Marigold no longer does).

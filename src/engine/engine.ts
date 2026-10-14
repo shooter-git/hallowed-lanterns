@@ -27,6 +27,9 @@ type Progress = {
  * order and the fog-soft transitions between them.
  */
 /** The passage into a chapter: in its key, and into the last one, the farewell. */
+/** Seconds from a passage's start to its downbeat, where the next chapter (and its music) begins. */
+const PASSAGE_DOWNBEAT = 2.6;
+
 function passageFor(index: number) {
   return index === CHAPTERS.length - 1 ? 'passage-final' : `passage-${CHAPTERS[index]?.key ?? 'd'}`;
 }
@@ -220,6 +223,8 @@ export class Engine {
         void portal.audio.context.resume();
         this.ctx.audio.start();
         void this.ctx.audio.setScene('title', null, 1.5);
+        // the passage that carries the title into the walk, ready before "Begin" is tapped
+        this.ctx.audio.preload('', [passageFor(this.index)]);
       },
       onBegin: () => void portal.audio.context.resume(),
     });
@@ -231,8 +236,20 @@ export class Engine {
     if (portal.viewport.touch) portal.input.showTouchControls(true);
     audio.start();
     this.begun = true;
-    // From the title theme, an unhurried handover: it plays on as the overture to the walk.
-    void audio.setScene(this.chapter?.music ?? null, this.chapter?.ambience ?? null, audio.currentMusic === 'title' ? 6 : 3);
+    // From the title theme into the walk the way every chapter is entered: the passage into the first chapter
+    // swells over the title (which steps back under it) and resolves into the chapter's key, and the chapter's
+    // music begins on that downbeat; the night's sounds come in at once.
+    const music = this.chapter?.music ?? null;
+    const ambience = this.chapter?.ambience ?? null;
+    if (audio.currentMusic === 'title' && music) {
+      void audio.setScene('title', ambience, 3);
+      audio.musicLevel(0.35, 2.4);
+      void audio
+        .sfx(passageFor(this.index), { volume: 0.7, send: 'music' })
+        .then(() => setTimeout(() => void audio.setScene(music, ambience, 2.5), PASSAGE_DOWNBEAT * 1000));
+    } else {
+      void audio.setScene(music, ambience, 3);
+    }
     ui.showControls();
     const info = CHAPTERS[this.index];
     if (info) setTimeout(() => ui.chapterCard(info.numeral, info.name, info.subtitle), 600);

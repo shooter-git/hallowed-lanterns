@@ -3,7 +3,7 @@ key, so it always sits inside the music. Magical and soft: real samples
 (VSCO 2 CE harp, felt piano, marimba, glockenspiel, bell tree) with a faint
 glass halo, fairly dry (the game adds its world reverb). Nothing reedy.
 
-  arbor     felt piano + glass halo, D       grove     three gentle variations, D in B minor:
+  arbor     vibraphone + glass, B minor      grove     three gentle variations, D in B minor:
   garden    harp + glass halo, G               1 harp, 2 harp an octave up (harmonic-like),
   pasture   felt piano low + harp above, D     3 felt piano with a soft bell-tree shimmer
   hollow    marimba + glass halo, D          snow      harp + a soft glockenspiel, A
@@ -31,16 +31,20 @@ def _halo(st, m, up=12, gain=0.18, send=0.15):
     gl.buf = FX.eq(gl.buf.astype(np.float64), ("lp", 4000, 0.7)).astype(np.float32)
 
 
-def _m(root, unit=E, vel=0.6, last=1.6):
-    m = motif(0.02, root, unit, vel=vel)
+def _m(root, unit=E, vel=0.6, last=1.6, minor=False):
+    m = motif(0.02, root, unit, vel=vel, minor=minor)
     m[-1].d = last
     return m
 
 
 def arbor():
+    # the motif as Sundown's vibraphone sings it (D, then B A F# A, falling), quicker: the Ember's signature
     st = K.stage(3.5)
-    m = _m("D5", vel=0.58)
-    K.play(st, "piano", m, "piano", layer_bias=-0.15, release=1.0, pan=0.0, width=0.5)
+    u = 0.25
+    m = [N(0.02 + a * u, d * u + 0.6, float(p), 0.55 if k == 1 else 0.48)
+         for k, (a, d, p) in enumerate([(0, 1, 74), (1, 2, 71), (3, 1, 69), (4, 1, 66), (5, 2, 69)])]
+    m[-1].d = 2.0
+    K.play(st, "vibes", m, "vibes", release=1.5, pan=0.0, width=0.5)
     _halo(st, m)
     return K.finish(st)
 

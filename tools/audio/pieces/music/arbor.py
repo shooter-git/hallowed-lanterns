@@ -1,202 +1,325 @@
-"""I. The Arbor of Faces — "Sundown" (rescored, Glass / Zimmer).
+"""I. The Arbor of Faces — "Sundown": the piano's triplets and the Ember's motif,
+dark, in the ways of Glass, Arnalds, Cliff Martinez and Zimmer (none of their
+tunes).
 
-Process music for a sunset, in straight time. A felt piano's right hand
-repeats a six-note figure (the Ember's cell D B A F# A plus one note) in
-steady eighths across 4/4 bars, so the figure slides against the bar line
-and only lines up again every three bars (Glass's phase); between chords one
-note of the figure changes at a time. The left hand marks the bar in 3+3+2.
-Over a D pedal the harmony shifts underneath the same notes (D, Bm9, G
-Lydian, A sus) and never leaves D. The voices enter one by one with the
-cell AUGMENTED (a bar per note) in canon - clarinet on D, bassoon a fifth
-below, then the flute with the INVERSION, then the oboe in stretto with
-the cell diminished - so the harmony grows out of overlapping long notes,
-over cello pizzicati plucking the bass in 3+3+2. A pizzicato canon of the
-cell (violins, then violas a fifth below) answers the piano. At the peak
-the organ pedal plays the cell in the bass and the horns answer it in
-canon; then E minor 9 over the D pedal and a subtractive return to the
-piano alone.
-4/4, quarter = 75, 42 bars = 134.4 s.
+The piece is in 12/8: four slow beats a bar, each one a piano triplet that
+never stops - Glass's engine, the felt beat from the first note - with the
+sustain pedal down throughout (it changes with the harmony). The left hand
+strikes the chord's bass once and holds it; above it the triplets ripple in
+the middle, evenly, the downbeat only leaned on: turning in place at first
+(fifth, third or ninth, fifth), and from the bowed vibraphone's slow motif
+on climbing to the fifth an octave up. The harmony is dark and never comes home the
+church's way: B minor, G, E minor and F-sharp minor (a minor fifth, so there
+is no pull to a cadence), turning again and again under the same figure.
+The Ember's motif, D | B A F# A, belongs to the vibraphone (Martinez's world):
+soft mallets play it slowly, with space around it, a beat a note; the bowed
+vibraphone and the glass (the Cristal Baschet's sound) hold its long notes.
+Then the bowed vibraphone sings it slower still, a bar a note, over a dark
+analog bass that holds each chord's root and lets it decay (Drive, Zimmer's
+low end, filling the room rather than pulsing), and it grows into the swell:
+the motif on the vibraphone again, long sub booms on the downbeats, the timpani,
+cymbal crescendos drawing the air in. Then the piano alone, and the Ember's
+chime on the vibraphone before the loop.
 
-  bars  0-5   piano figure alone; glass air
-  bars  6-15  left hand (3+3+2), clarinet's canon entry, bassoon, pizzicato bass
-  bars 16-23  moving bass; flute (inversion), oboe (stretto);
-              glass interlocking pair in additive groups; pizzicato canon
-  bars 24-31  the peak: organ pedal cell in the bass, horns' canon, timpani
-  bars 32-41  E minor 9 over D, then layers fall away to the piano
+  bars  0-3   the piano's triplets alone over B; glass air
+  bars  4-11  the vibraphone's motif (a beat a note, two bars a cycle) over B minor, G, E minor, F# minor;
+              the bowed vibraphone and glass hold its long notes; the analog pad far back
+  bars 12-19  the bowed vibraphone sings the motif a bar a note (D | B | A | F# | A); the dark analog bass, a
+              held, decaying root for each chord; the strings far back; a long cymbal crescendo into...
+  bars 20-27  the swell: the vibraphone's motif over the bass; sub booms and the timpani on the downbeats
+  bars 28-31  the piano alone over a last, slowly dying B in the bass; the Ember's chime
+
+The voices: the piano, a real vibraphone (struck and bowed), glass and
+analog synths (meant to sound like synths), and the strings only as a bed far
+back. Every voice has a near and a far seat (place()).
+B minor, 12/8 at dotted quarter = 60, 32 bars = 128 s.
 """
+from dataclasses import replace
+
 import numpy as np
 
-from hlaudio.score import N, prog, humanize, Clock, chord_at
+from hlaudio.core import SR, Track
+from hlaudio.score import N, humanize, Clock
 from hlaudio.sampler import Curve
-from hlaudio.orch import Stage
-from hlaudio import process as PR
-from hlaudio import electro as EL, effects as FX
+from hlaudio import sampler as SM, effects as FX, electro as EL, analog as AN, kit as KIT
+from hlaudio.orch import Stage, TONE
 from hlaudio.piece import finish_loop
-from hlaudio import lead as LD
 
 TITLE = "Sundown"
-BAR = 8            # eighths
-BARS = 42
-BPM_UNIT = 150     # eighths per minute (quarter = 75)
-LOOP = BARS * BAR * 60 / BPM_UNIT  # 134.4 s
-M = PR.Mode(62, "ionian")  # D
+BAR = 12           # eighths (12/8)
+BARS = 32
+BPM_UNIT = 180     # eighths per minute (dotted quarter = 60)
+LOOP = BARS * BAR * 60 / BPM_UNIT  # 128 s
 
-CYC = [("Dmaj9", [74, 78, 81, 83], 38), ("Bm9/D", [74, 78, 81, 85], 38),
-       ("Gmaj7#11/D", [73, 78, 81, 83], 38), ("A7sus4/D", [74, 76, 81, 83], 38)]
-MOV = [("D", [74, 78, 81, 83], 38), ("Bm7", [74, 78, 81, 85], 35),
-       ("Gmaj9", [74, 78, 79, 83], 31), ("Aadd9", [73, 76, 81, 83], 33)]
-PEAK = [("Dadd9", [74, 76, 78, 81], 38), ("Gmaj7/B", [74, 78, 79, 83], 35), ("D/A", [74, 78, 81, 86], 33),
-        ("Aadd9", [73, 76, 81, 83], 33)]
-END = [("Em9/D", [74, 78, 79, 83], 38), ("Dmaj9", [74, 78, 81, 83], 38),
-       ("Gmaj7#11/D", [73, 78, 81, 83], 38), ("A7sus4/D", [74, 76, 81, 83], 38)]
-# (chord, right-hand set, bass), two bars each, plus a closing D
-PLAN = [(c, s, b, 2) for c, s, b in CYC * 2 + MOV + PEAK + END] + [("Dmaj9", [74, 78, 81, 83], 38, 2)]
-FIG = [0, 3, 2, 1, 2, 3]                       # D B A F# A + one, over the current set
-FIG_ACC = [1.0, 0.72, 0.82, 0.92, 0.7, 0.8]
+# the piano's triplet voicings: low, middle, top on beats 1 and 3, top on 2 and 4
+V = {"Bm9": (47, 54, 62, 61), "Gmaj7/B": (47, 55, 62, 66), "Gmaj9": (43, 50, 59, 57), "Em9": (52, 59, 67, 66),
+     "F#m11": (42, 52, 57, 59)}
+CYCLE = ["Bm9", "Bm9", "Gmaj9", "Gmaj9", "Em9", "Em9", "F#m11", "F#m11"]
+CH = ["Bm9", "Bm9", "Gmaj7/B", "Gmaj7/B"] + CYCLE * 3 + ["Bm9", "Gmaj7/B", "Bm9", "Gmaj7/B"]
+assert len(CH) == BARS
+ROOT = {"Bm9": 35, "Gmaj7/B": 35, "Gmaj9": 31, "Em9": 40, "F#m11": 42}   # the bass (B1, G1, E2, F#2)
+# the triplets' touch: even, the downbeat only leaned on. Every note stays inside the piano's soft recording (its
+# brighter one begins at a velocity of 0.45 and would sound like an accent); the swell is in the level, not the touch
+BEAT_W = [1.0, 0.95, 0.97, 0.95]           # the four beats of the bar
+TRIP_W = [1.0, 0.93, 0.92]                 # inside each triplet
+TOUCH = 0.36
+CLIMB = (12, 28)                           # the bars where the triplets climb to the fifth an octave up
+VOICE_SPLIT = 59                           # B3: from here up the piano's recordings are voiced down (see render)
+# the motif on the vibraphone, a beat (three eighths) a note: (eighth in the two-bar cycle, eighths, MIDI) - the
+# pickup D on the last beat before, B, A, F#, A held, a beat of silence. Its notes sit inside every chord of the
+# cycle (B minor, G, E minor, and F# minor voiced without its C#)
+MOTIF = [(-3, 3, 74), (0, 6, 71), (6, 3, 69), (9, 3, 66), (12, 6, 69)]
+VIBES_BARS = [(4, 12), (20, 28)]           # where the vibraphone's cycle lives (two bars each)
+# the bowed vibraphone's slow motif, a bar a note (bar, bars, MIDI)
+SLOW = [(12, 1, 74), (13, 2, 71), (15, 1, 69), (16, 1, 66), (17, 2, 69)]
+MOTIF_R = [(0, 1), (1, 2), (3, 1), (4, 1), (5, 2)]  # the motif's own rhythm (eighths), for the chime
+MOTIF_PCS = [0, 9, 7, 4, 7]                        # D B A F# A
+SWELL_PEAK = {"long": 7.15, "mid": 3.55, "short": 1.4}   # where each cymbal crescendo peaks (s)
+# the dark bass (Drive, Zimmer's low end): a warm analog root, struck once a chord and left to decay over its two
+# bars, its filter closing with it - it fills the bottom, it does not pulse
+BASS = AN.Patch(oscs=[("saw", 0.0, 0, 0.7, 0.5), ("saw", -3.0, 0, 0.4, 0.5), ("pulse", 2.0, -1, 0.5, 0.5)],
+                drift=2.0, cutoff=260.0, res=0.12, env_oct=1.2, keytrack=0.3, vel_bright=0.8, a=0.02, d=4.5, s=0.25,
+                r=1.8, fa=0.01, fd=2.5, fs=0.1, fr=1.5, drive=1.3, sat=1.2, pre=0.45, fmax=1800.0, level=0.5,
+                vel_db=10.0)
+
+VOICE_EQ = {
+    "piano": [("hp", 60, 0.7), ("peak", 250, 0.9, -2.5), ("peak", 2800, 0.9, 1.5), ("hs", 7000, 0.7, 2.0)],
+    "vibes": [("hp", 150, 0.7), ("peak", 400, 0.9, -2.0), ("peak", 3000, 1.0, 1.0)],
+    "bowed": [("hp", 200, 0.7), ("peak", 450, 0.9, -2.0), ("hs", 6000, 0.7, 1.0)],
+    "halo": [("hp", 600, 0.7), ("hs", 7000, 0.7, 1.0)],
+    "pad": [("hp", 180, 0.7), ("peak", 400, 0.9, -3.0), ("lp", 6000, 0.7)],
+    "bass": [("hp", 32, 0.7), ("peak", 260, 0.9, -3.0), ("peak", 900, 1.0, 1.0)],
+    "bed": [("hp", 150, 0.7), ("peak", 400, 0.9, -3.0), ("hs", 6000, 0.7, 2.0)],
+    "boom": [("hp", 36, 0.7), ("peak", 250, 0.9, -2.0)],
+    "timp": [("hp", 45, 0.7), ("peak", 320, 0.9, -3.0), ("peak", 2500, 1.0, 1.5)],
+    "cymbal": [("hp", 400, 0.7)],
+    "glass": [("hp", 300, 0.7), ("hs", 6000, 0.7, 2.0)],
+    "chime": [("hp", 300, 0.7)],
+}
+# each voice's width (mid/side) and side (-1 left .. 1 right): the piano across the middle, the vibraphone just
+# right of it, the bowed vibraphone and the glass wide behind, the bass and the booms in the middle, the timpani
+# to the right
+STAGE = {"piano": (1.0, 0.0), "vibes": (0.7, 0.2), "bowed": (1.4, -0.1), "halo": (1.5, 0.0), "pad": (1.6, 0.0),
+         "bass": (0.2, 0.0), "bed": (1.5, 0.05), "boom": (0.0, 0.0), "timp": (0.8, 0.25), "cymbal": (1.5, 0.0),
+         "glass": (1.7, 0.0), "chime": (0.6, 0.25)}
+ROOM_EQ = [("hp", 180, 0.7), ("peak", 400, 0.8, -2.0)]
+HALL_EQ = [("hp", 240, 0.7), ("peak", 420, 0.8, -2.5), ("hs", 6000, 0.7, 1.0)]
 
 
 def bar(b):
     return b * BAR
 
 
-def harmony():
-    return prog(" ".join(f"{c}:{n * BAR}" for c, _, _, n in PLAN))
+def C(pts):
+    """A control curve over bars: [(bar, value), ...] (held before the first point and after the last)."""
+    pts = list(pts) if len(pts) > 1 else [pts[0], (pts[0][0] + 1, pts[0][1])]
+    return Curve([(b * BAR * 60 / BPM_UNIT, v) for b, v in pts])
 
 
-def right_hand(pr):
-    """The six-note figure in eighths, continuous across the bar lines; the
-    voicing moves one note towards the current chord's set at every figure."""
-    sets, t = [], 0.0
-    for c, s, b, n in PLAN:
-        sets.append((t, t + bar(n), s))
-        t += bar(n)
-    cur = list(PLAN[-1][1])
-    out = []
-    for i in range(BARS * BAR):
-        k = i % 6
-        if k == 0:
-            target = next(s for t0, t1, s in sets if t0 <= i < t1)
-            diffs = [(abs(a - g), j) for j, (a, g) in enumerate(zip(cur, target)) if a != g]
-            if diffs:
-                _, j = min(diffs)
-                cur[j] = target[j]
-        bar_acc = 1.12 if i % BAR in (0, 3, 6) else 1.0
-        out.append(N(float(i), 1.6, float(cur[FIG[k]]), 0.42 * FIG_ACC[k] * bar_acc))
-    return out
+def sub_hz(midi):
+    """A bass note's frequency brought into the sub's octave (38-76 Hz)."""
+    f = 440.0 * 2 ** ((midi - 69) / 12)
+    while f >= 76.0:
+        f /= 2
+    return f * 2 if f < 38.0 else f
 
 
 def score():
-    pr = harmony()
-    assert abs(sum(d for _, d, _ in pr) - BARS * BAR) < 1e-6
     P = {}
-    P["rh"] = right_hand(pr)
-    # left hand, 3+3+2: bass, fifth, tenth (from bar 6, thinning at the end)
-    lh, t = [], 0.0
-    for c, s, bass, n in PLAN:
-        for k in range(n):
-            for pos, p, v in ((0, bass + 12, 1.1), (3, bass + 19, 0.9), (6, s[1] - 12, 0.85)):
-                lh.append(N(t + pos, 3.2 if pos < 6 else 2.2, float(p), 0.36 * v))
-            t += BAR
-    P["lh"] = [n for n in lh if bar(6) <= n.t < bar(38)]
-    # the canon of the augmented cell (a bar a note, the last held two)
-    aug = [8, 8, 8, 8, 16]
-    P["vla"] = PR.realize(PR.cell("P"), M, 0, bar(6), aug, vel=0.5)                        # D4 B4 A4 F#4 A4
-    P["vc"] = PR.realize(PR.cell("P"), M, -3, bar(9), aug, vel=0.5)                        # A3 F#4 E4 C#4 E4
-    P["vn2"] = PR.realize(PR.cell("I"), M, 11, bar(15), [8] * 5, vel=0.5)                 # A5 C#5 D5 F#5 D5
-    dim = [2, 4, 2, 2, 6]
-    P["vn1"] = (PR.realize(PR.cell("P"), M, 7, bar(18), dim, vel=0.55) +
-                      PR.realize(PR.cell("P"), M, 5, bar(20), dim, vel=0.58) +
-                      PR.realize(PR.cell("I"), M, 11, bar(24), [4, 4, 4, 4, 8], vel=0.6) +
-                      PR.realize(PR.cell("P", 3), M, 7, bar(28), [4, 4, 8], vel=0.5))
-    bass_plan = [(8, 16, 38), (16, 18, 38), (18, 20, 35), (20, 22, 31), (22, 24, 33), (24, 26, 38), (26, 28, 35),
-                 (28, 30, 33), (30, 32, 33), (32, 38, 38)]
-    # the bass plucked (3+3+2: root, fifth, octave) and a soft organ floor under it
-    pz = []
-    for b0, b1, p in bass_plan:
-        for b in range(b0, b1):
-            pz += [N(bar(b), 2.0, float(p + 12), 0.55), N(bar(b) + 3, 2.0, float(p + 19), 0.4),
-                   N(bar(b) + 6, 1.5, float(p + 24), 0.45)]
-    P["vc_pizz"] = pz
-    P["cb"] = [N(bar(b0), bar(b1 - b0) + 0.5, float(p), 0.45) for b0, b1, p in bass_plan]
-    # a pizzicato canon of the cell in quarter notes: violins, violas a bar later a fifth below
-    P["pz_vn"] = PR.fit(PR.loop_figure(PR.realize(PR.cell("P"), M, 7, 0.0, [2, 2, 2, 2, 8], vel=0.5),
-                                       bar(26), bar(34), 16), pr)
-    P["pz_vla"] = PR.fit(PR.loop_figure(PR.realize(PR.cell("P"), M, 3, 0.0, [2, 2, 2, 2, 8], vel=0.45),
-                                        bar(27), bar(34), 16), pr)
-    # the peak: organ pedal plays the cell in the bass, the horns answer a fifth up
-    P["org_ped"] = PR.realize(PR.cell("P"), M, -14, bar(24), aug, vel=0.55)               # D2 B2 A2 F#2 A2
-    P["org"] = [N(bar(24), bar(6), float(p), 0.5) for p in (57, 62, 66)] + \
-        [N(bar(30), bar(2), float(p), 0.5) for p in (57, 61, 64)]
-    P["horns"] = PR.fit(PR.realize(PR.cell("P"), M, -3, bar(25), [8, 8, 8, 8, 8], vel=0.6), pr)  # A3 F#4 E4 C#4 E4
-    P["timp_roll"] = [N(bar(22), bar(2) + 0.3, 50.0, 0.6)]
-    P["timp"] = [N(bar(24), 3, 38.0, 0.7), N(bar(30), 3, 45.0, 0.55), N(bar(32), 3, 38.0, 0.45)]
-    # glass: an interlocking pair in Glass's additive groups (2, 2, 3, 3, 4, 4, 5, 5)
-    groups = [2, 2, 3, 3, 4, 4, 5, 5, 4, 4, 3, 3]
-    g1, _ = PR.additive(PR.cell("P"), groups, M, 14, 0.0, 1.0, vel=0.4)
-    g1 = PR.loop_figure(g1, bar(18), bar(33), sum(groups))
-    g2 = PR.displace(g1, 0.5)
-    for n in g2:
-        n.p = float(M.p(M.deg(n.p) - 2))
-        n.v *= 0.8
-    P["glass1"], P["glass2"] = PR.fit(g1, pr), PR.fit(g2, pr)
-    P["air"] = [N(bar(0), bar(6), 88.0, 0.25), N(bar(36), bar(6), 88.0, 0.25), N(bar(33), bar(3), 89.0, 0.2)]
-    return pr, P
+    # the piano, the sustain pedal down throughout: the left hand strikes the chord's bass once and holds it for as
+    # long as the bass stays (across chords that share it); the triplets ripple above it - the bass, fifth and top
+    # on a chord's first beat, then the fifth, the top (the voicing's third and colour by turns) and the fifth an
+    # octave up (from bar 12). Every note rings until the pedal changes with the harmony
+    tri, lh = [], []
+    for b, c in enumerate(CH):
+        lo, mid, top_a, top_b = V[c]
+        first = b == 0 or CH[b - 1] != c
+        # struck again only when the bass moves, or after four bars (a piano's low string fades by then)
+        if b == 0 or V[CH[b - 1]][0] != lo or (lh and bar(b) - lh[-1].t >= bar(4)):
+            span = next((k for k in range(b + 1, BARS) if V[CH[k]][0] != lo), BARS) - b
+            lh.append(N(bar(b), bar(min(span, 4)) - 0.3, float(lo), 0.38))
+        climb = CLIMB[0] <= b < CLIMB[1]
+        for beat in range(4):
+            top = top_a if beat % 2 == 0 else top_b
+            # turning in place (fifth, top, fifth) at first; climbing (fifth, top, the fifth an octave up) from 12
+            notes = (lo, mid, top) if (beat == 0 and first) else (mid, top, mid + 12 if climb else mid)
+            for k, p in enumerate(notes):
+                if (beat == 0 and first) and k == 0:
+                    continue                              # the bass: the left hand's held note
+                v = TOUCH * BEAT_W[beat] * TRIP_W[k] * (0.95 if p == mid + 12 else 1.0)
+                tri.append(N(bar(b) + 3 * beat + k, 1.0, float(p), v))
+    # the pedal: it changes where the harmony does, and every note rings to the change (a key struck again adds to
+    # its ringing string, as with the pedal down)
+    changes = [bar(b) for b in range(BARS) if b == 0 or CH[b - 1] != CH[b]] + [bar(BARS)]
+    for n in tri:
+        n.d = next(t for t in changes if t > n.t) - n.t + 0.4
+    P["piano"] = tri + lh
+    # the vibraphone's motif, a two-bar cycle; each note let ring under the next (the pedal down)
+    vib, held = [], []
+    for b0, b1 in VIBES_BARS:
+        for b in range(b0, b1, 2):
+            for o, d, p in MOTIF:
+                vib.append(N(bar(b) + o, d + 3.0, float(p), 0.55 if o == 0 else 0.48))
+                if d == 6:
+                    held.append(N(bar(b) + o, d + 2.0, float(p), 0.5))
+    P["vibes"] = vib
+    # the bowed vibraphone holds the motif's long notes; then sings it slowly, a bar a note (12-19)
+    P["bowed"] = held + [N(bar(b), bar(n) + 1.0, float(p), 0.55) for b, n, p in SLOW]
+    # glass (the Cristal Baschet's sound) an octave above the bowed notes, faint
+    P["halo"] = [N(n.t, n.d + 1.0, n.p + 12, 0.4) for n in P["bowed"]]
+    # the analog pad far back: the chord's middle, two bars at a time (4-27)
+    P["pad"] = [N(bar(b), 2 * BAR + 1, float(p + 12), 0.4) for b in range(4, 28, 2) for p in V[CH[b]][1:3]]
+    # the dark bass (12-27): the chord's root, struck once and held for its two bars, decaying; and a last B under
+    # the piano's ending, held through to the loop's end and fading on into its restart
+    P["bass"] = [N(bar(b), 2 * BAR - 0.3, float(ROOT[CH[b]]), 0.6 if b < 20 else 0.7) for b in range(12, 28, 2)]
+    P["bass_end"] = [N(bar(28), bar(4) - 0.3, 35.0, 0.62)]
+    # strings far back: the chord's middle an octave up (violins) and as voiced (cellos), a bed only (12-27)
+    P["bed"] = [N(bar(b), BAR + 0.4, float(p + 12), 0.5) for b in range(12, 28) for p in V[CH[b]][1:3]]
+    # the swell's downbeats: a sub boom on the bass, a timpani for its pop; cymbal crescendos into 20 and 24
+    P["booms"] = [(b, 0.85 if b in (20, 24) else 0.55) for b in (20, 22, 24, 26)]
+    P["timp"] = [N(bar(b), 3.0, float(ROOT[CH[b]] + 12), 0.45 + 0.4 * v) for b, v in P["booms"]]
+    P["swells"] = [(20, "long", 0.8), (24, "mid", 0.6)]
+    # glass air at the ends; the Ember chimes on the vibraphone before the loop
+    P["glass"] = ([N(bar(b), 2 * BAR + 1, float(p), 0.4) for b in (0, 2) for p in (78, 81, 83)] +
+                  [N(bar(b), 2 * BAR + 1, float(p), 0.4) for b in (28, 30) for p in (78, 81, 83)])
+    P["chime"] = [N(bar(30) + 5 + o, d + 3.0, float(74 + pc), 0.45) for (o, d), pc in zip(MOTIF_R, MOTIF_PCS)]
+    return P
 
 
 def render():
-    pr, P = score()
-    clk = Clock(bpm=BPM_UNIT, rubato=(8 * BAR, 0.015))
-    S = lambda notes, seed, j=0.01: humanize(clk.notes(notes), seed, t_jit=j)
-    sec = lambda b: clk.s(bar(b))
-    arc = Curve([(0, 0.2), (sec(6), 0.28), (sec(12), 0.4), (sec(18), 0.55), (sec(23), 0.7), (sec(24.5), 0.88),
-                 (sec(31), 0.85), (sec(33.5), 0.5), (sec(37), 0.28), (sec(41), 0.2), (LOOP, 0.2)], period=LOOP)
+    P = score()
+    clk = Clock(bpm=BPM_UNIT, rubato=(4 * BAR, 0.015))
+    S = lambda notes, seed, j=0.008: humanize(clk.notes(notes), seed, t_jit=j)
     st = Stage(LOOP, circular=True)
-    shape = {"attack": 0.5, "swell": 0.18, "taper": 2.5}
 
-    rh = S(P["rh"], 1, 0.008)
-    for n in rh:
-        n.v = float(n.v * (0.85 + 0.5 * arc(n.t)))
-    st.play("piano", rh, "piano", seed=1, gain_db=8, layer_bias=-0.25, release=0.8)
-    lh = S(P["lh"], 2, 0.012)
-    for n in lh:
-        n.v = float(n.v * (0.8 + 0.6 * arc(n.t)))
-    st.play("piano", lh, "piano", seed=2, gain_db=6, layer_bias=-0.25, release=0.9)
+    def sampled(notes, inst, seed, tone=True, **kw):
+        tmp = Track(LOOP, True)
+        SM.play(tmp, notes, inst, seed=seed, **kw)
+        if tone and inst in TONE:
+            tn = TONE[inst]
+            x = tmp.buf.astype(np.float64)
+            if tn.get("soften"):
+                x = FX.soften(x, tn["soften"], circular=True)
+            tmp.buf = FX.eq(x, *tn["eq"], circular=True).astype(np.float32)
+        return tmp
 
-    kw = dict(dyn=arc, shape=shape, lag=0.025)
-    st.play("clarinets", S(P["vla"], 3), "clarinet", seed=3, gain_db=7, **kw)
-    st.play("bassoon", S(P["vc"], 4), "bassoon", seed=4, gain_db=7, **kw)
-    st.play("flutes", S(P["vn2"], 5), "flute", seed=5, gain_db=6, **kw)
-    st.play("oboe", S(P["vn1"], 6), "oboe", seed=6, gain_db=6, **LD.lead(st), **kw)
-    st.play("basses", S(P["cb"], 7), "basses", seed=7, gain_db=-19, **LD.bed(), **kw)
-    vp = S(P["vc_pizz"], 16, 0.006)
-    for n in vp:
-        n.v = float(n.v * (0.6 + 0.6 * arc(n.t)))
-    st.play("cellos_pizz", vp, "cellos_pizz", seed=16, gain_db=2, seat="cellos")
-    st.play("violins_pizz", S(P["pz_vn"], 17, 0.006), "violins_pizz", seed=17, gain_db=1, seat="violins")
-    st.play("violas_pizz", S(P["pz_vla"], 18, 0.006), "violas_pizz", seed=18, gain_db=6, seat="violas")
-    peak = Curve([(sec(23), 0.3), (sec(24.5), 0.75), (sec(30.5), 0.8), (sec(33), 0.4), (sec(35), 0.2)])
-    st.play("organ", S(P["org_ped"], 8, 0.0), "organ_soft_pedal", seed=8, dyn=peak, gain_db=-8)
-    st.play("organ", S(P["org"], 9, 0.0), "organ_soft", seed=9, dyn=peak, gain_db=-13)
-    st.play("horns", S(P["horns"], 10), "horns", seed=10, dyn=peak, gain_db=-3, shape=shape, lag=0.03)
-    st.play("timpani", S(P["timp_roll"], 11, 0.0), "timpani_roll", seed=11,
-            dyn=Curve([(sec(22), 0.02), (sec(24), 0.7), (sec(24.05), 0.25)]), gain_db=-6, release=0.4)
-    st.play("timpani", S(P["timp"], 12, 0.004), "timpani", seed=12, gain_db=-4)
+    def place(name, tmp, dist, gain_db, near=(("room", 0.22),), far=(("concert", 0.8),), near_depth=0.12,
+              far_depth=0.85):
+        """A voice between its near seat and its far seat (`dist`, 0 near .. 1 far, a curve over the loop), at
+        `gain_db`, with its own EQ, width and side."""
+        x = tmp.buf.astype(np.float64)
+        if VOICE_EQ.get(name):
+            x = FX.eq(x, *VOICE_EQ[name], circular=True)
+        w_, side = STAGE.get(name, (1.0, 0.0))
+        if w_ != 1.0:
+            x = FX.width(x, w_)
+        if side:
+            x = x * np.array([[np.cos((side + 1) * np.pi / 4)], [np.sin((side + 1) * np.pi / 4)]]) * 2 ** 0.5
+        t = np.arange(x.shape[1]) / SR
+        d = np.clip(dist(t), 0, 1)
+        g = 10 ** (gain_db(t) / 20)
+        st.stem(f"{name}~near", dict(near), depth=near_depth).mix((x * np.cos(d * np.pi / 2) * g).astype(np.float32))
+        st.stem(f"{name}~far", dict(far), depth=far_depth).mix((x * np.sin(d * np.pi / 2) * g).astype(np.float32))
 
-    gl = st.stem("glass", {"shimmer:cathedral2": 0.4, "concert": 0.6})
-    g1 = S(P["glass1"], 13, 0.004)
-    g2 = S(P["glass2"], 14, 0.004)
-    for n in g1 + g2:
-        n.v = float(n.v * (0.6 + 0.6 * arc(n.t)))
-    EL.glass(gl, g1, gain=0.3, seed=13, attack=0.05, release=1.2, pan_spread=0.0, breath=0.05, bright=0.6)
-    EL.glass(gl, g2, gain=0.24, seed=14, attack=0.05, release=1.2, pan_spread=0.0, breath=0.05, bright=0.6)
-    gl.buf = (FX.echo(gl.buf, clk.s(3), fb=0.35, mix=0.35, lp=2800, circular=True) + gl.buf).astype("float32")
-    EL.glass(gl, S(P["air"], 15, 0.0), gain=0.3, seed=15, attack=2.5, release=4.0)
+    # the shape of the whole: quiet, the vibraphone, the bass's build, the swell, home
+    arc = C([(0, 0.3), (4, 0.4), (12, 0.45), (19, 0.6), (20, 0.8), (27, 0.85), (28, 0.4), (31.9, 0.3)])
 
-    out = st.render({"concert": {"seed": 1}, "cathedral2": {"seed": 2},
-                     "shimmer:cathedral2": {"seed": 3, "gens": 2, "fb": 0.4}}, warmth=0.35)
-    return finish_loop("music", "arbor", out, LOOP, 4, -16.0, 192,
-                       meta={"title": TITLE, "bpm": 75, "meter": "4/4", "beat": "quarter", "key": "D major",
-                             "instrument": "piano"})
+    # ---- the piano's triplets: a felt upright beside you, the beat from the first note
+    pn = humanize(clk.notes(P["piano"]), 1, t_jit=0.006, v_jit=0.015)
+    # the recordings from B3 up are about 10 dB brighter in the attack than those below, so the triplets' tops
+    # would leap out like accents: voiced down (a softer hammer, the treble eased), the brightness rises evenly
+    pt = sampled([n for n in pn if n.p < VOICE_SPLIT], "piano", 1, tone=False, gain_db=6, layer_bias=-0.2,
+                 release=1.6, humanize_v=0.015)
+    pt.buf = FX.soften(pt.buf.astype(np.float64), 0.3, circular=True).astype(np.float32)
+    hi = sampled([n for n in pn if n.p >= VOICE_SPLIT], "piano", 11, tone=False, gain_db=6, layer_bias=-0.2,
+                 release=1.6, humanize_v=0.015)
+    hx = FX.soften(hi.buf.astype(np.float64), 0.45, circular=True)
+    pt.mix(FX.eq(hx, ("hs", 1200, 0.7, -8.0), circular=True).astype(np.float32))
+    place("piano", pt, C([(0, 0.22), (20, 0.28), (28, 0.22)]),
+          C([(0, 3.5), (3.9, 3.5), (4, 2.0), (12, 2.5), (19.9, 3.0), (20, 4.5), (27.9, 4.5), (28, 3.5)]),
+          near=(("room", 0.24), ("concert", 0.28), ("plate", 0.1)),
+          far=(("concert", 0.65), ("plate", 0.18), ("shimmer:cathedral2", 0.03)), near_depth=0.2, far_depth=0.6)
+
+    # ---- the vibraphone: the motif, slowly, soft mallets, a little to the right, its ring into the hall
+    vb = sampled(S(P["vibes"], 2, 0.006), "vibes", 2, gain_db=4, release=2.0)
+    place("vibes", vb, C([(3, 0.35), (20, 0.4)]), C([(3, -2.0), (20, 0.0)]),
+          near=(("chamber", 0.3), ("plate", 0.15)), far=(("concert", 0.7), ("shimmer:cathedral2", 0.08)),
+          near_depth=0.35, far_depth=0.8)
+    # ---- the bowed vibraphone: the long notes, then the slow motif, wide and behind
+    bw = sampled(S(P["bowed"], 3, 0.0), "vibes_bowed", 3, gain_db=8, release=2.5)
+    place("bowed", bw, C([(4, 0.7), (12, 0.5), (19.9, 0.45), (20, 0.7)]),
+          C([(4, -1.0), (11.9, -1.0), (12, 5.0), (19.9, 6.0), (20, 0.0)]),
+          near=(("chamber", 0.3), ("concert", 0.25)), far=(("concert", 0.7), ("shimmer:cathedral2", 0.15)),
+          near_depth=0.45, far_depth=0.85)
+    hl = Track(LOOP, True)
+    EL.glass(hl, S(P["halo"], 4, 0.0), gain=0.2, seed=4, attack=0.6, release=3.0, bright=0.55, pan_spread=0.3,
+             breath=0.1)
+    place("halo", hl, C([(4, 0.8)]), C([(4, -8.0), (12, -5.0), (20, -6.0)]), near=(("chamber", 0.3),),
+          far=(("shimmer:cathedral2", 0.4), ("concert", 0.5)), near_depth=0.45, far_depth=0.9)
+
+    # ---- the analog pad, far back (Martinez): warm, slowly breathing
+    pd = Track(LOOP, True)
+    EL.pad(pd, S(P["pad"], 5, 0.0), gain=0.5, seed=5, voices=5, detune=10.0, cutoff=700.0, res=0.6, attack=3.0,
+           release=4.0, curve=C([(4, 0.3), (19, 0.55), (20, 0.75), (27, 0.65)]))
+    place("pad", pd, C([(4, 0.85)]), C([(4, -1.0), (12, 1.0), (20, 3.0), (27.9, 2.0), (28.5, -30.0)]),
+          near=(("chamber", 0.3),), far=(("concert", 0.6), ("shimmer:cathedral2", 0.15)), near_depth=0.5,
+          far_depth=0.9)
+
+    # ---- the dark bass: a held root a chord, decaying; its filter a little more open toward the swell
+    pb = Track(LOOP, True)
+    AN.play(pb, S(P["bass"], 6, 0.0), BASS, gain=1.0, seed=6, sweep=C([(12, 0.8), (19.9, 1.2), (20, 1.5), (27.9, 1.6)]))
+    AN.play(pb, S(P["bass_end"], 7, 0.0), replace(BASS, d=12.0, s=0.22, r=5.0), gain=1.0, seed=7, sweep=C([(28, 1.1)]))
+    pb.buf = FX.eq(FX.saturate(pb.buf.astype(np.float64), drive=1.3, mix=0.4), ("lp", 1800, 0.7),
+                   circular=True).astype(np.float32)
+    place("bass", pb, C([(12, 0.3)]), C([(12, -6.0), (16, -4.0), (19.9, -3.0), (20, -2.0), (27.9, -2.0), (28, -3.0)]),
+          near=(("chamber", 0.1),), far=(("concert", 0.3),), near_depth=0.15, far_depth=0.45)
+
+    # ---- the strings: a quiet bed far back, never a line
+    dyn_bed = C([(12, 0.22), (19, 0.35), (20, 0.5), (27.9, 0.5), (28, 0.2)])
+    bd = sampled(S(P["bed"], 7), "violins", 7, gain_db=-12, slide=0, dyn=dyn_bed,
+                 shape={"attack": 1.2, "swell": 0.1, "taper": 2.0})
+    bd.mix(sampled(S([N(n.t, n.d, n.p - 12, n.v) for n in P["bed"]], 8), "cellos", 8, gain_db=-14, slide=0,
+                   dyn=dyn_bed, shape={"attack": 1.2, "swell": 0.1, "taper": 2.0}))
+    place("bed", bd, C([(12, 0.92), (20, 0.8)]), C([(12, -12.0), (19.9, -6.0), (20, -1.0), (27.9, -3.0), (28.4, -30.0)]),
+          near=(("chamber", 0.3), ("concert", 0.3)), far=(("concert", 0.9),), near_depth=0.5, far_depth=0.95)
+
+    # ---- the swell's downbeats: a sub boom diving onto the bass and held (a little less long than the bars
+    # between), a real timpani for its pop, the cymbals' crescendos drawing the air in
+    bm = Track(LOOP, True)
+    for i, (b, v) in enumerate(P["booms"]):
+        bm.add(clk.s(bar(b)), KIT.boom(sub_hz(ROOT[CH[b]]), v, 80 + i, decay=4.5 + 2.0 * v, drift=0.0), gain=0.8)
+    place("boom", bm, C([(20, 0.2)]), C([(20, -12.0)]), near=(("room", 0.12),), far=(("concert", 0.3),),
+          near_depth=0.15, far_depth=0.4)
+    tp = sampled(S(P["timp"], 9, 0.004), "timpani", 9, gain_db=2)
+    place("timp", tp, C([(20, 0.55)]), C([(20, -4.0)]), near=(("room", 0.25), ("concert", 0.3)),
+          far=(("concert", 0.75),), near_depth=0.45, far_depth=0.85)
+    cy = Track(LOOP, True)
+    for i, (b, kind, v) in enumerate(P["swells"]):
+        hit = clk.s(bar(b))
+        cy.mix(sampled([N(hit - SWELL_PEAK[kind], SWELL_PEAK[kind] + 6.0, 0.0, v)], f"cymbal_swell_{kind}", 10 + i,
+                       gain_db=2, release=2.0))
+    place("cymbal", cy, C([(16, 0.6)]), C([(16, -6.0)]), near=(("chamber", 0.3),),
+          far=(("concert", 0.6), ("shimmer:cathedral2", 0.15)), near_depth=0.4, far_depth=0.75)
+
+    # ---- glass air and the Ember's chime on the vibraphone
+    gl = Track(LOOP, True)
+    EL.glass(gl, S(P["glass"], 12, 0.0), gain=0.26, seed=12, attack=2.0, release=3.5, bright=0.6, pan_spread=0.5,
+             breath=0.2)
+    place("glass", gl, C([(0, 0.85)]), C([(0, -6.0)]), near=(("chamber", 0.35),),
+          far=(("shimmer:cathedral2", 0.45), ("concert", 0.5)), near_depth=0.4, far_depth=0.85)
+    ch = sampled(S(P["chime"], 13, 0.004), "vibes", 13, gain_db=2, release=2.0)
+    place("chime", ch, C([(30, 0.5)]), C([(30, -3.0)]), near=(("chamber", 0.3), ("plate", 0.1)),
+          far=(("concert", 0.6), ("shimmer:cathedral2", 0.15)), near_depth=0.4, far_depth=0.8)
+
+    out = st.render({"room": {"seed": 70, "eq": ROOM_EQ}, "chamber": {"seed": 71, "eq": ROOM_EQ},
+                     "plate": {"eq": HALL_EQ}, "concert": {"seed": 72, "eq": HALL_EQ, "cross": 0.2},
+                     "shimmer:cathedral2": {"seed": 74, "gens": 2, "fb": 0.4, "eq": [("hp", 400, 0.7)]}}, warmth=0.2)
+    # the low end in the middle
+    low = FX.eq(out, ("lp", 120, 0.7), circular=True)
+    out = out - low + low.mean(axis=0, keepdims=True)
+    return finish_loop("music", "arbor", out, LOOP, 4, -16.0, 192, tilt_hs_db=1.5,
+                       meta={"title": TITLE, "bpm": 60, "meter": "12/8", "beat": "dotted quarter", "key": "B minor",
+                             "instrument": "piano, vibraphone, glass and synths"})
 
 
 if __name__ == "__main__":
