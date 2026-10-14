@@ -197,3 +197,26 @@ def vdelay(x, d):
         c3 = (fr + 1.0) * fr * (fr - 1.0) / 6.0
         out[i] = c0 * x0 + c1 * x1 + c2 * x2 + c3 * x3
     return out
+
+
+@njit(cache=True, fastmath=True)
+def phaser(x, fc, stages, fb):
+    """A phaser's moving notches: `stages` first-order all-pass filters in series whose corner follows the
+    per-sample frequency `fc`, with feedback `fb`; returns the all-passed signal (mix it with the dry)."""
+    n = x.shape[0]
+    out = np.empty(n)
+    xs = np.zeros(stages)
+    ys = np.zeros(stages)
+    last = 0.0
+    for i in range(n):
+        t = math.tan(math.pi * min(fc[i], 0.45 * SR) / SR)
+        a = (t - 1.0) / (t + 1.0)
+        v = x[i] + fb * last
+        for k in range(stages):
+            y = a * v + xs[k] - a * ys[k]
+            xs[k] = v
+            ys[k] = y
+            v = y
+        out[i] = v
+        last = v
+    return out

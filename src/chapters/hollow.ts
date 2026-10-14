@@ -140,7 +140,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     webState = 'free';
     ctx.ember.excitement = 1;
     setTimeout(() => (ctx.ember.excitement = 0), 1500);
-    void ctx.audio.sfx('ember-chime-hollow', { at: pointOnGround(theWeb.snare), volume: 0.9 });
+    void ctx.audio.sfx('ember-chime-hollow', { at: pointOnGround(theWeb.snare), volume: 0.65 });
     ctx.ui.say('Free! It shakes off the web and zooms ahead.', 5);
   };
 
@@ -430,7 +430,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
           e.kick(new Vector3(0, 5, 1.5));
           e.excitement = 1;
           sprinkles.emit(STAGE.clone().add(new Vector3(0, 1.8, 0)), 60, RAINBOW, 3);
-          void ctx.audio.sfx('ember-chime-hollow', { at: STAGE, volume: 0.9 });
+          void ctx.audio.sfx('ember-chime-hollow', { at: STAGE, volume: 0.65 });
         }
       } else {
         e.presence = Math.min(1, e.presence + dt * 2);
@@ -471,7 +471,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
         if (note >= 0)
           return () => {
             bounces.set(i, 0);
-            void ctx.audio.sfxIndex('xylo', note, { at: (specs[i] as PumpkinSpec).position, volume: 0.9 });
+            void ctx.audio.sfxIndex('xylo', note, { at: (specs[i] as PumpkinSpec).position, volume: 0.6 });
             played.push(note);
             if (played.length > 5) played.shift();
             if (!solved && played.length === 5 && played.every((n, k) => n === motif[k])) celebrate();
@@ -514,8 +514,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   function celebrate() {
     solved = true;
     ctx.ui.say('That’s its song! The whole hollow is singing.', 6);
-    void ctx.audio.sfx('sprinkle-burst', { at: STAGE, volume: 1 });
-    void ctx.audio.sfx('ember-chime-hollow', { at: STAGE, volume: 1 });
+    void ctx.audio.sfx('sprinkle-burst', { at: STAGE, volume: 0.75 });
+    void ctx.audio.sfx('ember-chime-hollow', { at: STAGE, volume: 0.7 });
     for (let k = 0; k < 6; k++) {
       setTimeout(() => sprinkles.emit(STAGE.clone().add(new Vector3((Math.random() - 0.5) * 8, 1.5 + Math.random() * 2, (Math.random() - 0.5) * 3)), 90, RAINBOW, 4.5, 4), k * 220);
     }

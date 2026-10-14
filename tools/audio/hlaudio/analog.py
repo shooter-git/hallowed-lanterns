@@ -1,8 +1,8 @@
 """Vintage analog synthesis: the 1980s synth-score sound (sequencers through
 resonant ladder filters, pulsing basses, brassy pad swells) for the places
-where synths are the point: the Deep, and the Marigold Garden's swell, whose
-lead SINGS (`sing`: a legato line gliding into each note, its vibrato growing
-and its filter blooming on the long notes).
+where synths are the point: the Deep, and the Marigold Garden's warm bass pulse;
+and a lead that SINGS (`sing`: a legato line gliding into each note, its vibrato
+growing and its filter blooming on the long notes; no piece uses it now).
 
 Built the way the old polysynths and modulars were, so it sounds like warm
 gear rather than a plug-in preset:
@@ -285,7 +285,7 @@ ARP = Patch(oscs=[("saw", -3.0, 0, 0.7, 0.5), ("pulse", 3.0, 0, 0.6, 0.5)],
             drift=2.5, cutoff=520.0, res=0.42, env_oct=1.6, keytrack=0.5, vel_bright=0.8,
             a=0.003, d=0.28, s=0.2, r=0.18, fa=0.002, fd=0.2, fs=0.0, fr=0.2,
             drive=1.4, sat=1.2, pre=0.45, fmax=5500.0, level=0.5, vel_db=20.0)
-# the Marigold's singing lead: a saw and a slowly-modulated pulse, a soft saw an octave below for body,
+# a singing lead (for `sing`): a saw and a slowly-modulated pulse, a soft saw an octave below for body,
 # a gentle filter that tracks the line up (it is never thin at the top nor dull at the bottom)
 SINGER = Patch(oscs=[("saw", -4.0, 0, 0.8, 0.5), ("pulse", 4.0, 0, 0.5, 0.42), ("saw", 2.0, -1, 0.28, 0.5)],
                drift=2.5, pwm=0.08, pwm_rate=0.3, cutoff=640.0, res=0.14, env_oct=0.5, keytrack=0.7,

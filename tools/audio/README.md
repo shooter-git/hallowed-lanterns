@@ -6,7 +6,7 @@ and the instrument-like sound effects (xylophone notes, the big guitar's
 strings, the Ember's chimes, snowflakes, sprinkle-burst, wish-hang) are
 composed here and played by real orchestral samples from **VSCO 2 Community
 Edition**, with a few instruments from the **Versilian Community Sample
-Library** and the Marigold Garden's guitar from **FreePats** (see
+Library** and October Snow's double bass from Karoryfer's **Meatbass** (see
 *Samples* below); everything else (ambiences, creatures, magic)
 is synthesised from scratch, and so are the Deep's analog synths. Python + numpy/scipy, with a few sample-by-sample
 kernels compiled by numba; ffmpeg (libmp3lame) encodes and measures.
@@ -52,7 +52,7 @@ git sparse-checkout set --no-cone /LICENSE /README.md /Readme.txt \
   "/Strings/Harp/" "/Brass/F Horn/" "/Brass/Tenor Trombone/" "/Brass/Tuba/" "/Keys/Organ/" "/Keys/Upright Nr1/" \
   "/Percussion/Timpani*" "/Percussion/BDrumNewhit*" "/Percussion/Glock*" "/Percussion/Marimba*" \
   "/Percussion/Sleighbells*" "/Percussion/Triangle3*" "/Percussion/BellTree*" "/Percussion/Conga-*" \
-  "/Percussion/Tumba-*" \
+  "/Percussion/Tumba-*" "/Percussion/Tamb1-*" "/Percussion/Claves*" "/Percussion/Snare2-*" "/Percussion/susCymb1-*" \
   "/Woodwinds/Flute/stac/" "/Woodwinds/Flute/susNV/" "/Woodwinds/Flute/susvib/" "/Woodwinds/Clarinet/stac/" \
   "/Woodwinds/Clarinet/susLong/" "/Woodwinds/Oboe/Stacc/" "/Woodwinds/Oboe/Vib/" "/Woodwinds/Bassoon/stac/" \
   "/Woodwinds/Bassoon/sus/"
@@ -102,7 +102,9 @@ cd tools/audio/.cache/vcsl
 git sparse-checkout set --no-cone "/LICENSE*" "/README*" "/Chordophones/Zithers/Dan Tranh/" \
   "/Idiophones/Struck Idiophones/Gong 1/" "/Idiophones/Struck Idiophones/Gong 2/" \
   "/Idiophones/Struck Idiophones/Finger Cymbals/" "/Idiophones/Struck Idiophones/Woodblock/" \
-  "/Aerophones/Edge-blown Aerophones/Ocarina, Typical/"
+  "/Aerophones/Edge-blown Aerophones/Ocarina, Typical/" "/Idiophones/Struck Idiophones/Shaker, Small/" \
+  "/Membranophones/Struck Membranophones/Bongos/" "/Idiophones/Struck Idiophones/Hi-Hat Cymbal/" \
+  "/Membranophones/Struck Membranophones/Snare Drum, Modern 2/"
 git checkout master
 ```
 
@@ -110,9 +112,11 @@ git checkout master
 |---|---|---|
 | `zither`, `zither_trem`, `zither_gliss_up`, `zither_gliss_down` | Dan Tranh: Normal (mf/f/ff), Tremolo, Gliss (Up/Dwn Med mf) | the Lantern Garden (played as a guzheng) |
 | `ocarina` (`ocarina_vib`) | Ocarina, Typical: Sustains/Sus (SusVib) | the Garden (as a xun), the Marigold Garden (a clay flute) |
-| `gong` | Gong 1 (p, mf, f, fff) | the Garden (two strokes); the Marigold's far bell |
-| `finger_cymbal` | Finger Cymbals | the Garden (phrase starts) |
-| `woodblock` | Woodblock (`wood_click_*`: pp, mp, f, ff) | the Garden (the temple block) |
+| `gong` | Gong 1 (p, mf, f, fff) | the Garden (two strokes); the Marigold's far bell and the gong under its peak |
+| `finger_cymbal` | Finger Cymbals | the Garden (phrase starts); October Snow (glints, and the snowflakes) |
+| `woodblock` | Woodblock (`wood_click_*`: pp, mp, f, ff) | the Garden (the temple block); October Snow (the snowman's steps) |
+| `shaker_down`, `shaker_up` | Shaker, Small | the Marigold (its few phased hats) |
+| `bongo_hi`, `bongo_hi_muted`, `bongo_lo`, `hihat`, `hihat_open`, `hihat_pedal`, `drum_snare`, `drum_xstick`, `drum_roll` | Bongos; Hi-Hat Cymbal; Snare Drum, Modern 2 | available, not played by any piece now |
 
 VCSL is catalogued separately (`.cache/vcsl-catalog.json`), so adding a VCSL
 instrument never re-measures VSCO. Its names follow other conventions, and
@@ -135,9 +139,31 @@ some pitches are measured rather than read:
 The zither's own vibrato samples are not used (their vibrato rises ~30 cents
 above the note); the vibrato is drawn on the plain plucks instead.
 
+## Samples: Meatbass (the jazz double bass)
+
+October Snow's double bass is **Meatbass** by Karoryfer Samples, **CC0 1.0**:
+a 1958 Otto Rubner double bass played and sampled by Drogomir Smolken
+(<https://github.com/sfzinstruments/karoryfer.meatbass>). Its plucks are
+sampled every minor third (C, E-flat, G-flat, A; `c1`, `eb1`, `gb1`, `a1`, ...,
+named by sounding pitch) at four dynamics with four round robins, and ring for
+seconds, as a bass on a concert stage does. Cloned into
+`tools/audio/.cache/meatbass/` (git-ignored, about 530 MB with its history):
+
+```sh
+git clone --depth 1 https://github.com/sfzinstruments/karoryfer.meatbass.git tools/audio/.cache/meatbass
+```
+
+It is the sampler's instrument `upright` (catalogue `.cache/meatbass-catalog.json`;
+only `Samples/pizz/` is used). The Snow plays it low, around the open A string
+(up an octave the strings are short and the notes die at once): the softer
+plucks, which ring longest, the first milliseconds of each pluck left out (the
+side of the finger, not the orchestra's snap), and a gentle compressor
+(`effects.compress`) for the even sustain of a bass through its amp.
+
 ## Samples: FreePats (the Spanish classical guitar)
 
-The Marigold Garden's guitar is the **Spanish classical guitar** of the
+No piece plays it now (the Marigold Garden did, before its present score); it
+stays available as the sampler's `nylon`. It is the **Spanish classical guitar** of the
 [FreePats project](https://freepats.zenvoid.org/Guitar/acoustic-guitar.html)
 (version 2019-06-18), **CC0 1.0**: one dynamic layer, every semitone from G1
 to C6, named by sounding pitch. Fetched and converted to WAV into
@@ -202,8 +228,9 @@ a dip to the third and a lift back to the fifth: it ends open, like "this way!".
 All five notes are in D major pentatonic, so it is playable on the eight letter
 pumpkins `xylo-1..8` = **D5 E5 F#5 A5 B5 D6 E6 F#6**: pumpkins **1 5 4 3 4**
 (0-based `[0, 4, 3, 2, 3]`, also in `manifest.json` → `motif.xylo`). The big
-guitar's six open strings `guitar-1..6` are **D3 A3 D4 F#4 A4 B4**, so the motif
-is strings **3 6 5 4 5** (`motif.guitarNotes`, `motif.guitar = [2, 5, 4, 3, 4]`).
+guitar's six open strings `guitar-1..6` are tuned to the Marigold's G, **G3 D4 G4 B4
+D5 E5**, so the motif, a fourth up (G E D B D, as the Marigold's chime sings it), is
+strings **3 6 5 4 5** (`motif.guitarNotes`, `motif.guitar = [2, 5, 4, 3, 4]`).
 
 The full theme (`hlaudio/theme.py`) grows from it: A states the motif, answers
 it with the same shape a step lower, restates it and climbs to the high D; B
@@ -225,9 +252,9 @@ sounds in tune with what is playing:
 | garden   | Lantern Song   | G major pentatonic, 4/4 3+3+2     | a lantern festival: the zither (dan tranh as a guzheng) sings the cell with sweeps, slides and pressed vibrato over a low harp additive process and the organ's cycling; ocarina (as a xun) augmentation; fugue (winds, zither, ocarina, horn, oboe), temple block, finger cymbals; drums and gong at the top; zither tremolo canon over the pedal augmentation | harp + glass halo, G E D B D |
 | pasture  | Gentle Giants  | D mixolydian, 4/4                 | brass canon/stretto; dotted spiccato ostinato; oboe + clarinet inversion; one braam on G; the giants' gait (drums, bars 20–31) | felt piano + harp, D |
 | hollow   | Sugar Rush     | D lydian, 4/4 (3+3+2)             | marimba cycling; pizzicato hocket of the diminished cell; woodwind additive; relative-minor lift | marimba + glass halo, D |
-| snow     | First Snow     | A lydian, 4/4 3+3+2               | a theme to hum, grown from the cell (A F# E C# E, answered a step lower with the Lydian D#, then climbing to B): felt piano, then oboe (piano echoes, clarinet augmentation), a rising sequence over the horns' augmented cell, the full theme with flute and horns at the one swell (the Lydian B/A, soft drums 24–33); a glittering additive snowfall of harp eighths, glockenspiel and violin pizzicati, glass 3:4 above; the snow rises at the end (voicings climbing, a suspended B over A) | harp + soft glock, A |
+| snow     | First Snow     | A lydian, 4/4 3+3+2 (160 s)       | it begins to snow: glass colours over a far organ A and breaths of real wind; a music box (glockenspiel, felt piano an octave below) turning one figure (E A C# D#) that never changes; a jazz double bass (Meatbass), low and ringing, two long notes a bar; the theme as the top voice of piano chords; the winter's percussion as an orchestra plays it (sleigh bells far left, triangle and finger-cymbal glints, the snowman's woodblock steps with his pizzicato-and-clarinet bounce, a stop and a clink, a warm B-over-A on the horns); the rise (tremolo strings, organ, horns, a soft concert bass drum, timpani, a cymbal swell); the flakes rise (a bell tree, reversed piano and glockenspiel, a harp sweep, a glass line climbing octave over octave); the hush again | harp + soft glock, A |
 | deep     | Where the Lanterns Swim | F# dorian / A lydian, 4/4 | a 1980s analog-synth colour (`analog.py`): the five-note arp phasing through a resonant ladder filter on the tide; a sixteenth bass pulse; a sixteenth sequencer walking the cell; pad swells in the light; mirror glass; whale glass; horn + oboe canon; drums in the light (22–38) | harp under water + glass, A F# E C# E |
-| marigold | Remember Me    | G with borrowed C minor, 4/4 (186.7 s) | a vigil at the ofrenda that becomes the walk's yearning swell: the guitar's cycle (FreePats classical guitar; Cmaj7→Cm6 inside the figure) over an organ pedal on G; ocarina: cell augmented; a singing analog synth (`analog.sing`: glides, growing vibrato, a filter that blooms on held notes; glass in unison) answers it at the cycle; then the swell in synths: the 1950s ballad's progressions (G Em C D7, Em B7 C D7; Em E7 Am D7, C → Cm under the held high D, G/D D7), a soft synth taking over the guitar's triplets, then pulsing the chords in 12/8 with every other change pushed, a heartbeat bass, pads opening, an electronic heartbeat at the height, soft horns, a glass halo; afterglow, the horns' E-flat-to-D sigh, the ocarina's last leap left hanging; one far bell | big guitar, G |
+| marigold | Remember Me    | E minor, 4/4 at 72 (186.7 s)     | the stillness of Cliff Martinez, the build of Hans Zimmer, the turning piano and quiet beat of Ólafur Arnalds (their ways, none of their tunes): a glass world over the organ's E, colours drifting one note at a time; a felt piano turns one figure (B E F# G) while the bass slides beneath it; a beat born from real brush taps, a tuned sub kick, a warm analog bass only under the accents, booms (a sub diving onto the bass note, a timpani for its pop, a suspended cymbal's crescendo before, the gong under the greatest), a few phased shaker hats; the build (horns sing the cell, strings walk forward); the peak in C; the dark on B; the release; the afterglow lifting into G (the figure a third higher, the Ember chiming its own song, high strings), its last glass colour the intro's first. Every voice has a near and a far seat (`place()`) | big guitar, G |
 | finale   | Hallowed Lanterns | D, 4/4 (one-shot)              | the title grown: theme emerging, three-voice canon, Zimmer build with drums (24–37), a prepared A-pedal lift, coda | — |
 | picture show | The Picture Show | F, 3/4 waltz (on purpose)   | upright piano, solo violin over pizzicato, clarinet, flute | — |
 

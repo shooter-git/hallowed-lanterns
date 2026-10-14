@@ -302,6 +302,110 @@ body {
   letter-spacing: 0.1em;
 }
 
+/* The settings, under the chapters: two sound levels and a way back to the mix as made. */
+.hl-settings-wrap {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 196, 120, 0.22);
+}
+.hl-menu-settings .hl-menu-num {
+  display: inline-flex;
+}
+.hl-settings {
+  padding: 2px 10px 8px;
+}
+.hl-settings-title {
+  margin: 8px 0 2px;
+  font: 400 0.75rem / 1 var(--hl-serif);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--hl-dim);
+}
+.hl-slider {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  column-gap: 10px;
+  margin-top: 10px;
+}
+.hl-slider label {
+  font: 400 1rem / 1.2 var(--hl-serif);
+}
+.hl-slider output {
+  min-width: 2.2em;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--hl-dim);
+  font-variant-numeric: tabular-nums;
+}
+.hl-slider small {
+  grid-column: 1 / -1;
+  margin-top: -6px;
+  font-size: 0.78rem;
+  color: var(--hl-dim);
+}
+/* 44 px tall to the finger; the track itself is a thin line of light filling up to the thumb. */
+.hl-range {
+  grid-column: 1 / -1;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  --fill: 80%;
+}
+.hl-range:focus {
+  outline: none;
+}
+.hl-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--hl-glow) var(--fill), rgba(251, 243, 230, 0.2) var(--fill));
+}
+.hl-range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(251, 243, 230, 0.2);
+}
+.hl-range::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--hl-glow);
+}
+.hl-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 170, 90, 0.9);
+  background: var(--hl-ink);
+  box-shadow: 0 0 10px var(--hl-glow);
+}
+.hl-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 170, 90, 0.9);
+  background: var(--hl-ink);
+  box-shadow: 0 0 10px var(--hl-glow);
+}
+.hl-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--hl-ink);
+  outline-offset: 3px;
+}
+.hl-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--hl-ink);
+  outline-offset: 3px;
+}
+.hl-reset {
+  margin-top: 12px;
+  min-height: 44px;
+  font-size: 0.85rem;
+}
+
 /* "Walk with me" stays out of the way: small and see-through until it's on. */
 /* It looks 38 px tall, but a 3 px clear rim makes it 44 px under a finger. */
 .hl-controls .hl-button {

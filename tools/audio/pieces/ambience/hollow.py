@@ -33,7 +33,9 @@ def render():
     mix.add(tw, 1.0, {"hall": 0.6})
 
     out = mix.render({"forest": {"seed": 51}, "hall": {"seed": 52}})
-    return finish_loop("ambience", "hollow", out, LOOP, 3, -24.6, 128, glue=False, tilt_hs_db=-1.5)
+    # the level: its bed 8 dB under the chapter's music as heard in the game (the music's group at 0.6,
+    # the ambience's at 0.5), its crickets and wind never more than 2 dB over the music's own highs
+    return finish_loop("ambience", "hollow", out, LOOP, 3, -23.5, 128, glue=False, tilt_hs_db=-1.5)
 
 
 if __name__ == "__main__":

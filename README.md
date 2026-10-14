@@ -81,15 +81,16 @@ recordings, all released under CC0:
 
 - The orchestra is played from [VSCO 2 Community Edition](https://github.com/sgossner/VSCO-2-CE)
   by Versilian Studios: the score is composed and performed by `tools/audio`, on their recordings.
-- The Lantern Garden's zither, temple gong, finger cymbals, temple block and clay-flute ocarina
-  come from the [Versilian Community Sample Library](https://github.com/sgossner/VCSL), also by
-  Versilian Studios.
-- The Marigold Garden's guitar is the Spanish classical guitar of the
-  [FreePats project](https://freepats.zenvoid.org/Guitar/acoustic-guitar.html).
-- The footsteps, the wind in the leaves, the grass and the snow, the fly and the flytrap, the coin
-  down the well, the match that lights the ofrenda's candles and the sea surging as the Keeper
-  rises are cut from studio foley and field recordings by Joseph Sardin
-  ([BigSoundBank](https://bigsoundbank.com)).
+- The Lantern Garden's zither, temple gong, finger cymbals, temple block and clay-flute ocarina,
+  the Marigold Garden's gong and shaker, and October Snow's woodblock and finger cymbals come from
+  the [Versilian Community Sample Library](https://github.com/sgossner/VCSL), also by Versilian
+  Studios.
+- October Snow's double bass is [Meatbass](https://github.com/sfzinstruments/karoryfer.meatbass)
+  by Karoryfer Samples: a 1958 Otto Rubner double bass, played and sampled by Drogomir Smolken.
+- The footsteps, the wind in the leaves, the grass and the snow, the night meadow of the Pasture,
+  the fly and the flytrap, the coin down the well, the match that lights the ofrenda's candles and
+  the sea surging as the Keeper rises are cut from studio foley and field recordings by Joseph
+  Sardin ([BigSoundBank](https://bigsoundbank.com)).
 
 Thank you, all of you.
 

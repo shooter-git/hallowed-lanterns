@@ -34,7 +34,9 @@ def render():
     mix.add(bub, 1.0, {"underwater": 0.4})
 
     out = mix.render({"underwater": {"seed": 71}})
-    return finish_loop("ambience", "deep", out, LOOP, 3, -20.0, 128, glue=False, tilt_hs_db=-2.0)
+    # the level: its bed 8 dB under the chapter's music as heard in the game (the music's group at 0.6,
+    # the ambience's at 0.5), its crickets and wind never more than 2 dB over the music's own highs
+    return finish_loop("ambience", "deep", out, LOOP, 3, -20.3, 128, glue=False, tilt_hs_db=-2.0)
 
 
 if __name__ == "__main__":

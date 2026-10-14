@@ -1,5 +1,5 @@
 """Effects: biquad EQ, generated-impulse convolution reverbs, shimmer, chorus,
-tape wow/flutter, saturation and echoes.
+a phaser, tape wow/flutter, saturation and echoes.
 
 Every function takes stereo arrays of shape (2, n) (or mono (n,)) and a
 `circular` flag. Circular processing treats the signal as one period of an
@@ -325,6 +325,22 @@ def chorus(x, rate=0.35, depth_ms=3.0, base_ms=12.0, mix=0.45, circular=False, v
     return out
 
 
+def phaser(x, rate=0.12, lo=800.0, hi=7000.0, stages=6, fb=0.35, mix=0.55, circular=False, spread=0.25):
+    """A slow phaser: the all-pass notches sweep between `lo` and `hi` Hz `rate` times a second (the two sides
+    a little apart, `spread` of a cycle), so a sound swirls as it passes through."""
+    x = np.atleast_2d(np.asarray(x, dtype=np.float64))
+    n = x.shape[1]
+    rate = (round(rate * n / SR) / (n / SR) or rate) if circular else rate   # whole sweeps per loop
+    t = np.arange(n) / SR
+    out = np.empty_like(x)
+    for c in range(x.shape[0]):
+        u = 0.5 - 0.5 * np.cos(2 * np.pi * (rate * t + spread * c))
+        fc = lo * (hi / lo) ** u
+        wet = nb.phaser(x[c], fc, stages, fb)
+        out[c] = (1 - mix) * x[c] + mix * wet
+    return out
+
+
 def wow_flutter(x, wow=0.0018, flutter=0.0004, circular=False, seed=0):
     """Tape-style pitch wobble: slow wow plus faster flutter (fractions of pitch)."""
     x = np.asarray(x, dtype=np.float64)
@@ -399,6 +415,29 @@ def soften(x, amount=0.5, circular=False, fast=0.0004, slow=0.010):
     if pre:
         g = g[pre:]
     return (st * g).reshape(x.shape)
+
+
+def compress(x, thresh_db=-18.0, ratio=3.0, attack=0.015, release=0.3, knee_db=6.0, circular=False):
+    """A gentle compressor (the long, even sustain of an amplified jazz bass). `thresh_db` is relative to the
+    loud end of the signal's envelope (its 99th percentile), so it means the same on any track; the level over
+    it is divided by `ratio` (soft knee), and the loudness (RMS) is kept as it was."""
+    x = np.asarray(x, dtype=np.float64)
+    st = np.atleast_2d(x)
+    pre = ns(0.5) if circular else 0
+    m = np.abs(st).max(axis=0)
+    if pre:
+        m = np.concatenate([m[-pre:], m])
+    env = nb.follow(m, np.exp(-1 / (attack * SR)), np.exp(-1 / (release * SR)))
+    if pre:
+        env = env[pre:]
+    lv = 20 * np.log10(env + 1e-9)
+    over = lv - (20 * np.log10(np.percentile(env, 99) + 1e-9) + thresh_db)
+    k = knee_db / 2
+    gr = np.where(over <= -k, 0.0, np.where(over >= k, over * (1 - 1 / ratio),
+                                             (1 - 1 / ratio) * (over + k) ** 2 / (2 * knee_db)))
+    y = st * 10 ** (-gr / 20)
+    y *= np.sqrt(np.mean(st ** 2) / (np.mean(y ** 2) + 1e-30))
+    return y.reshape(x.shape)
 
 
 def tremulant(x, rate=5.4, amp=0.05, pitch_ms=0.12, circular=False):

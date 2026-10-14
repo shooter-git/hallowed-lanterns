@@ -1,7 +1,8 @@
 """Footsteps, cut from real recordings: studio foley by Joseph Sardin (BigSoundBank), released
 under CC0 (public domain). Fine gravel for the paths (the lanes and the woodland trails alike: their
-leaves lie beside the path), grass, snow, and steps in very wet mud for the sea floor (the Deep
-muffles them further).
+leaves lie beside the path), short grass for the Lantern Garden's trodden walk, long grass for the
+Pasture's open field, snow, and steps in very wet mud for the sea floor (the Deep muffles them
+further).
 
 Each recording is split into single steps at their onsets; the cleanest, most even ones are kept
 (a quiet start, a tail that has died away, a level near the recording's typical step), trimmed
@@ -30,7 +31,8 @@ SHORTEST = {"step-gravel": 0.4}
 FLOOR = {"step-gravel": -64.0}
 SOURCES = {
     "step-gravel": ("3202", "Footsteps on Gravels #3", "https://bigsoundbank.com/footsteps-on-gravels-3-s3202.html", 10, 0.62, -6.0, None),
-    "step-grass": ("1253", "Steps in the grass, slow", "https://bigsoundbank.com/steps-in-the-grass-slow-s1253.html", 6, 0.75, -7.0, None),
+    "step-grass": ("0854", "Steps in the short grass", "https://bigsoundbank.com/steps-in-the-short-grass-s0854.html", 8, 0.75, -7.0, None),
+    "step-meadow": ("0855", "Steps in the long grass", "https://bigsoundbank.com/steps-in-the-long-grass-s0855.html", 7, 0.75, -7.0, None),
     # A quick walk: a step is over in a third of a second, before the next crunch.
     "step-snow": ("3363", "Steps in the snow #3", "https://bigsoundbank.com/steps-in-the-snow-3-s3363.html", 8, 0.34, -6.0, None),
     # The sea floor: very wet mud, a little lower and darker, as if heavy with water.

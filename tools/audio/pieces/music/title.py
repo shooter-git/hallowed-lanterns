@@ -204,7 +204,7 @@ def render():
     vp = S(P["vc_pizz"], 18, 0.006)
     for n in vp:
         n.v = float(n.v * (0.65 + 0.5 * swell(n.t)))
-    st.play("cellos_pizz", vp, "cellos_pizz", seed=18, gain_db=5, seat="cellos")
+    st.play("cellos_pizz", vp, "cellos_pizz", seed=18, gain_db=1, seat="cellos")
     # the stand-up bass and the hand drums
     bp = S(P["bass"], 16, 0.006)
     for n in bp:

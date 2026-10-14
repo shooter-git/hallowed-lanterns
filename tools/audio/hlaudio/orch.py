@@ -40,6 +40,8 @@ SEAT = {
     # the title's groove: the stand-up bass near and centre, the hand drums around it
     "basses_pizz": dict(pan=0.04, width=0.35, depth=0.3),
     "congas": dict(pan=0.3, width=0.45, depth=0.55),
+    "bongos": dict(pan=0.26, width=0.4, depth=0.5),
+    "shaker": dict(pan=-0.3, width=0.35, depth=0.55),
 }
 
 # Per-instrument tone: tame the close-mic attack and the 2-6 kHz edge, warm
@@ -108,6 +110,27 @@ TONE = {
     # the hand drums: the skin's tone, the slap's click softened
     "conga": dict(soften=0.45, eq=[("peak", 250, 0.8, 1.0), ("hs", 4000, 0.7, -6.0)]),
     "tumba": dict(soften=0.45, eq=[("peak", 180, 0.8, 1.5), ("hs", 4000, 0.7, -6.0)]),
+    "snare_tap": dict(soften=0.25, eq=[("hp", 120, 0.7), ("hs", 7000, 0.7, -4.0)]),
+    "snare": dict(soften=0.2, eq=[("hp", 90, 0.7), ("peak", 220, 0.8, 1.5), ("hs", 7500, 0.7, -3.0)]),
+    # a drummer's kit and cymbals: kept natural (only the rumble and the harshest edge taken off)
+    "hihat": dict(soften=0.15, eq=[("hp", 300, 0.7), ("hs", 10000, 0.7, -2.0)]),
+    "hihat_open": dict(soften=0.1, eq=[("hp", 300, 0.7), ("hs", 10000, 0.7, -2.0)]),
+    "hihat_pedal": dict(soften=0.1, eq=[("hp", 300, 0.7)]),
+    "drum_snare": dict(soften=0.1, eq=[("hp", 90, 0.7), ("peak", 200, 0.8, 1.0), ("hs", 9000, 0.7, -1.5)]),
+    "drum_xstick": dict(soften=0.05, eq=[("hp", 200, 0.7)]),
+    "drum_roll": dict(soften=0.05, eq=[("hp", 120, 0.7), ("hs", 9000, 0.7, -1.5)]),
+    "cymbal_mallet": dict(soften=0.05, eq=[("hp", 200, 0.7), ("hs", 10000, 0.7, -2.0)]),
+    "cymbal_stick": dict(soften=0.05, eq=[("hp", 250, 0.7), ("hs", 10000, 0.7, -2.0)]),
+    "cymbal_bell": dict(soften=0.05, eq=[("hp", 300, 0.7)]),
+    "cymbal_swell_long": dict(soften=0.1, eq=[("hp", 250, 0.7), ("hs", 9000, 0.7, -3.0)]),
+    "cymbal_swell_mid": dict(soften=0.1, eq=[("hp", 250, 0.7), ("hs", 9000, 0.7, -3.0)]),
+    "cymbal_swell_short": dict(soften=0.1, eq=[("hp", 250, 0.7), ("hs", 9000, 0.7, -3.0)]),
+    # the bolero's bongos and shaker: fingers, not sticks; the skins' ring kept, their crack softened
+    "bongo_hi": dict(soften=0.35, eq=[("hp", 120, 0.7), ("hs", 6000, 0.7, -4.0)]),
+    "bongo_hi_muted": dict(soften=0.35, eq=[("hp", 120, 0.7), ("hs", 6000, 0.7, -4.0)]),
+    "bongo_lo": dict(soften=0.35, eq=[("hp", 90, 0.7), ("hs", 6000, 0.7, -4.0)]),
+    "shaker_down": dict(soften=0.2, eq=[("hp", 400, 0.7), ("hs", 8000, 0.7, -4.0)]),
+    "shaker_up": dict(soften=0.2, eq=[("hp", 400, 0.7), ("hs", 8000, 0.7, -4.0)]),
 }
 
 HALL = "concert"

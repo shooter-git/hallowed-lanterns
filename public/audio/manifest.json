@@ -48,12 +48,12 @@
       3
     ],
     "guitarNotes": [
-      "D3",
-      "A3",
+      "G3",
       "D4",
-      "F#4",
-      "A4",
-      "B4"
+      "G4",
+      "B4",
+      "D5",
+      "E5"
     ],
     "guitar": [
       2,
@@ -145,8 +145,8 @@
       "bpm": 72,
       "meter": "4/4",
       "beat": "quarter",
-      "key": "G major",
-      "instrument": "guitar and synths"
+      "key": "E minor",
+      "instrument": "piano, glass, organ and orchestra"
     },
     "pasture": {
       "file": "music/pasture.mp3",
@@ -173,14 +173,14 @@
     },
     "snow": {
       "file": "music/snow.mp3",
-      "loopSeconds": 133.333333,
+      "loopSeconds": 160.0,
       "tailSeconds": 4,
       "title": "First Snow",
       "bpm": 72,
       "meter": "4/4",
       "beat": "quarter",
       "key": "A lydian",
-      "instrument": "piano, oboe, harp and glockenspiel"
+      "instrument": "music box, piano, glass and orchestra"
     },
     "title": {
       "file": "music/title.mp3",
@@ -409,7 +409,9 @@
       "sfx/step-grass-3.mp3",
       "sfx/step-grass-4.mp3",
       "sfx/step-grass-5.mp3",
-      "sfx/step-grass-6.mp3"
+      "sfx/step-grass-6.mp3",
+      "sfx/step-grass-7.mp3",
+      "sfx/step-grass-8.mp3"
     ],
     "step-gravel": [
       "sfx/step-gravel-1.mp3",
@@ -422,6 +424,15 @@
       "sfx/step-gravel-8.mp3",
       "sfx/step-gravel-9.mp3",
       "sfx/step-gravel-10.mp3"
+    ],
+    "step-meadow": [
+      "sfx/step-meadow-1.mp3",
+      "sfx/step-meadow-2.mp3",
+      "sfx/step-meadow-3.mp3",
+      "sfx/step-meadow-4.mp3",
+      "sfx/step-meadow-5.mp3",
+      "sfx/step-meadow-6.mp3",
+      "sfx/step-meadow-7.mp3"
     ],
     "step-sand": [
       "sfx/step-sand-1.mp3",

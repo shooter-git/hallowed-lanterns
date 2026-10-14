@@ -11,6 +11,13 @@ interface LoopInfo {
   seconds?: number;
 }
 
+/**
+ * The settings' sliders run 0-100. The mix as made sits at 80, so there is room to turn up as well as
+ * down; the curve is squared, close to how loudness is heard (80 is 0 dB, 100 about +4 dB, 40 -12 dB).
+ */
+export const SLIDER_DEFAULT = 80;
+export const sliderGain = (v: number) => (Math.max(0, Math.min(100, v)) / SLIDER_DEFAULT) ** 2;
+
 export interface Manifest {
   motif?: { key: string; notes: string[]; rhythm?: string; xyloNotes?: string[]; xylo?: number[] };
   music: Record<string, LoopInfo>;
@@ -112,6 +119,8 @@ export class AudioDirector {
   private readonly sends = new Map<'music' | 'ambience' | 'sfx' | 'ui', AudioNode>();
   private active = 0;
   private started = false;
+  /** The listener's own levels (the settings): 1 is the mix as made. */
+  private readonly levels = { music: 1, sounds: 1 };
 
   constructor(private readonly portal: Portal) {}
 
@@ -136,6 +145,7 @@ export class AudioDirector {
     // Music, ambience and effects each go through an underwater filter, then into their groups.
     for (const name of ['music', 'ambience', 'sfx'] as const) {
       const g = ctx.createGain();
+      g.gain.value = name === 'music' ? this.levels.music : this.levels.sounds;
       const f = ctx.createBiquadFilter();
       f.type = 'lowpass';
       f.frequency.value = 20000;
@@ -230,6 +240,19 @@ export class AudioDirector {
           this.ambience = new Loop(this.ctx, buf, info.loopSeconds ?? buf.duration, info.tailSeconds ?? 0, this.sends.get('ambience') as AudioNode, 1, fade);
       }
     }
+  }
+
+  /**
+   * The listener's level for the music, or for the sounds of the world (its ambience and every effect:
+   * wind, footsteps, creatures, chimes), relative to the mix as made (1). The interface's taps stay as
+   * they are.
+   */
+  setLevel(group: 'music' | 'sounds', gain: number) {
+    this.levels[group] = Math.max(0, gain);
+    if (!this.started) return;
+    const now = this.ctx.currentTime;
+    for (const name of group === 'music' ? (['music'] as const) : (['ambience', 'sfx'] as const))
+      (this.sends.get(name) as GainNode).gain.setTargetAtTime(this.levels[group], now, 0.05);
   }
 
   /** Music volume (e.g. lower while sitting and listening to the crickets). */

@@ -79,7 +79,7 @@
     {
       "path": "public/audio/music/marigold.mp3",
       "license": "own",
-      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios) and Versilian Community Sample Library samples (CC0, Versilian Studios: https://github.com/sgossner/VCSL) and the FreePats Spanish classical guitar (CC0, the FreePats project: https://freepats.zenvoid.org/Guitar/acoustic-guitar.html)"
+      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios) and Versilian Community Sample Library samples (CC0, Versilian Studios: https://github.com/sgossner/VCSL)"
     },
     {
       "path": "public/audio/music/pasture.mp3",
@@ -89,7 +89,7 @@
     {
       "path": "public/audio/music/snow.mp3",
       "license": "own",
-      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios)"
+      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios) and Versilian Community Sample Library samples (CC0, Versilian Studios: https://github.com/sgossner/VCSL) and Karoryfer's Meatbass double bass (CC0, Karoryfer Samples: https://github.com/sfzinstruments/karoryfer.meatbass)"
     },
     {
       "path": "public/audio/sfx/bubble-1.mp3",
@@ -254,30 +254,30 @@
     {
       "path": "public/audio/sfx/step-grass-1.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/steps-in-the-grass-slow-s1253.html",
+      "source": "https://bigsoundbank.com/steps-in-the-short-grass-s0854.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Steps in the grass, slow (one step, trimmed and levelled)"
+      "title": "Steps in the short grass (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-grass-2.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/steps-in-the-grass-slow-s1253.html",
+      "source": "https://bigsoundbank.com/steps-in-the-short-grass-s0854.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Steps in the grass, slow (one step, trimmed and levelled)"
+      "title": "Steps in the short grass (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-grass-3.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/steps-in-the-grass-slow-s1253.html",
+      "source": "https://bigsoundbank.com/steps-in-the-short-grass-s0854.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Steps in the grass, slow (one step, trimmed and levelled)"
+      "title": "Steps in the short grass (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-grass-4.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/steps-in-the-grass-slow-s1253.html",
+      "source": "https://bigsoundbank.com/steps-in-the-short-grass-s0854.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Steps in the grass, slow (one step, trimmed and levelled)"
+      "title": "Steps in the short grass (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-gravel-1.mp3",
@@ -787,16 +787,16 @@
     {
       "path": "public/audio/sfx/step-grass-5.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/steps-in-the-grass-slow-s1253.html",
+      "source": "https://bigsoundbank.com/steps-in-the-short-grass-s0854.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Steps in the grass, slow (one step, trimmed and levelled)"
+      "title": "Steps in the short grass (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-grass-6.mp3",
       "license": "CC0-1.0",
-      "source": "https://bigsoundbank.com/steps-in-the-grass-slow-s1253.html",
+      "source": "https://bigsoundbank.com/steps-in-the-short-grass-s0854.html",
       "author": "Joseph SARDIN (BigSoundBank)",
-      "title": "Steps in the grass, slow (one step, trimmed and levelled)"
+      "title": "Steps in the short grass (one step, trimmed and levelled)"
     },
     {
       "path": "public/audio/sfx/step-snow-5.mp3",
@@ -1121,6 +1121,69 @@
       "path": "public/audio/sfx/passage-final.mp3",
       "license": "own",
       "source": "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios), and wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind\" (https://bigsoundbank.com/wind-s0595.html); its far bell from the Versilian Community Sample Library (CC0, Versilian Studios)"
+    },
+    {
+      "path": "public/audio/sfx/step-grass-7.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-short-grass-s0854.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the short grass (one step, trimmed and levelled)"
+    },
+    {
+      "path": "public/audio/sfx/step-grass-8.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-short-grass-s0854.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the short grass (one step, trimmed and levelled)"
+    },
+    {
+      "path": "public/audio/sfx/step-meadow-1.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-long-grass-s0855.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the long grass (one step, trimmed and levelled)"
+    },
+    {
+      "path": "public/audio/sfx/step-meadow-2.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-long-grass-s0855.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the long grass (one step, trimmed and levelled)"
+    },
+    {
+      "path": "public/audio/sfx/step-meadow-3.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-long-grass-s0855.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the long grass (one step, trimmed and levelled)"
+    },
+    {
+      "path": "public/audio/sfx/step-meadow-4.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-long-grass-s0855.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the long grass (one step, trimmed and levelled)"
+    },
+    {
+      "path": "public/audio/sfx/step-meadow-5.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-long-grass-s0855.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the long grass (one step, trimmed and levelled)"
+    },
+    {
+      "path": "public/audio/sfx/step-meadow-6.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-long-grass-s0855.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the long grass (one step, trimmed and levelled)"
+    },
+    {
+      "path": "public/audio/sfx/step-meadow-7.mp3",
+      "license": "CC0-1.0",
+      "source": "https://bigsoundbank.com/steps-in-the-long-grass-s0855.html",
+      "author": "Joseph SARDIN (BigSoundBank)",
+      "title": "Steps in the long grass (one step, trimmed and levelled)"
     }
   ]
 }

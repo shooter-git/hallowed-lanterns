@@ -136,7 +136,7 @@ export async function guitar(ctx: ChapterContext, at: Vector3, yaw: number): Pro
     { x: centre.x, z: centre.z, radius: 7, color: new Color(0.25, 1, 0.35), intensity: 0.5, flicker: 0 },
   ];
   const played: number[] = [];
-  // Strings, low to high: D A D F# A B. The Ember's song (D B A F# A) is strings 2 5 4 3 4.
+  // Strings, low to high: G D G B D E (the Marigold's G). The Ember's song (G E D B D) is strings 2 5 4 3 4.
   const song = [2, 5, 4, 3, 4];
   let time = 0;
   const piece = {
@@ -174,7 +174,7 @@ export async function guitar(ctx: ChapterContext, at: Vector3, yaw: number): Pro
       if (best < 0) return null;
       return () => {
         (amps[best] as { value: number }).value = 1;
-        void ctx.audio.sfxIndex('guitar', best, { at: pointOnGround(centre.clone().setY(1.5)), volume: 0.9 });
+        void ctx.audio.sfxIndex('guitar', best, { at: pointOnGround(centre.clone().setY(1.5)), volume: 0.6 });
         played.push(best);
         if (played.length > 5) played.shift();
         if (played.length === 5 && played.every((n, k) => n === song[k])) {

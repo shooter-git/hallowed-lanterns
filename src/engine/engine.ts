@@ -3,7 +3,7 @@ import { createStage, type Stage } from '@allthespaces/portal/three';
 import { Color, NoToneMapping, Raycaster, Vector2, Vector3 } from 'three';
 import { CHAPTERS } from '../chapters/index.ts';
 import type { Chapter, ChapterContext, SurfaceKind, Tier } from '../chapters/types.ts';
-import { AudioDirector } from './audio.ts';
+import { AudioDirector, SLIDER_DEFAULT, sliderGain } from './audio.ts';
 import { buildCarvingAtlas } from './carvings.ts';
 import { Ember } from './ember.ts';
 import { GlowField } from './glowfield.ts';
@@ -15,7 +15,7 @@ import { shared } from './shared.ts';
 import { Sky } from './sky.ts';
 import { setCurrentTerrain } from './terrain.ts';
 import { bakeSurface, DRY_GRASS, GRAVEL, LAWN, LEAF_LITTER, SNOW, type SurfaceMaps } from './texgen.ts';
-import { UI } from './ui.ts';
+import { type SoundSettings, UI } from './ui.ts';
 
 type Progress = {
   /** Furthest chapter reached (index). */
@@ -89,6 +89,23 @@ export class Engine {
     } catch {
       // Nothing saved yet.
     }
+    // The listener's sound levels (the chapters menu's settings), kept with their progress.
+    let sound: SoundSettings = { music: SLIDER_DEFAULT, sounds: SLIDER_DEFAULT };
+    try {
+      const saved = await portal.save.personal.get<SoundSettings>('sound');
+      if (saved && Number.isFinite(saved.music) && Number.isFinite(saved.sounds)) sound = saved;
+    } catch {
+      // Nothing saved yet: the mix as made.
+    }
+    const applySound = (v: SoundSettings) => {
+      audio.setLevel('music', sliderGain(v.music));
+      audio.setLevel('sounds', sliderGain(v.sounds));
+    };
+    applySound(sound);
+    ui.setSound(sound, (v, done) => {
+      applySound(v);
+      if (done) void portal.save.personal.set('sound', v).catch(() => undefined);
+    });
 
     this.ctx = {
       portal,
@@ -139,7 +156,7 @@ export class Engine {
     addEventListener('keydown', (e) => {
       if (!this.begun || e.repeat) return;
       if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') {
-        if ((e.target as HTMLElement)?.closest?.('button')) return;
+        if ((e.target as HTMLElement)?.closest?.('button, input')) return;
         this.tap(innerWidth / 2, innerHeight / 2);
       }
     });

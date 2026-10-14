@@ -651,7 +651,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     const wish: Wish = { text: w.text.slice(0, 80), color: w.color, by: portal.me.name, anchor };
     wishes.push(wish);
     addWishLeaf(wish);
-    void ctx.audio.sfx('wish-hang', { at: pointOnGround(anchors[anchor] ?? TREE), volume: 0.9 });
+    void ctx.audio.sfx('wish-hang', { at: pointOnGround(anchors[anchor] ?? TREE), volume: 0.85 });
     void portal.session.send('wish', wish);
     void portal.save.shared.update<Wish[]>('wishes', (list) => [...(list ?? []), wish].slice(-300)).catch(() => undefined);
     hung = true;
@@ -727,7 +727,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
         e.agility = 1.4;
         if (finale > 4 && finale < 4.1) {
           addWishLeaf({ text: 'The Ember', color: 'coral', by: '', anchor: anchors.indexOf(a) });
-          void ctx.audio.sfx('wish-hang', { at: pointOnGround(a), volume: 1 });
+          void ctx.audio.sfx('wish-hang', { at: pointOnGround(a), volume: 0.85 });
         }
         if (finale > 4) e.presence = Math.max(0, e.presence - dt * 0.6);
         if (finale > 6 && finale < 6.1) {

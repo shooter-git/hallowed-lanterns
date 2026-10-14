@@ -318,7 +318,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       shared.uFogGlow.value = 0.7;
       ctx.ember.presence = 1;
       ctx.ember.place(new Vector3(0, 1.8, 5));
-      ctx.audio.preload('pasture', ['lantern-swing', 'lantern-light', 'step-grass']);
+      ctx.audio.preload('pasture', ['lantern-swing', 'lantern-light', 'step-meadow']);
     },
 
     update(dt) {

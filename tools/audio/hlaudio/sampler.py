@@ -35,6 +35,11 @@ guitar: one dynamic layer, every semitone from G1 to C6, named by its
 sounding pitch. Repeated plucks (a tremolo) are kept apart per note: `x["nb"]`
 plays the note from a neighbouring sample, `x["skip"]` starts the pluck a few
 milliseconds in (a softer finger) and `x["detune"]` moves it a few cents.
+A fourth, Karoryfer's Meatbass (CC0; tools/audio/.cache/meatbass/, cloned from
+sfzinstruments/karoryfer.meatbass), gives the Snow a real jazz double bass: a 1958
+Otto Rubner plucked at four dynamics with four round robins, sampled every minor
+third (C, E-flat, G-flat, A) and named by sounding pitch; its plucks ring for
+seconds, as a bass in a concert does.
 Plucked and struck notes can carry a pitch curve: `x["bend"]` (time, semitone
 breakpoints: a guzheng press or slide) and `x["vib"]` (a pressed vibrato).
 """
@@ -60,7 +65,10 @@ VCSL = Path(__file__).resolve().parents[1] / ".cache" / "vcsl"
 VCSL_CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "vcsl-catalog.json"
 FREEPATS = Path(__file__).resolve().parents[1] / ".cache" / "freepats"
 FREEPATS_CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "freepats-catalog.json"
-LIBS = {"vsco": (VSCO, CATALOG, 9), "vcsl": (VCSL, VCSL_CATALOG, 1), "freepats": (FREEPATS, FREEPATS_CATALOG, 1)}
+MEATBASS = Path(__file__).resolve().parents[1] / ".cache" / "meatbass"
+MEATBASS_CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "meatbass-catalog.json"
+LIBS = {"vsco": (VSCO, CATALOG, 9), "vcsl": (VCSL, VCSL_CATALOG, 1), "freepats": (FREEPATS, FREEPATS_CATALOG, 1),
+        "meatbass": (MEATBASS, MEATBASS_CATALOG, 1)}
 NOTE = {"C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5, "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11}
 
 # Timpani have no note names: principal (1,1)-mode frequencies measured from the
@@ -94,13 +102,15 @@ class Inst:
     pitch: str = "name"       # "name" | "organ" | "timp_hit" | "timp_roll" | "none"
     single_layer: bool = False
     organ_base: int = 0
-    lib: str = "vsco"         # "vsco" | "vcsl" | "freepats"
-    # VCSL and FreePats measuring options
+    lib: str = "vsco"         # "vsco" | "vcsl" | "freepats" | "meatbass"
+    # VCSL, FreePats and Meatbass measuring options
     tune_from: float = 0.04   # s after the attack where a pluck's tuning is read
     tune_n: int = 1           # how many 0.35 s windows (0.5 s apart)
     peak_band: tuple = ()     # pitch="peak": (lo, hi) Hz of the partial that names the pitch
     peak_win: tuple = (0.0, 0.5)  # ... read between these seconds after the onset
     fixed_midi: float = 0.0   # pitch="fixed": every file sits at this (nominal) pitch
+    level: str = "body"       # what is levelled to ref_db: "body" (the first `body` s) or "peak" (a swell's top)
+    max_attack: float = 0.0   # the longest swell-in its notes may have (0: any): a melody voice starts on the beat
 
 
 INSTRUMENTS = {i.name: i for i in [
@@ -164,7 +174,8 @@ INSTRUMENTS = {i.name: i for i in [
          width=0.4),
     Inst("clarinet_stac", "Woodwinds/Clarinet/stac", "short", octave=12, release=0.2, ref_db=-19, pan=0.15,
          width=0.4, body=0.12),
-    Inst("oboe", "Woodwinds/Oboe/Vib", "sus", octave=12, release=0.35, lag=0.02, ref_db=-21, pan=0.0, width=0.4),
+    Inst("oboe", "Woodwinds/Oboe/Vib", "sus", octave=12, release=0.35, lag=0.02, ref_db=-21, pan=0.0, width=0.4,
+         max_attack=0.06),   # the melody voice: a tongued start on the beat, its swell inside the note
     Inst("oboe_stac", "Woodwinds/Oboe/Stacc", "short", octave=12, release=0.2, ref_db=-19, pan=0.0, width=0.4,
          body=0.12),
     Inst("bassoon", "Woodwinds/Bassoon/sus", "sus", octave=12, release=0.35, lag=0.02, ref_db=-21, pan=0.25,
@@ -187,6 +198,27 @@ INSTRUMENTS = {i.name: i for i in [
          body=0.12, layer_spread=12),
     Inst("tumba", "Percussion", "drum", match=r"Tumba-HitN", pitch="none", release=0.6, ref_db=-17, width=0.4,
          body=0.15, layer_spread=12),
+    # the Marigold's beat: a snare played with brushes (four levels: the softest are the ghost taps)
+    Inst("snare_tap", "Percussion", "drum", match=r"Snare2-taps", pitch="none", release=0.4, ref_db=-20,
+         width=0.5, body=0.1, layer_spread=16),
+    # a suspended cymbal's crescendos (mallet rolls swelling to a peak at 7.15, 3.55 and 1.4 s): the air drawn
+    # in before an impact
+    Inst("cymbal_swell_long", "Percussion", "oneshot", match=r"susCymb1-cresc-Long", pitch="none", release=0.6,
+         ref_db=-12, layer_spread=0, single_layer=True, width=0.9, body=1.0, level="peak"),
+    Inst("cymbal_swell_mid", "Percussion", "oneshot", match=r"susCymb1-cresc-Median", pitch="none", release=0.6,
+         ref_db=-12, layer_spread=0, single_layer=True, width=0.9, body=1.0, level="peak"),
+    Inst("cymbal_swell_short", "Percussion", "oneshot", match=r"susCymb1-cresc-Short", pitch="none", release=0.6,
+         ref_db=-12, layer_spread=0, single_layer=True, width=0.9, body=1.0, level="peak"),
+    # a suspended cymbal struck: with a soft mallet, with a stick (a ride), on its bell
+    Inst("cymbal_mallet", "Percussion", "oneshot", match=r"susCymb1-hit_(mp|f)_rr", pitch="none", release=2.0,
+         ref_db=-20, layer_spread=0, single_layer=True, width=0.9, body=0.5),
+    Inst("cymbal_stick", "Percussion", "oneshot", match=r"susCymb1-hitstick_(pp|mp)_rr", pitch="none", release=1.5,
+         ref_db=-22, layer_spread=0, single_layer=True, width=0.6, body=0.3),
+    Inst("cymbal_bell", "Percussion", "oneshot", match=r"susCymb1-hit-bell_(pp|mf)", pitch="none", release=2.0,
+         ref_db=-22, layer_spread=0, single_layer=True, width=0.5, body=0.3),
+    # ... and the same snare struck, its wires on (five levels): the backbeat's crack
+    Inst("snare", "Percussion", "drum", match=r"Snare2-HitSN", pitch="none", release=0.5, ref_db=-17,
+         width=0.5, body=0.12, layer_spread=18),
     # ---- VCSL (CC0, Versilian Studios): the Lantern Garden's festival colour
     # dan tranh plucks: strings B C# D# F# G# (B pentatonic) from B2 to B5, mf/f/ff;
     # named an octave low; tuning read 0.6-1.6 s after the pluck
@@ -222,10 +254,42 @@ INSTRUMENTS = {i.name: i for i in [
     Inst("woodblock", "Idiophones/Struck Idiophones/Woodblock", "drum", lib="vcsl", match=r"^wood_click_",
          pitch="peak", peak_band=(900.0, 2000.0), peak_win=(0.0, 0.12), release=0.3, ref_db=-20,
          layer_spread=14, width=0.3, body=0.1),
+    # a drummer's hi-hat (closed at four levels, open, the pedal's chick) and snare (struck with the wires on at
+    # four levels, a cross-stick rim click, a roll)
+    Inst("hihat", "Idiophones/Struck Idiophones/Hi-Hat Cymbal", "drum", lib="vcsl", match=r"^HiHat_HitC_",
+         pitch="none", release=0.25, ref_db=-22, layer_spread=12, width=0.3, body=0.08),
+    Inst("hihat_open", "Idiophones/Struck Idiophones/Hi-Hat Cymbal", "drum", lib="vcsl", match=r"^HiHat_HitO_",
+         pitch="none", release=0.8, ref_db=-22, layer_spread=0, width=0.4, body=0.3, single_layer=True),
+    Inst("hihat_pedal", "Idiophones/Struck Idiophones/Hi-Hat Cymbal", "drum", lib="vcsl", match=r"^HiHat_Close_",
+         pitch="none", release=0.2, ref_db=-22, layer_spread=0, width=0.3, body=0.08, single_layer=True),
+    Inst("drum_snare", "Membranophones/Struck Membranophones/Snare Drum, Modern 2", "drum", lib="vcsl",
+         match=r"^Snare3M_HitSN_", pitch="none", release=0.5, ref_db=-18, layer_spread=14, width=0.4, body=0.12),
+    Inst("drum_xstick", "Membranophones/Struck Membranophones/Snare Drum, Modern 2", "drum", lib="vcsl",
+         match=r"^Snare3M_Xstick_", pitch="none", release=0.3, ref_db=-20, layer_spread=0, width=0.3, body=0.06,
+         single_layer=True),
+    Inst("drum_roll", "Membranophones/Struck Membranophones/Snare Drum, Modern 2", "oneshot", lib="vcsl",
+         match=r"^Snare3M_rollSN_", pitch="none", release=0.6, ref_db=-20, layer_spread=6, width=0.4, body=1.0),
+    # the Marigold's bolero: bongos (high and low, open and muted, three levels, two takes) and a small shaker
+    # (its down and up strokes: the maracas' part)
+    Inst("bongo_hi", "Membranophones/Struck Membranophones/Bongos", "drum", lib="vcsl", match=r"^BongoH_Hit1_",
+         pitch="none", release=0.4, ref_db=-18, layer_spread=12, width=0.35, body=0.1),
+    Inst("bongo_hi_muted", "Membranophones/Struck Membranophones/Bongos", "drum", lib="vcsl",
+         match=r"^BongoH_HitMuted1_", pitch="none", release=0.2, ref_db=-20, layer_spread=12, width=0.35, body=0.06),
+    Inst("bongo_lo", "Membranophones/Struck Membranophones/Bongos", "drum", lib="vcsl", match=r"^BongoL_Hit1_",
+         pitch="none", release=0.45, ref_db=-18, layer_spread=12, width=0.35, body=0.12),
+    Inst("shaker_down", "Idiophones/Struck Idiophones/Shaker, Small", "drum", lib="vcsl",
+         match=r"^Mid_ShakerHighFaster_Down", pitch="none", release=0.2, ref_db=-24, layer_spread=0, width=0.3,
+         body=0.1, single_layer=True),
+    Inst("shaker_up", "Idiophones/Struck Idiophones/Shaker, Small", "drum", lib="vcsl",
+         match=r"^Mid_ShakerHighFaster_Up", pitch="none", release=0.2, ref_db=-24, layer_spread=0, width=0.3,
+         body=0.1, single_layer=True),
     # ---- FreePats (CC0): a Spanish classical guitar, one layer, G1-C6 by sounding pitch; above B4 the
     # recordings ring for barely a second, so the tuning is read early
     Inst("nylon", "Guitar/SpanishClassicalGuitar", "oneshot", lib="freepats", release=0.35, ref_db=-18,
          layer_spread=0, width=0.4, body=0.3, single_layer=True, max_shift=3.0, tune_from=0.12, tune_n=1),
+    # the jazz double bass (Meatbass): its pluck rings until the next note stops the string
+    Inst("upright", "Samples/pizz", "oneshot", lib="meatbass", match=r"^(a|c|eb|gb)\d_vl\d_rr\d", release=0.3,
+         ref_db=-17, pan=0.05, width=0.35, body=0.4, layer_spread=10, max_shift=2.0, tune_from=0.2, tune_n=2),
 ]}
 
 
@@ -253,14 +317,15 @@ _DYN = {"ppp": 1, "pp": 2, "p": 3, "mp": 4, "mf": 5, "f": 6, "ff": 7, "fff": 8}
 
 
 def _parse_vcsl(inst: Inst, fname: str):
-    """-> (midi or None, layer, rr) for a VCSL file name: 'B3_mf_1.wav',
-    'StdOcarina_Sus_A#4.wav', 'gong_fff.wav', 'wood_click_pp_rr2.wav'.
+    """-> (midi or None, layer, rr) for a VCSL (or FreePats, Meatbass) file name: 'B3_mf_1.wav',
+    'StdOcarina_Sus_A#4.wav', 'gong_fff.wav', 'wood_click_pp_rr2.wav', 'eb2_vl3_rr1.wav'.
     pitch="peak" files get their pitch measured later."""
     stem = fname[:-4]
     midi = None
     if inst.pitch == "name":
-        mt = re.search(r"(?:^|_)([A-Ga-g]#?)(-?\d)(?=_|$)", stem)
-        midi = float(12 * (int(mt.group(2)) + 1) + NOTE[mt.group(1).upper()] + inst.octave)
+        mt = re.search(r"(?:^|_)([A-Ga-g])(#|b)?(-?\d)(?=_|$)", stem)
+        acc = {"#": 1, "b": -1}.get(mt.group(2), 0)
+        midi = float(12 * (int(mt.group(3)) + 1) + NOTE[mt.group(1).upper()] + acc + inst.octave)
     elif inst.pitch == "fixed":
         midi = float(inst.fixed_midi)
     toks = stem.lower().split("_")
@@ -268,6 +333,9 @@ def _parse_vcsl(inst: Inst, fname: str):
     for tk in toks:
         if tk in _DYN:
             layer = _DYN[tk]
+        m_v = re.fullmatch(r"vl?(\d)", tk)        # some folders number their dynamics (v1 / vl1 softest)
+        if m_v:
+            layer = int(m_v.group(1))
         m_rr = re.fullmatch(r"rr(\d+)", tk)
         if m_rr:
             rrn = int(m_rr.group(1))
@@ -479,6 +547,9 @@ def _build_lib(lib, force=False):
         for p in sorted(d.glob("*.wav")):
             if re.search(inst.match, p.name):
                 sig[str(p.relative_to(root))] = p.stat().st_size
+    levelled = [(i.name, i.level) for i in insts if i.level != "body"]
+    if levelled:
+        sig["__level__"] = repr(levelled)
     if lib != "vsco":
         # the measuring options are part of the signature, so retuning re-measures
         sig["__opts__"] = repr([(i.name, i.octave, i.pitch, i.tune_from, i.tune_n, i.peak_band, i.peak_win,
@@ -513,13 +584,14 @@ def _build_lib(lib, force=False):
             rows.append(info)
         # layer references: loudest layer at ref_db, softest layer_spread below
         layers = sorted({r["layer"] for r in rows})
+        key = "peak_db" if inst.level == "peak" else "body_db"
         for r in rows:
             li = layers.index(r["layer"]) / max(1, len(layers) - 1)
-            same = [q["body_db"] for q in rows if q["layer"] == r["layer"]]
+            same = [q[key] for q in rows if q["layer"] == r["layer"]]
             med = float(np.median(same))
             target = inst.ref_db - inst.layer_spread * (1 - li)
             # move each sample 75% of the way to its layer median, then to target
-            corr = -(r["body_db"] - med) * 0.75
+            corr = -(r[key] - med) * 0.75
             r["gain_db"] = float(np.clip(target - med + corr, -40, 40))
         entries[inst.name] = rows
     cat = dict(version=version, sig=sig, instruments=entries)
@@ -883,6 +955,8 @@ class Sampler:
                 u = np.clip((tt - 0.7 * dur) / (0.3 * dur), 0, 1)
                 env *= 10 ** (-tp * u / 20)
             at = shape.get("attack", 0.0)
+            if self.inst.max_attack:
+                at = min(at, self.inst.max_attack)
             if at and legato_in is None:
                 env *= smoothstep(tt / at) ** 0.8
         if legato_in is not None:
@@ -897,6 +971,9 @@ class Sampler:
         y = y * (g * env).astype(np.float32)
         lead = 0 if legato_in is not None else min(max(0, e_lo["attack"] - e_lo["start"]), ns(self.inst.max_lead))
         lead = max(0, lead - ns(self.inst.lag))
+        # a legato note starts its cross-fade half a cross-fade early, so the hand-over is centred on the beat
+        if legato_in is not None:
+            lead = ns(0.5 * (xf_in if xf_in is not None else self.inst.xfade))
         return y, lead, e_lo["file"]
 
 

@@ -20,6 +20,7 @@ motif-shaped steps and turns back to the pickup.
 from __future__ import annotations
 
 from .score import seq, prog, shift
+from .core import m
 
 KEY = "D major"
 MOTIF_NOTES = ["D5", "B5", "A5", "F#5", "A5"]
@@ -27,7 +28,10 @@ MOTIF_EIGHTHS = [1, 2, 1, 1, 2]
 MOTIF_INTERVALS = [0, 9, 7, 4, 7]
 MOTIF_DEGREES = [1, 6, 5, 3, 5]
 XYLO_NOTES = ["D5", "E5", "F#5", "A5", "B5", "D6", "E6", "F#6"]
-GUITAR_NOTES = ["D3", "A3", "D4", "F#4", "A4", "B4"]   # the big guitar's open strings (sfx guitar-1..6)
+# the big guitar's open strings (sfx guitar-1..6), in the Marigold's G (the music is in E minor, G's own
+# notes): the Ember's song on them is G E D B D, the motif a fourth up, as the Marigold's chime sings it
+GUITAR_NOTES = ["G3", "D4", "G4", "B4", "D5", "E5"]
+GUITAR_SHIFT = 5 - 12
 
 # --- melody, D major, eighth-note units; bar 0 is the pickup bar (5 eighths rest)
 THEME_A = (
@@ -93,5 +97,5 @@ def manifest_entry():
         "xyloNotes": XYLO_NOTES,
         "xylo": [XYLO_NOTES.index(n) for n in MOTIF_NOTES],
         "guitarNotes": GUITAR_NOTES,
-        "guitar": [GUITAR_NOTES.index(n[:-1] + str(int(n[-1]) - 1)) for n in MOTIF_NOTES],
+        "guitar": [[m(g) for g in GUITAR_NOTES].index(m(n) + GUITAR_SHIFT) for n in MOTIF_NOTES],
     }

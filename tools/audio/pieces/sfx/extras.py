@@ -1,7 +1,7 @@
 """Sounds for the added scenes.
 
-guitar-1..6      a big magical guitar's open strings, D3 A3 D4 F#4 A4 B4 (stereo):
-                 the Ember's motif D B A F# A is strings 3 6 5 4 5. Sampled: the
+guitar-1..6      a big magical guitar's open strings, G3 D4 G4 B4 D5 E5 (stereo; the Marigold's G):
+                 the Ember's song G E D B D is strings 3 6 5 4 5. Sampled: the
                  VSCO 2 CE harp through a guitar body, fairly dry
                  (render_instruments() renders just these)
 owl-hoot-1..2    a soft, friendly great horned owl with a little shimmer

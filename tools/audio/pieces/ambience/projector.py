@@ -58,7 +58,9 @@ def render():
 
     out = mix.render({"room": {"seed": 131}})
     out = eq(out, ("lp", 6000, 0.7), circular=True)
-    return finish_loop("ambience", "projector", out, LOOP, 3, -20.0, 128, glue=False, tilt_hs_db=-2.0)
+    # the level: its bed 8 dB under the chapter's music as heard in the game (the music's group at 0.6,
+    # the ambience's at 0.5), its crickets and wind never more than 2 dB over the music's own highs
+    return finish_loop("ambience", "projector", out, LOOP, 3, -23.0, 128, glue=False, tilt_hs_db=-2.0)
 
 
 if __name__ == "__main__":

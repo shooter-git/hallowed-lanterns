@@ -85,16 +85,22 @@ VSCO_MUSIC = ("Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Commu
 VSCO_SFX = "Made with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition samples (CC0, Versilian Studios)"
 VCSL_MUSIC = (VSCO_MUSIC + " and Versilian Community Sample Library samples (CC0, Versilian Studios: "
               "https://github.com/sgossner/VCSL)")
-# The music that also plays VCSL instruments (zither, gong, finger cymbals, temple block, ocarina).
-USES_VCSL = ("garden", "marigold")
+# The music that also plays VCSL instruments (zither, gong, finger cymbals, woodblock, ocarina, shaker).
+USES_VCSL = ("garden", "marigold", "snow")
 FREEPATS_GUITAR = (" and the FreePats Spanish classical guitar (CC0, the FreePats project: "
                    "https://freepats.zenvoid.org/Guitar/acoustic-guitar.html)")
-# The music that also plays the FreePats guitar.
-USES_FREEPATS = ("marigold",)
+# The music that also plays the FreePats guitar (none now: the Marigold no longer does).
+USES_FREEPATS = ()
+MEATBASS = (" and Karoryfer's Meatbass double bass (CC0, Karoryfer Samples: "
+            "https://github.com/sfzinstruments/karoryfer.meatbass)")
+# The music that also plays the Meatbass double bass.
+USES_MEATBASS = ("snow",)
+# Credit lines this file once wrote, so the lock's old entries are still ours to correct.
+FORMER = (VCSL_MUSIC + FREEPATS_GUITAR,)
 SAMPLED_SFX = ("xylo-", "guitar-", "ember-chime-", "snowflake-", "sprinkle-burst", "wish-hang")
 # The ambiences with recorded wind in them, and the recordings they use (hlaudio/recordings.py).
 RECORDED_WIND = {"arbor": ("0907",), "garden": ("0907",), "grove": ("0907", "0595"), "hollow": ("0907",),
-                 "marigold": ("0907",), "pasture": ("0908",), "snow": ("0595",)}
+                 "marigold": ("0907",), "pasture": ("0595", "1880"), "snow": ("0595",)}
 
 
 def _passage_source():
@@ -113,7 +119,7 @@ def source_for(path):
     if "/audio/music/" in path:
         piece = name.removesuffix(".mp3")
         base = VCSL_MUSIC if piece in USES_VCSL else VSCO_MUSIC
-        return base + FREEPATS_GUITAR if piece in USES_FREEPATS else base
+        return base + (FREEPATS_GUITAR if piece in USES_FREEPATS else "") + (MEATBASS if piece in USES_MEATBASS else "")
     if "/audio/sfx/" in path and name.startswith("passage-final"):
         return _passage_source() + "; its far bell from the Versilian Community Sample Library (CC0, Versilian Studios)"
     if "/audio/sfx/" in path and name.startswith("passage-"):
@@ -139,7 +145,7 @@ def update_lock():
         e["source"] = source_for(e["path"])
     lock = root / "assets.lock.json"
     ours = {SYNTH, VSCO_MUSIC, VCSL_MUSIC, VSCO_SFX, _passage_source(), source_for("public/audio/sfx/passage-final.mp3"),
-            *(source_for(f"public/audio/music/{p}.mp3") for p in USES_FREEPATS),
+            *(source_for(f"public/audio/music/{p}.mp3") for p in USES_FREEPATS + USES_MEATBASS), *FORMER,
             *(_wind_source(k) for k in RECORDED_WIND)}
 
     def merged(data):

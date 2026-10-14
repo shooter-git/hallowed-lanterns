@@ -147,10 +147,12 @@ trees. Everything goes hushed, and you can see your breath.
 
 - Catch snowflakes (tap them); each one rings a tiny bell.
 
-*Music — "First Snow":* a theme of its own, grown from the Ember's notes — sung first by the felt
-piano, then by an oboe, then climbing through flute and horns to the night's one brighter
-chord — over a snowfall of harp, glockenspiel and pizzicato, a soft drum under the swell; at the
-end the music lifts, like the snowflakes starting to rise. *Around you:* the muffled hush of snow, soft crunching
+*Music — "First Snow":* a music box turning in the falling snow, a felt piano beside it, and a
+jazz double bass ringing low beneath them; breaths of real wind in the cold air. The snowman's
+theme rises in the piano's chords; sleigh bells far off, the glint of a triangle, his footsteps on
+a woodblock as he toasts you — a stop, the clink of his mug, a warm chord on the horns. Then the
+swell, and at the end the flakes slow, stop and begin to rise: a bell tree, a harp, a line of
+glass climbing out of hearing. *Around you:* the muffled hush of snow, soft crunching
 steps.
 
 ## VII. The Deep
@@ -202,14 +204,13 @@ little lamp, pencils and leaf cards is where people write them.
 - The Ember settles on a branch and becomes a leaf of light. The lanterns in every chapter glow
   once, all together, and the night fades gently out.
 
-*Music — "Remember Me":* a quiet altar at night: a classical guitar's broken chord that turns from
-major to minor inside its own figure, a soft organ like the church at the cemetery's edge, a far
-bell, a marimba's rolls, and the Ember's notes on a clay flute, answered by a voice not of this
-world — a synth, singing. It grows into the most yearning moment of the night, and the sky opens
-in synths: the guitar's triplets turn to light, then pulse like a 1950s ballad's over a bass that
-beats like a heart, as the line climbs by wide, aching leaps to a high note held while the
-harmony turns to the borrowed minor chord beneath it — then draws back to the altar, its last
-phrase left hanging. At the Wishing Tree the full "Hallowed Lanterns" theme plays.
+*Music — "Remember Me":* a glass world, still as held breath, over a far organ; a felt piano turns
+one small figure again and again while the ground beneath it slides, so the same notes keep
+changing colour. A quiet beat is born — brushes, a heartbeat of a kick, booms that fall like
+something huge settling — and it builds the way a great film score does, horns singing the Ember's
+notes, until it breaks open in C and falls into the dark. Then everything falls away but the
+figure, and the night lifts into the light: the figure rises a third, the Ember chimes its own
+song, high strings warm it, and the glass world returns — its last colour the night's first. At the Wishing Tree the full "Hallowed Lanterns" theme plays.
 
 ## Together
 

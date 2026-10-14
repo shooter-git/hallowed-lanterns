@@ -46,19 +46,24 @@ class Mix:
 
     def render(self, reverb_opts=None):
         """Sum dry + every send through its effect. Send keys: a space name from
-        effects.SPACES, 'shimmer:<space>', or 'echo:<seconds>'."""
+        effects.SPACES, 'shimmer:<space>', or 'echo:<seconds>'. A key's options may carry
+        "eq": EQ bands for its return (a reverb high-passed and its low-mids dipped stays
+        space, not mud)."""
         reverb_opts = reverb_opts or {}
         out = self.dry.buf.astype(np.float64)
         n = out.shape[1]
         for key, tr in self.sends.items():
             x = tr.buf.astype(np.float64)
-            opts = reverb_opts.get(key, {})
+            opts = dict(reverb_opts.get(key, {}))
+            ret_eq = opts.pop("eq", None)
             if key.startswith("shimmer:"):
                 y = FX.shimmer(x, key.split(":", 1)[1], circular=self.circular, **opts)
             elif key.startswith("echo:"):
                 y = FX.echo(x, float(key.split(":", 1)[1]), circular=self.circular, **opts)
             else:
                 y = FX.reverb(x, key, circular=self.circular, **opts)
+            if ret_eq:
+                y = FX.eq(y, *ret_eq, circular=self.circular)
             if y.shape[1] > n:
                 out = np.pad(out, ((0, 0), (0, y.shape[1] - n)))
                 n = out.shape[1]

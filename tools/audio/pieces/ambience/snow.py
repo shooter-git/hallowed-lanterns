@@ -29,7 +29,9 @@ def render():
     mix.add(ev, 1.0, {"hall": 0.6})
 
     out = mix.render({"hall": {"seed": 61}})
-    return finish_loop("ambience", "snow", out, LOOP, 3, -27.7, 128, glue=False, tilt_hs_db=-2.0)
+    # the level: its bed 8 dB under the chapter's music as heard in the game (the music's group at 0.6,
+    # the ambience's at 0.5), its crickets and wind never more than 2 dB over the music's own highs
+    return finish_loop("ambience", "snow", out, LOOP, 3, -22.2, 128, glue=False, tilt_hs_db=-2.0)
 
 
 if __name__ == "__main__":

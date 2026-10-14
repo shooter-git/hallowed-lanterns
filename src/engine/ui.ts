@@ -1,7 +1,17 @@
+import { SLIDER_DEFAULT } from './audio.ts';
+
+/** The settings' two sound levels, 0-100 (SLIDER_DEFAULT is the mix as made). */
+export type SoundSettings = {
+  music: number;
+  sounds: number;
+};
+
+type ChapterEntry = { numeral: string; name: string; reached: boolean; go: () => void };
+
 /**
  * Everything drawn over the world: the title, chapter cards, story lines, hints and the two
  * controls (walk with me, chapters). The app's own menu button lives in the top-left corner,
- * so nothing goes there.
+ * so nothing goes there. The chapters menu also holds the settings (the sound levels).
  */
 const TITLE_HEADING = `
         <p class="hl-kicker">One October night at the pumpkin patch</p>
@@ -19,6 +29,10 @@ export class UI {
   private waiting: { text: string; seconds: number } | null = null;
   readonly menuButton = document.createElement('button');
   private readonly menu = document.createElement('div');
+  private chapters: ChapterEntry[] = [];
+  private sound: SoundSettings = { music: SLIDER_DEFAULT, sounds: SLIDER_DEFAULT };
+  private soundChanged: ((v: SoundSettings, done: boolean) => void) | null = null;
+  private settingsOpen = false;
   private lineTimer = 0;
   private cardTimer = 0;
   private hintTimer = 0;
@@ -169,13 +183,25 @@ export class UI {
   }
 
   /** The chapters you can return to. */
-  setChapters(list: { numeral: string; name: string; reached: boolean; go: () => void }[]) {
+  setChapters(list: ChapterEntry[]) {
+    this.chapters = list;
+    this.renderMenu();
+  }
+
+  /** The sound levels shown in the settings; `onChange` hears every move (`done` when a slider is let go). */
+  setSound(values: SoundSettings, onChange: (v: SoundSettings, done: boolean) => void) {
+    this.sound = { ...values };
+    this.soundChanged = onChange;
+    this.renderMenu();
+  }
+
+  private renderMenu() {
     this.menu.innerHTML = '';
     const h = document.createElement('p');
     h.className = 'hl-menu-title';
     h.textContent = 'Chapters';
     this.menu.append(h);
-    for (const c of list) {
+    for (const c of this.chapters) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'hl-menu-item';
@@ -187,6 +213,71 @@ export class UI {
       });
       this.menu.append(b);
     }
+    this.menu.append(this.settings());
+  }
+
+  /** The settings: a row that opens two sliders (the music; the sounds of the world) and a reset. */
+  private settings(): HTMLElement {
+    const wrap = document.createElement('div');
+    wrap.className = 'hl-settings-wrap';
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'hl-menu-item hl-menu-settings';
+    open.setAttribute('aria-expanded', this.settingsOpen ? 'true' : 'false');
+    open.setAttribute('aria-controls', 'hl-settings');
+    open.innerHTML = `<span class="hl-menu-num" aria-hidden="true">${SLIDERS}</span><span>Settings</span>`;
+    const panel = document.createElement('div');
+    panel.className = 'hl-settings';
+    panel.id = 'hl-settings';
+    panel.hidden = !this.settingsOpen;
+    panel.innerHTML = `
+      <p class="hl-settings-title">Sound</p>
+      <div class="hl-slider">
+        <label for="hl-vol-music">Music</label>
+        <output for="hl-vol-music"></output>
+        <input id="hl-vol-music" class="hl-range" type="range" min="0" max="100" step="1" data-k="music">
+      </div>
+      <div class="hl-slider">
+        <label for="hl-vol-sounds">Sound effects</label>
+        <output for="hl-vol-sounds"></output>
+        <input id="hl-vol-sounds" class="hl-range" type="range" min="0" max="100" step="1" data-k="sounds"
+          aria-describedby="hl-vol-sounds-note">
+        <small id="hl-vol-sounds-note">Wind, footsteps, creatures and chimes</small>
+      </div>
+      <button type="button" class="hl-button hl-quiet hl-reset">Back to default</button>`;
+    const inputs = [...panel.querySelectorAll<HTMLInputElement>('.hl-range')];
+    const show = () => {
+      for (const r of inputs) {
+        const v = this.sound[r.dataset.k as keyof SoundSettings];
+        r.value = String(v);
+        r.style.setProperty('--fill', `${v}%`);
+        r.setAttribute('aria-valuetext', `${v} percent`);
+        (r.parentElement?.querySelector('output') as HTMLOutputElement).textContent = String(v);
+      }
+    };
+    show();
+    for (const r of inputs) {
+      const k = r.dataset.k as keyof SoundSettings;
+      r.addEventListener('input', () => {
+        this.sound[k] = Number(r.value);
+        show();
+        this.soundChanged?.({ ...this.sound }, false);
+      });
+      r.addEventListener('change', () => this.soundChanged?.({ ...this.sound }, true));
+    }
+    (panel.querySelector('.hl-reset') as HTMLButtonElement).addEventListener('click', () => {
+      this.sound = { music: SLIDER_DEFAULT, sounds: SLIDER_DEFAULT };
+      show();
+      this.soundChanged?.({ ...this.sound }, true);
+    });
+    open.addEventListener('click', () => {
+      this.settingsOpen = !this.settingsOpen;
+      panel.hidden = !this.settingsOpen;
+      open.setAttribute('aria-expanded', this.settingsOpen ? 'true' : 'false');
+      if (this.settingsOpen) panel.scrollIntoView({ block: 'nearest' });
+    });
+    wrap.append(open, panel);
+    return wrap;
   }
 
   /**
@@ -287,4 +378,5 @@ export class UI {
 }
 
 const FOOTSTEPS = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><ellipse cx="8" cy="7" rx="2.6" ry="4"/><ellipse cx="8.2" cy="14.6" rx="1.9" ry="1.6"/><ellipse cx="16" cy="11" rx="2.6" ry="4"/><ellipse cx="16.2" cy="18.6" rx="1.9" ry="1.6"/></svg>`;
+const SLIDERS = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>`;
 const LANTERN = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2.5v2"/><path d="M9 4.5h6"/><ellipse cx="12" cy="12" rx="6.5" ry="6.8"/><path d="M12 5.4c-2.2 2-2.2 11.2 0 13.2M12 5.4c2.2 2 2.2 11.2 0 13.2"/><path d="M12 18.8v2.7"/></svg>`;

@@ -57,6 +57,10 @@ WIND = {
     "0908": ("Wind in Tall Grass", "https://bigsoundbank.com/wind-in-tall-grass-s0908.html"),
     "0595": ("Wind", "https://bigsoundbank.com/wind-s0595.html"),
 }
+# Other field recordings laid in the same way: number -> (title, page).
+FIELD = {
+    "1880": ("Campaign at Night #4", "https://bigsoundbank.com/campaign-at-night-4-s1880.html"),
+}
 
 
 def declick(x, above_db=12.0):
@@ -89,14 +93,16 @@ def loop_of(x, start, seconds, fade=4.0):
     return out
 
 
-def wind(track, sound_id, start, lufs, bands=(), swap=False, gust=None, seed=0):
+def wind(track, sound_id, start, lufs, bands=(), swap=False, gust=None, seed=0, clicks=12.0):
     """Lay a stretch of a wind recording (from `start` s) into a circular track at `lufs`
     (integrated loudness of this layer alone, so the balance against the rest is set here).
     `bands` are EQ bands (as effects.chain takes them) after an 80 Hz high-pass that clears
     the rumble of wind on the microphone; `swap` swaps left and right (another stretch of the
     same wind shouldn't sit the same way round); `gust` (rate in Hz) lets a steady wind swell
-    and ease slowly. A mono recording is spread by taking each side from a different stretch."""
-    x = declick(_read(sound_id))
+    and ease slowly; `clicks` is how far (dB) over its surroundings a click is taken down (None
+    leaves the recording alone: a meadow's crickets are not clicks). A mono recording is spread by
+    taking each side from a different stretch."""
+    x = _read(sound_id) if clicks is None else declick(_read(sound_id), clicks)
     if x.shape[0] == 1:
         x = np.vstack([x[0], np.roll(x[0], -ns(23.0))])
     if swap:
@@ -112,10 +118,11 @@ def wind(track, sound_id, start, lufs, bands=(), swap=False, gust=None, seed=0):
 
 
 def ambience_source(sound_ids):
-    """The assets.lock.json source line of an ambience made with these wind recordings."""
-    names = ", ".join(f"\"{WIND[i][0]}\" ({WIND[i][1]})" for i in sound_ids)
-    return ("Made with tools/audio (Hallowed Lanterns), with wind recorded by Joseph Sardin "
-            f"(BigSoundBank, CC0): {names}")
+    """The assets.lock.json source line of an ambience made with these recordings."""
+    known = {**WIND, **FIELD}
+    names = ", ".join(f"\"{known[i][0]}\" ({known[i][1]})" for i in sound_ids)
+    what = "wind recorded" if all(i in WIND for i in sound_ids) else "wind and a night meadow recorded"
+    return f"Made with tools/audio (Hallowed Lanterns), with {what} by Joseph Sardin (BigSoundBank, CC0): {names}"
 
 
 def lock_cc0(entries, groups):
