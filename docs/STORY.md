@@ -37,9 +37,10 @@ violet and peach, and purple and orange path lights run along both edges.
 - Near the end of the lane, one lantern sputters and its flame hops out: **the Ember**. It looks
   at you, waits, and darts off into the trees.
 
-*Music — "Sundown":* a felt piano's triplets, its pedal held down, turning in B minor; the Ember's
-motif slowly on a vibraphone, a bowed vibraphone and glass holding its long notes, then singing it
-slower still over a dark analog bass; a swell of deep booms and timpani, and the piano alone again.
+*Music — "Sundown":* a felt piano's triplets, its pedal held down, turning in B minor, beginning
+softly and growing; the Ember's motif slowly on a vibraphone, a bowed vibraphone and glass holding
+its long notes, then singing it slower still over a dark analog bass; a swell of deep booms and
+timpani, and the piano alone again, tapering away into the quiet it began in.
 When the Ember is born, the vibraphone sings its motif just as the song does.
 *Around you:* the last birds of the day giving way to the first crickets, gravel under your feet,
 distant happy voices.

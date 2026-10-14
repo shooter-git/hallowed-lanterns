@@ -41,7 +41,9 @@ def arbor():
     # the motif as Sundown's vibraphone sings it (D, then B A F# A, falling), quicker: the Ember's signature
     st = K.stage(3.5)
     u = 0.25
-    m = [N(0.02 + a * u, d * u + 0.6, float(p), 0.55 if k == 1 else 0.48)
+    # D and B a touch firmer, as in Sundown, so both stay in the vibraphone's brighter recording (it changes at a
+    # velocity of 0.5)
+    m = [N(0.02 + a * u, d * u + 0.6, float(p), (0.53, 0.57)[k] if k < 2 else 0.48)
          for k, (a, d, p) in enumerate([(0, 1, 74), (1, 2, 71), (3, 1, 69), (4, 1, 66), (5, 2, 69)])]
     m[-1].d = 2.0
     K.play(st, "vibes", m, "vibes", release=1.5, pan=0.0, width=0.5)
