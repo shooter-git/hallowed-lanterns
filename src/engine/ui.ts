@@ -28,6 +28,7 @@ export class UI {
   private readonly offers = new Set<HTMLButtonElement>();
   private waiting: { text: string; seconds: number } | null = null;
   readonly menuButton = document.createElement('button');
+  private idleWatched = false;
   private readonly menu = document.createElement('div');
   private chapters: ChapterEntry[] = [];
   private sound: SoundSettings = { music: SLIDER_DEFAULT, sounds: SLIDER_DEFAULT };
@@ -140,6 +141,36 @@ export class UI {
   showControls() {
     this.controls.hidden = false;
     this.menuButton.hidden = false;
+    if (this.root.dataset.touch === '1') this.fadeWhenIdle();
+  }
+
+  /**
+   * On touch screens the joystick and the walk button fade almost away after a few seconds with
+   * no finger on the screen (html.hl-idle), and come straight back at a touch. A finger resting on
+   * the joystick counts as a touch.
+   */
+  private fadeWhenIdle() {
+    if (this.idleWatched) return;
+    this.idleWatched = true;
+    const html = document.documentElement;
+    const down = new Set<number>();
+    let timer = 0;
+    const rest = () => {
+      clearTimeout(timer);
+      timer = window.setTimeout(() => down.size === 0 && html.classList.add('hl-idle'), IDLE_MS);
+    };
+    addEventListener('pointerdown', (e) => {
+      down.add(e.pointerId);
+      html.classList.remove('hl-idle');
+      rest();
+    }, true);
+    const up = (e: PointerEvent) => {
+      down.delete(e.pointerId);
+      rest();
+    };
+    addEventListener('pointerup', up, true);
+    addEventListener('pointercancel', up, true);
+    rest();
   }
 
   /** "I · The Arbor of Faces", fading in and out. */
@@ -377,6 +408,9 @@ export class UI {
     this.menuButton.setAttribute('aria-expanded', show ? 'true' : 'false');
   }
 }
+
+/** How long the joystick and the walk button stay clear after the last touch. */
+const IDLE_MS = 4000;
 
 const FOOTSTEPS = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><ellipse cx="8" cy="7" rx="2.6" ry="4"/><ellipse cx="8.2" cy="14.6" rx="1.9" ry="1.6"/><ellipse cx="16" cy="11" rx="2.6" ry="4"/><ellipse cx="16.2" cy="18.6" rx="1.9" ry="1.6"/></svg>`;
 const SLIDERS = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>`;
