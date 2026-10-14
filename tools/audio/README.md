@@ -361,7 +361,7 @@ Each piece script documents its form at the top (bars, sections, who plays).
   square-ish tone (odd against even harmonics in 1–4 kHz).
 * **SFX** are true-peak normalised by role: chimes, knocks and bells −3 dBTP;
   softer things (snowflakes, bubbles, squeaks, swings, butterflies) −4…−5;
-  footsteps −6 (they repeat constantly); `ui-tap` −9. Mono unless the brief
+  footsteps −6 (they repeat constantly); `ui-tap` −12 (a soft wooden tick). Mono unless the brief
   said stereo (ember chimes, sprinkle-burst, butterflies, wish-hang, fog-swirl).
 * MP3: music 192 kbps CBR (128 kbps smears dense strings into a phasey
   shimmer), ambience and sfx 96 kbps CBR, 44.1 kHz, no ID3 tag (the

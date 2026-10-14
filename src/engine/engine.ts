@@ -173,7 +173,8 @@ export class Engine {
     ui.walkButton.addEventListener('click', () => {
       walker.auto = !walker.auto;
       ui.setWalking(walker.auto);
-      void audio.sfx('ui-tap', { send: 'ui', volume: 0.5 });
+      // A soft tick to start walking, a touch lower to stop.
+      void audio.sfx('ui-tap', { send: 'ui', volume: 0.4, rate: walker.auto ? 1 : 0.9 });
     });
     portal.onExit(() => {
       void portal.save.personal.set('progress', this.progress).catch(() => undefined);

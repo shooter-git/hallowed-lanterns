@@ -97,13 +97,15 @@ def wish_hang():
 
 
 def ui_tap():
-    n = ns(0.12)
+    """The "Walk with me" button: a quick, soft wooden tick (a small block tapped
+    with a fingertip, its body on D), rounded off so it never snaps."""
+    n = ns(0.07)
     t = tvec(n)
-    y = np.sin(2 * np.pi * 1850 * t) * np.exp(-t / 0.012) * 0.5
-    y += np.sin(2 * np.pi * 2900 * t) * np.exp(-t / 0.006) * 0.15
-    y += np.sin(2 * np.pi * 180 * t) * np.exp(-t / 0.02) * 0.4
-    y *= 1 - np.exp(-t / 0.0004)
-    return y
+    y = np.sin(2 * np.pi * 587.3 * t) * np.exp(-t / 0.011)
+    y += np.sin(2 * np.pi * 1520 * t) * np.exp(-t / 0.005) * 0.3
+    y += np.sin(2 * np.pi * 2700 * t) * np.exp(-t / 0.0025) * 0.08
+    y *= 1 - np.exp(-t / 0.0008)
+    return eq(y, ("lp", 3000, 0.7))
 
 
 def render_instruments():
@@ -119,7 +121,7 @@ def render():
     render_instruments()
     for i in range(4):
         finish_sfx("bubble", f"bubble-{i + 1}", bubble(i), -5.0)
-    finish_sfx("ui-tap", "ui-tap", ui_tap(), -9.0)
+    finish_sfx("ui-tap", "ui-tap", ui_tap(), -12.0)
 
 
 if __name__ == "__main__":

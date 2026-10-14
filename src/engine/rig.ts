@@ -98,7 +98,9 @@ export class Walker {
   /** Somewhere the automatic walk should go instead of along the path (e.g. the Ember). */
   autoTarget: Vector3 | null = null;
   speed = 1.6;
-  eyeHeight = 1.62;
+  /** The pace of "Walk with me" (m/s): an unhurried stroll. */
+  autoSpeed = 0.8;
+  eyeHeight = 1.5;
   /** Sitting (lower eyes, no walking). */
   seated = false;
   /** Called on each footstep. */
@@ -117,7 +119,7 @@ export class Walker {
   private now = 0;
   private stride = 0;
   private bob = 0;
-  private eye = 1.62;
+  private eye = 1.5;
   private readonly euler = new Euler(0, 0, 0, 'YXZ');
   private readonly keys = new Set<string>();
   private readonly abort = new AbortController();
@@ -256,7 +258,7 @@ export class Walker {
         this.pitch += (0.06 - this.pitch) * (1 - Math.exp(-dt * 1.0));
       }
       // Walk toward the goal, relative to where we're facing.
-      const f = Math.min(1, dist / 1.2) * 0.7;
+      const f = Math.min(1, dist / 1.2) * (this.autoSpeed / this.speed);
       const rel = want - this.yaw;
       mx = -Math.sin(rel) * f;
       my = Math.cos(rel) * f;
