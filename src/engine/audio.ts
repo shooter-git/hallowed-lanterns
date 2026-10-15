@@ -137,6 +137,22 @@ export class AudioDirector {
     }
   }
 
+  private manifestLoad: Promise<Manifest | null> | null = null;
+  private manifestTried = 0;
+
+  /** The manifest, fetched again (at most every few seconds) if it couldn't be at first. */
+  private ensureManifest(): Promise<Manifest | null> {
+    if (this.manifest) return Promise.resolve(this.manifest);
+    if (!this.manifestLoad && performance.now() - this.manifestTried > 5000) {
+      this.manifestTried = performance.now();
+      this.manifestLoad = this.load().then(() => {
+        this.manifestLoad = null;
+        return this.manifest;
+      });
+    }
+    return this.manifestLoad ?? Promise.resolve(null);
+  }
+
   /** Builds the routing; call after the first tap. */
   start() {
     if (this.started) return;
@@ -163,6 +179,17 @@ export class AudioDirector {
     back.gain.value = 0.55;
     this.reverb = ctx.createGain();
     this.reverb.connect(hall).connect(back).connect(this.sends.get('sfx') as AudioNode);
+    // A phone suspends a page's sound when it's locked, another app takes over or a call comes in, and
+    // it stays silent until the page starts it again, which browsers allow only from a tap. So any tap,
+    // click or key starts it again, and so does coming back to the page (where that's allowed).
+    const wake = () => {
+      if (ctx.state !== 'running') void ctx.resume().catch(() => undefined);
+    };
+    for (const type of ['pointerdown', 'touchend', 'click', 'keydown'])
+      window.addEventListener(type, wake, { capture: true, passive: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') wake();
+    });
   }
 
   private reverb: GainNode | null = null;
@@ -182,21 +209,44 @@ export class AudioDirector {
     });
   }
 
+  /**
+   * A recording, fetched and decoded once and kept. One that fails (the connection gone for a moment,
+   * a server's hiccup) isn't kept: the next time it's wanted, it's fetched again.
+   */
   private file(path: string): Promise<AudioBuffer | null> {
     let p = this.buffers.get(path);
     if (!p) {
-      p = (async () => {
-        try {
-          const res = await fetch(new URL(path, base));
-          if (!res.ok) return null;
-          return await this.ctx.decodeAudioData(await res.arrayBuffer());
-        } catch {
-          return null;
-        }
-      })();
-      this.buffers.set(path, p);
+      const load: Promise<AudioBuffer | null> = this.fetchBuffer(path).then((buf) => {
+        if (!buf && this.buffers.get(path) === load) this.buffers.delete(path);
+        return buf;
+      });
+      this.buffers.set(path, load);
+      p = load;
     }
     return p;
+  }
+
+  private async fetchBuffer(path: string): Promise<AudioBuffer | null> {
+    try {
+      const res = await fetch(new URL(path, base));
+      if (!res.ok) return null;
+      return await this.ctx.decodeAudioData(await res.arrayBuffer());
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * A chapter's music or night sounds, fetched again while it fails and is still wanted (after 2, 4 and
+   * 8 seconds, then every 30): when the connection comes back, so does the sound.
+   */
+  private async whileWanted(path: string, wanted: () => boolean): Promise<AudioBuffer | null> {
+    for (let wait = 2; ; wait = wait < 8 ? wait * 2 : 30) {
+      const buf = await this.file(path);
+      if (buf || !wanted()) return buf;
+      await new Promise((r) => setTimeout(r, wait * 1000));
+      if (!wanted()) return null;
+    }
   }
 
   /** Starts fetching and decoding what a chapter needs. */
@@ -215,31 +265,39 @@ export class AudioDirector {
     return this.musicKey;
   }
 
-  /** Crossfades to a chapter's music and ambience. */
+  /**
+   * Crossfades to a chapter's music and ambience. Each comes in as soon as it's loaded, on its own; one
+   * that fails to load is tried again for as long as it's still the one wanted.
+   */
   async setScene(musicKey: string | null, ambienceKey: string | null, fade = 4) {
-    if (!this.started || !this.manifest) return;
-    if ((musicKey ?? '') !== this.musicKey) {
-      this.musicKey = musicKey ?? '';
+    if (!this.started) return;
+    const m = this.manifest ?? (await this.ensureManifest());
+    if (!m) return;
+    const music = async () => {
+      const key = musicKey ?? '';
+      if (key === this.musicKey) return;
+      this.musicKey = key;
       this.music?.stop(fade);
       this.music = null;
-      const info = musicKey ? this.manifest.music[musicKey] : undefined;
-      if (info) {
-        const buf = await this.file(info.file);
-        if (buf && this.musicKey === musicKey)
-          this.music = new Loop(this.ctx, buf, info.loopSeconds ?? buf.duration, info.tailSeconds ?? 0, this.sends.get('music') as AudioNode, 1, fade);
-      }
-    }
-    if ((ambienceKey ?? '') !== this.ambienceKey) {
-      this.ambienceKey = ambienceKey ?? '';
+      const info = key ? m.music[key] : undefined;
+      if (!info) return;
+      const buf = await this.whileWanted(info.file, () => this.musicKey === key);
+      if (buf && this.musicKey === key)
+        this.music = new Loop(this.ctx, buf, info.loopSeconds ?? buf.duration, info.tailSeconds ?? 0, this.sends.get('music') as AudioNode, 1, fade);
+    };
+    const ambience = async () => {
+      const key = ambienceKey ?? '';
+      if (key === this.ambienceKey) return;
+      this.ambienceKey = key;
       this.ambience?.stop(fade);
       this.ambience = null;
-      const info = ambienceKey ? this.manifest.ambience[ambienceKey] : undefined;
-      if (info) {
-        const buf = await this.file(info.file);
-        if (buf && this.ambienceKey === ambienceKey)
-          this.ambience = new Loop(this.ctx, buf, info.loopSeconds ?? buf.duration, info.tailSeconds ?? 0, this.sends.get('ambience') as AudioNode, 1, fade);
-      }
-    }
+      const info = key ? m.ambience[key] : undefined;
+      if (!info) return;
+      const buf = await this.whileWanted(info.file, () => this.ambienceKey === key);
+      if (buf && this.ambienceKey === key)
+        this.ambience = new Loop(this.ctx, buf, info.loopSeconds ?? buf.duration, info.tailSeconds ?? 0, this.sends.get('ambience') as AudioNode, 1, fade);
+    };
+    await Promise.all([music(), ambience()]);
   }
 
   /**
@@ -263,8 +321,8 @@ export class AudioDirector {
 
   /** Plays a one-shot music cue (a stinger, the finale) over the current music. */
   async cue(key: string, volume = 1) {
-    if (!this.started || !this.manifest) return;
-    const info = this.manifest.music[key];
+    if (!this.started) return;
+    const info = (this.manifest ?? (await this.ensureManifest()))?.music[key];
     if (!info) return;
     const buf = await this.file(info.file);
     if (!buf) return;
@@ -280,7 +338,7 @@ export class AudioDirector {
     options: { volume?: number; rate?: number; at?: Vector3; pan?: number; wet?: number; spread?: number; send?: 'sfx' | 'ui' | 'music' } = {},
   ) {
     if (!this.started) return;
-    const list = this.manifest?.sfx[key];
+    const list = (this.manifest ?? (await this.ensureManifest()))?.sfx[key];
     if (!list?.length) return;
     if (this.active >= this.maxVoices - (this.music?.voices ?? 0) - (this.ambience?.voices ?? 0)) return;
     // Never the same variation twice running (two identical footsteps give the game away).
@@ -296,7 +354,7 @@ export class AudioDirector {
   /** Plays one of a list's variations by index (e.g. the xylophone's notes). */
   async sfxIndex(key: string, index: number, options: { volume?: number; at?: Vector3; wet?: number } = {}) {
     if (!this.started) return;
-    const path = this.manifest?.sfx[key]?.[index];
+    const path = (this.manifest ?? (await this.ensureManifest()))?.sfx[key]?.[index];
     if (!path) return;
     const buf = await this.file(path);
     if (buf) this.playBuffer(buf, options);
