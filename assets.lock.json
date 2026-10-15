@@ -2,6 +2,11 @@
   "$comment": "Every file you didn't make yourself: where it came from and its licence (CC0 or compatible). Publishing checks this.",
   "assets": [
     {
+      "path": "docs/banner.jpg",
+      "license": "own",
+      "source": "The Arbor of Faces at sunset as the engine draws it, with the title-screen words, for the README and the repository's social preview (Hallowed Lanterns)"
+    },
+    {
       "path": "public/audio/ambience/arbor.mp3",
       "license": "own",
       "source": "Made with tools/audio (Hallowed Lanterns), with wind recorded by Joseph Sardin (BigSoundBank, CC0): \"Wind in shrub\" (https://bigsoundbank.com/wind-in-shrub-s0907.html)"

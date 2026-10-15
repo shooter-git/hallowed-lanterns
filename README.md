@@ -1,5 +1,7 @@
 # Hallowed Lanterns
 
+![A lane under hundreds of lit jack-o'-lanterns at sunset: Hallowed Lanterns, one October night at the pumpkin patch](docs/banner.jpg)
+
 One October night at the pumpkin patch, as an immersive walk: follow a runaway candle flame — the
 Ember — from a sunset tunnel of jack-o'-lanterns, through a candle-lit grove, a garden of red
 lanterns, a pasture of glowing giants, a hollow full of candy, an impossible October snow and a
