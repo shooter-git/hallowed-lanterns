@@ -100,9 +100,43 @@ void main() {
 }
 `;
 
+// Sun shafts: from each pixel, a march toward the sun across the picture, gathering the open sky
+// it passes (alpha 0 is sky), so the low sun shines through every gap in what stands against it.
+// Rays, not a veil: they fade with distance from the sun on the screen, so the rest of the picture
+// keeps its own colour however the view turns.
+const SHAFTS = /* glsl */ `
+uniform sampler2D tScene;
+uniform vec2 uSun;
+uniform float uAspect;
+varying vec2 vUv;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void main() {
+  const int N = 18;
+  vec2 delta = (uSun - vUv) / float(N) * 0.92;
+  vec2 uv = vUv + delta * hash(gl_FragCoord.xy);
+  vec3 sum = vec3(0.0);
+  float weight = 1.0;
+  for (int i = 0; i < N; i++) {
+    vec4 s = texture2D(tScene, uv);
+    float sky = 1.0 - clamp(s.a, 0.0, 1.0);
+    // Only the sun and the bright sky right round it, not the rest of the sky.
+    vec3 c = max(s.rgb - 1.5, 0.0);
+    sum += c * sky * weight;
+    weight *= 0.925;
+    uv += delta;
+  }
+  vec2 fromSun = (vUv - uSun) * vec2(uAspect, 1.0);
+  float near = exp(-dot(fromSun, fromSun) * 3.0);
+  gl_FragColor = vec4(sum / float(N) * near, 1.0);
+}
+`;
+
 const COMPOSITE = /* glsl */ `
 uniform sampler2D tScene;
 uniform sampler2D tBloom;
+uniform sampler2D tShafts;
+uniform float uShafts;
+uniform vec3 uShaftColor;
 uniform float uBloom;
 uniform float uExposure;
 uniform float uSlope;
@@ -116,13 +150,34 @@ uniform float uTime;
 uniform vec2 uRes;
 uniform float uFade;
 uniform vec3 uFadeColor;
+uniform float uSharpen;
 varying vec2 vUv;
 ${AGX}
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+// Light compressed into 0–1 (and back), so sharpening treats a candle and a shadow alike.
+vec3 hlSqueeze(vec3 c) { c = max(c, 0.0); return c / (1.0 + c); }
+vec3 hlUnsqueeze(vec3 c) { return c / max(1.0 - c, 1e-3); }
 void main() {
   vec3 c = texture2D(tScene, vUv).rgb;
-  vec3 b = texture2D(tBloom, vUv).rgb;
-  c = c + b * uBloom;
+#ifdef HL_SHARPEN
+  {
+    // Contrast-adaptive sharpening: crisper edges and carvings (and back some of what a lowered
+    // resolution loses), never pushed past the neighbourhood's own range, so it can't ring. Two
+    // taps between pixels each average a 2×2 block around this one (the filtering does the work).
+    vec2 px = 0.5 / uRes;
+    vec3 a = hlSqueeze(texture2D(tScene, vUv + px).rgb);
+    vec3 b = hlSqueeze(texture2D(tScene, vUv - px).rgb);
+    vec3 m = hlSqueeze(c);
+    vec3 lo = min(m, min(a, b));
+    vec3 hi = max(m, max(a, b));
+    // Less where the edge is already hard.
+    vec3 amt = clamp(min(lo, 1.0 - hi) / max(hi, 1e-3), 0.0, 1.0);
+    vec3 sharp = m + (m - 0.5 * (a + b)) * uSharpen * 1.5 * sqrt(amt);
+    c = hlUnsqueeze(clamp(sharp, lo, hi));
+  }
+#endif
+  c = c + texture2D(tBloom, vUv).rgb * uBloom;
+  if (uShafts > 0.0) c += texture2D(tShafts, vUv).rgb * uShaftColor * uShafts;
   c *= uExposure * uTint;
   // Fades go through the light (a chapter dissolving into fog), before tone mapping.
   c = mix(c, uFadeColor, uFade);
@@ -153,6 +208,11 @@ export class Post {
   readonly fadeColor = new Color(0, 0, 0);
   /** Draw calls and triangles of the last scene pass (for checking the budget). */
   readonly stats = { calls: 0, triangles: 0 };
+  /**
+   * The low sun's shafts: where it is on the screen (0–1, may be off it), their colour and how
+   * strong (0 skips the pass altogether).
+   */
+  readonly sun = { screen: new Vector2(0.5, 0.5), color: new Color(1, 0.7, 0.4), strength: 0 };
 
   private readonly target: WebGLRenderTarget;
   private readonly mips: WebGLRenderTarget[] = [];
@@ -161,11 +221,13 @@ export class Post {
   private readonly down: ShaderMaterial;
   private readonly up: ShaderMaterial;
   private readonly composite: ShaderMaterial;
+  private readonly shafts: ShaderMaterial | null = null;
+  private readonly shaftTarget: WebGLRenderTarget | null = null;
   private readonly size = new Vector2();
 
   constructor(
     private readonly renderer: WebGLRenderer,
-    private readonly options: { samples: number; levels: number },
+    private readonly options: { samples: number; levels: number; sharpen?: number; shafts?: boolean },
   ) {
     this.target = new WebGLRenderTarget(1, 1, {
       type: HalfFloatType,
@@ -222,10 +284,32 @@ export class Post {
         uRes: { value: new Vector2(1, 1) },
         uFade: { value: 0 },
         uFadeColor: { value: new Vector3() },
+        uSharpen: { value: options.sharpen ?? 0 },
+        tShafts: { value: null },
+        uShafts: { value: 0 },
+        uShaftColor: { value: new Vector3(1, 1, 1) },
       },
+      defines: options.sharpen ? { HL_SHARPEN: 1 } : {},
       depthTest: false,
       depthWrite: false,
     });
+    if (options.shafts) {
+      this.shaftTarget = new WebGLRenderTarget(1, 1, {
+        type: HalfFloatType,
+        minFilter: LinearFilter,
+        magFilter: LinearFilter,
+        depthBuffer: false,
+      });
+      this.shafts = new ShaderMaterial({
+        vertexShader: VERT,
+        fragmentShader: SHAFTS,
+        uniforms: { tScene: { value: this.target.texture }, uSun: { value: this.sun.screen }, uAspect: { value: 1 } },
+        blending: NoBlending,
+        depthTest: false,
+        depthWrite: false,
+      });
+      this.composite.uniforms.tShafts!.value = this.shaftTarget.texture;
+    }
     this.quad = new Mesh(new PlaneGeometry(2, 2), this.composite);
     this.quad.frustumCulled = false;
   }
@@ -248,6 +332,7 @@ export class Post {
       mh = Math.max(1, Math.floor(mh / 2));
       m.setSize(mw, mh);
     }
+    this.shaftTarget?.setSize(Math.max(1, Math.floor(w / 4)), Math.max(1, Math.floor(h / 4)));
   }
 
   render(scene: Scene, camera: Camera, time: number) {
@@ -287,8 +372,19 @@ export class Post {
     }
     r.autoClear = auto;
 
+    // The sun's shafts, a quarter the size (they're soft), only while there's a sun to see.
+    const shafting = !!(this.shafts && this.shaftTarget && this.sun.strength > 0.01);
+    if (shafting) {
+      (this.shafts as ShaderMaterial).uniforms.uAspect!.value = this.target.width / this.target.height;
+      this.quad.material = this.shafts as ShaderMaterial;
+      r.setRenderTarget(this.shaftTarget);
+      r.render(this.quad, this.cam);
+    }
+
     const g = this.grade;
     const u = this.composite.uniforms;
+    u.uShafts!.value = shafting ? this.sun.strength : 0;
+    (u.uShaftColor!.value as Vector3).set(this.sun.color.r, this.sun.color.g, this.sun.color.b);
     u.tBloom!.value = (this.mips[0] as WebGLRenderTarget).texture;
     u.uBloom!.value = g.bloom;
     u.uExposure!.value = g.exposure;
@@ -314,6 +410,8 @@ export class Post {
     this.down.dispose();
     this.up.dispose();
     this.composite.dispose();
+    this.shafts?.dispose();
+    this.shaftTarget?.dispose();
     this.quad.geometry.dispose();
   }
 }

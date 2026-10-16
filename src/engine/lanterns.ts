@@ -211,6 +211,7 @@ export class LanternField {
     return this.specs.map((s) => ({
       x: s.position.x,
       z: s.position.z,
+      y: s.position.y,
       radius,
       color: new Color(1, 0.18, 0.08),
       intensity: gain,
@@ -257,7 +258,7 @@ export function stringLights(
   const lights: GlowLight[] = [];
   bulbs.forEach((b, i) => {
     if (i % every === 0)
-      lights.push({ x: b.x, z: b.z, radius: options.glowRadius ?? 1.2, color: options.color, intensity: options.glowIntensity ?? 0.15, flicker: options.flicker ?? 0, phase: Math.random() });
+      lights.push({ x: b.x, z: b.z, y: b.y, radius: options.glowRadius ?? 1.2, color: options.color, intensity: options.glowIntensity ?? 0.15, flicker: options.flicker ?? 0, phase: Math.random() });
   });
   return { mesh, lights, bulbs };
 }

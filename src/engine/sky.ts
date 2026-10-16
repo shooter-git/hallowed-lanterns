@@ -30,6 +30,15 @@ export interface SkyState {
    * faint band (0, the default, is just those).
    */
   milkyWay: number;
+  /**
+   * Cloud cover (0 clear – 1 nearly overcast): long drifting banks, lit by the sun's glow on the
+   * side toward it, by the sky around them, and from below by the farm's lights.
+   */
+  clouds: number;
+  /** The moon (0 none, 1 full and bright): a disc, a soft halo, the sky lightened toward it. */
+  moon: number;
+  /** Direction toward the moon. */
+  moonDir: Vector3;
 }
 
 export function skyState(partial: Partial<SkyState> = {}): SkyState {
@@ -42,6 +51,9 @@ export function skyState(partial: Partial<SkyState> = {}): SkyState {
     stars: 1,
     lightPollution: new Color(0.02, 0.012, 0.008),
     milkyWay: 0,
+    clouds: 0,
+    moon: 0,
+    moonDir: new Vector3(0.45, 0.32, -0.83).normalize(),
     ...partial,
   };
 }
@@ -55,6 +67,9 @@ export function lerpSky(out: SkyState, a: SkyState, b: SkyState, t: number) {
   out.stars = a.stars + (b.stars - a.stars) * t;
   out.lightPollution.copy(a.lightPollution).lerp(b.lightPollution, t);
   out.milkyWay = a.milkyWay + (b.milkyWay - a.milkyWay) * t;
+  out.clouds = a.clouds + (b.clouds - a.clouds) * t;
+  out.moon = a.moon + (b.moon - a.moon) * t;
+  out.moonDir.copy(a.moonDir).lerp(b.moonDir, t).normalize();
 }
 
 /**
@@ -88,6 +103,9 @@ export class Sky {
         uStars: { value: 1 },
         uPollution: { value: this.state.lightPollution },
         uHeavens: { value: 0 },
+        uClouds: { value: 0 },
+        uMoon: { value: 0 },
+        uMoonDir: { value: this.state.moonDir },
         uDetail: { value: 1 },
         uPixelRatio: { value: 1 },
         uGalCentre: { value: GALAXY_CENTRE },
@@ -95,6 +113,7 @@ export class Sky {
         uGalSide: { value: GALAXY_SIDE },
         uFogColor: shared.uFogColor,
         uTime: shared.uHlTime,
+        uHlNoise: shared.uHlNoise,
       },
       vertexShader: /* glsl */ `
         varying vec3 vDir;
@@ -112,6 +131,9 @@ export class Sky {
         uniform float uStars;
         uniform vec3 uPollution;
         uniform float uHeavens;
+        uniform float uClouds;
+        uniform float uMoon;
+        uniform vec3 uMoonDir;
         uniform float uDetail;
         uniform float uPixelRatio;
         uniform vec3 uGalCentre;
@@ -287,6 +309,32 @@ export class Sky {
           }
           return col;
         }
+        // Clouds: a layer some way up, seen in perspective (broad overhead, crowding into thin
+        // streaks toward the horizon), in long banks that drift slowly. Returns the cloud's colour
+        // and how much of the sky behind it it hides.
+        vec4 hlCloudLayer(vec3 d, float h, vec3 behind) {
+          vec2 p = d.xz / (h + 0.07) * 0.75 + vec2(uTime * 0.006, uTime * 0.0022);
+          // Banks stretched across the wind.
+          vec2 q = vec2(p.x * 0.5 + p.y * 0.18, p.y * 1.35 - p.x * 0.1);
+          float warp = uDetail > 0.5 ? hlFbmT(q * 0.55 + vec2(3.1, 7.7)) : 0.47;
+          float n = hlFbmT(q + warp * 1.4);
+          float t0 = mix(0.6, 0.3, uClouds);
+          float dens = smoothstep(t0, t0 + 0.2, n);
+          if (dens <= 0.0) return vec4(0.0);
+          // Far off, the layer thins into the haze over the horizon.
+          float far = smoothstep(0.0, 0.16, h);
+          // Lit by the sun on its side of the sky (brightest, and thinnest-edged, right by it),
+          // tinted by the sky around it, and faintly from below by whatever glows on the ground.
+          float mu = max(dot(d, uSunDir), 0.0);
+          float toward = pow(mu, 5.0);
+          float rim = (1.0 - dens) * pow(mu, 14.0);
+          vec3 sun = uSunColor * uSunGlow * (0.22 + 0.5 * pow(mu, 1.5) + 1.6 * toward + 3.0 * rim);
+          vec3 sky = mix(behind, mix(uHorizon, uZenith, 0.55), 0.4) * 0.65;
+          vec3 below = uPollution * 2.2 + uFogColor * 0.6;
+          // Thick middles are darker underneath.
+          vec3 col = (sun + sky + below) * mix(1.0, 0.55, dens * dens);
+          return vec4(col, dens * far * 0.92);
+        }
         void main() {
           vec3 d = normalize(vDir);
           float h = clamp(d.y, -1.0, 1.0);
@@ -295,8 +343,31 @@ export class Sky {
           // Gradient: rapid change near the horizon, slow overhead.
           float t = pow(clamp(h, 0.0, 1.0), 0.45);
           vec3 col = mix(uHorizon, uZenith, t);
-          // The sun's glow: a tight bright halo and a wide warm wash along the horizon.
           float mu = max(dot(d, uSunDir), 0.0);
+          float glow = min(uSunGlow, 1.0);
+          if (glow > 0.001) {
+            // Around sunset the sky keeps its colour all the way up: gold at the horizon, rose,
+            // indigo, then the blue overhead (a straight mix of orange and blue goes grey). Toward
+            // the sun the gold climbs higher; opposite it, the pink band of the Belt of Venus rises
+            // over the blue-grey of the Earth's shadow.
+            float lw = dot(uHorizon, vec3(0.2126, 0.7152, 0.0722));
+            vec3 rose = vec3(0.92, 0.42, 0.55) * lw * 0.85;
+            vec3 indigo = mix(uZenith, vec3(0.3, 0.2, 0.48) * lw * 0.45, 0.55);
+            float hs = max(h, 0.0) * mix(1.0, 0.5, pow(mu, 2.0));
+            vec3 g = mix(uHorizon, rose, smoothstep(0.0, 0.17, hs));
+            g = mix(g, indigo, smoothstep(0.1, 0.42, hs));
+            g = mix(g, uZenith, smoothstep(0.38, 0.95, hs));
+            col = mix(col, g, glow);
+            float side = dot(normalize(d.xz + vec2(1e-5)), normalize(uSunDir.xz + vec2(1e-5)));
+            float away = smoothstep(0.3, -0.7, side);
+            float bh = (h - 0.13) / 0.08;
+            float belt = exp(-bh * bh);
+            col += vec3(0.42, 0.16, 0.24) * lw * belt * away * 0.5 * glow;
+            col = mix(col, uZenith * 1.6 + uHorizon * 0.08, smoothstep(0.07, 0.0, h) * away * 0.6 * glow);
+            // The sun itself, just above the horizon: a disc too bright to look at.
+            col += uSunColor * smoothstep(0.99965, 0.99985, dot(d, uSunDir)) * 40.0 * glow * smoothstep(-0.01, 0.01, uSunDir.y);
+          }
+          // The sun's glow: a tight bright halo and a wide warm wash along the horizon.
           float horizonBand = exp(-abs(h) * 6.0);
           col += uSunColor * (pow(mu, 600.0) * 30.0 + pow(mu, 24.0) * 1.2 + pow(mu, 3.0) * 0.35) * uSunGlow;
           col += uSunColor * horizonBand * pow(mu, 1.5) * 0.5 * uSunGlow;
@@ -323,9 +394,35 @@ export class Sky {
             col += vec3(0.6, 0.65, 0.8) * band * hlFbm(sp * 0.05) * 0.012 * uStars * plain;
           }
           if (uHeavens > 0.001 && h > -0.05) col += hlHeavens(d, h, px) * uHeavens;
+          // The moon: a disc a little larger than the eye sees it (as a camera shows it), dimmer
+          // toward its rim, its seas faint darker patches, in a soft halo that lightens the sky
+          // around it (and hides the faint stars there). Behind any cloud.
+          if (uMoon > 0.001) {
+            float md = dot(d, uMoonDir);
+            float toward = max(md, 0.0);
+            col += vec3(0.5, 0.58, 0.78) * (0.006 * pow(toward, 8.0) + 0.02 * pow(toward, 90.0) + 0.08 * pow(toward, 1400.0)) * uMoon;
+            const float R = 0.0105;
+            float ang = acos(clamp(md, -1.0, 1.0));
+            if (ang < R * 1.5) {
+              vec3 mx = normalize(cross(uMoonDir, vec3(0.0, 1.0, 0.0)));
+              vec3 my = cross(mx, uMoonDir);
+              vec2 q = vec2(dot(d, mx), dot(d, my)) / R;
+              float r = length(q);
+              float disc = smoothstep(1.0 + px / R, 1.0 - px / R, r);
+              float seas = hlFbmT(q * 1.3 + vec2(7.3, 2.1));
+              float lit = (0.72 + 0.28 * sqrt(max(1.0 - r * r, 0.0))) * (1.0 - 0.4 * smoothstep(0.46, 0.62, seas));
+              col = mix(col, vec3(1.0, 0.97, 0.9) * lit * 2.4 * uMoon, disc);
+            }
+          }
+          if (uClouds > 0.001 && h > 0.0) {
+            vec4 cl = hlCloudLayer(d, h, col);
+            col = mix(col, cl.rgb, cl.a);
+          }
           // Below the horizon, and near it, the air is the fog.
           col = mix(col, uFogColor, smoothstep(0.08, -0.04, h));
-          gl_FragColor = vec4(col, 1.0);
+          // Alpha 0 marks open sky in the picture (everything else draws 1 over it): the sun's
+          // shafts shine only through it (see Post).
+          gl_FragColor = vec4(col, 0.0);
         }`,
       side: BackSide,
       depthWrite: false,
@@ -344,6 +441,11 @@ export class Sky {
     u.uSunGlow!.value = this.state.sunGlow;
     u.uStars!.value = this.state.stars;
     u.uHeavens!.value = this.state.milkyWay;
+    u.uClouds!.value = this.state.clouds;
+    u.uMoon!.value = this.state.moon;
+    // The air toward the sun glows with it (see hlApplyFog).
+    shared.uFogSun.value.copy(this.state.sunColor).multiplyScalar(Math.min(1, this.state.sunGlow) * Math.max(0, Math.min(1, this.state.sunDir.y * 8 + 1)));
+    shared.uFogSunDir.value.copy(this.state.sunDir);
     u.uDetail!.value = this.tier === 'low' ? 0 : this.tier === 'mid' ? 1 : 2;
   }
 
@@ -374,6 +476,7 @@ export function treeLine(options: {
       uHeight: { value: options.height },
       uSeed: { value: options.seed ?? 1 },
       uFogColor: shared.uFogColor,
+      uHlNoise: shared.uHlNoise,
     },
     vertexShader: /* glsl */ `
       varying vec2 vUv;
@@ -396,7 +499,7 @@ export function treeLine(options: {
         float x = vUv.x * 160.0 + uSeed * 17.0;
         // Crowns of different heights, with leafy noise on their edges.
         float crowns = 0.55 + 0.3 * hlNoise(vec2(x * 0.18, uSeed)) + 0.15 * hlNoise(vec2(x * 0.6, uSeed + 3.0));
-        float leafy = hlFbm(vec2(x * 2.5, vY * 0.9)) * 0.22;
+        float leafy = hlFbmT(vec2(x * 2.5, vY * 0.9)) * 0.22;
         float top = (crowns + leafy - 0.1) * uHeight;
         if (vY > top) discard;
         float depth = clamp(vY / max(top, 0.01), 0.0, 1.0);

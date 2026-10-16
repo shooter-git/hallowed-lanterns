@@ -2,6 +2,7 @@ import type { Portal } from '@allthespaces/portal';
 import type { PerspectiveCamera, Ray, Scene, Texture, WebGLRenderer } from 'three';
 import type { AudioDirector } from '../engine/audio.ts';
 import type { Ember } from '../engine/ember.ts';
+import type { GlimmerOptions } from '../engine/glimmers.ts';
 import type { GlowField } from '../engine/glowfield.ts';
 import type { LightPool } from '../engine/lights.ts';
 import type { Post } from '../engine/post.ts';
@@ -44,8 +45,17 @@ export interface Chapter {
   readonly path: Path;
   /** Which way you face when you arrive (radians); along the path if left out. */
   readonly startYaw?: number;
+  /**
+   * The view behind the opening title (the first chapter only): which way you look and how far
+   * up, before the view turns to `startYaw` as the walk begins. `leftOf`, if given, is a heading
+   * kept just out of sight past the left edge, however wide the screen (the view turns right
+   * from `yaw` as far as it needs to).
+   */
+  readonly titleView?: { yaw: number; pitch: number; leftOf?: number };
   /** The lie of the land (gentle rises and dips); flat if left out. */
   readonly terrain?: Terrain;
+  /** Little lights in the air all around (sparks, glitter, plankton), if any. */
+  readonly glimmers?: GlimmerOptions;
   /** Music and ambience keys in the audio manifest. */
   readonly music: string;
   readonly ambience: string;

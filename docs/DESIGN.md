@@ -20,11 +20,26 @@ on a tablet and on a laptop, with touch or with mouse and keyboard. The top-left
 - **One renderer, chapters as modules.** `src/chapters/<id>.ts` each build their own scene and are
   code-split, so only the chapter you're in (and the next one, preloaded while you walk) is in memory.
 - **HDR pipeline** (`src/engine/post.ts`): the scene renders to a half-float target, then mip-chain
-  bloom, per-chapter colour grade, AgX tone mapping, vignette and fine grain, all in about 12 cheap
-  full-screen passes.
+  bloom, per-chapter colour grade, AgX tone mapping, contrast-adaptive sharpening (the high
+  tier), vignette and fine grain, all in about 12 cheap full-screen passes. While a low sun is in
+  view (the Arbor at sunset) one more quarter-size pass draws its shafts through the gaps in the
+  pergola and the trees: the sky writes alpha 0, so the march only gathers open sky.
 - **Hundreds of lights for the price of a few:** a top-down *glow field* (`src/engine/glowfield.ts`)
-  accumulates every lantern's light into a small texture each frame. The ground, the fog and the
-  foliage sample it, and a small pool of real point lights follows the lanterns nearest you.
+  accumulates every lantern's light into a small texture each frame, and in its alpha each light's
+  height weighted by its brightness, so a surface gets less of the light the further above or below
+  it is (the lights in the grass don't light the treetops). The ground, the fog and the foliage
+  sample it, and a small pool of real point lights follows the lanterns nearest you.
+- **The sky** (`src/engine/sky.ts`): a sunset that keeps its colour from gold through rose and indigo
+  to the blue overhead, the Belt of Venus opposite the sun, drifting banks of cloud lit by the sun
+  and from below by the farm, stars or the whole Milky Way, and a moon (a disc with faint seas in a
+  soft halo that lightens the sky around it: the Pasture's). Toward a low sun the haze glows gold.
+- **Noise baked once:** the surfaces that cover most of the screen (the ground, the fog's stacked
+  layers, the pumpkins' skins, the clouds, the far tree line) read their noise from a small tiling
+  texture made at load time (`src/engine/noisetex.ts`, `hlFbmT`) instead of working out sixteen
+  hashes a pixel every frame.
+- **Glimmers** (`src/engine/glimmers.ts`): sparks, glitter or plankton in the air around
+  you, one draw call per chapter, every one of them moved in the shader. In the Deep, soft shafts
+  of light slant down through the water the same way (`src/engine/beams.ts`).
 - **Carved lanterns** are instanced: one draw call for hundreds of pumpkins. A shader cuts the
   carving from an atlas of designs (faces, candles, stars, moons, owls) drawn at load time, lights
   the inner flesh, and lets candle light glow through the thin skin around each cut.

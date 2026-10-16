@@ -223,7 +223,12 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       g.traverse((o) => {
         const mesh = o as Mesh;
         if (mesh.isMesh) {
-          const mat = (mesh.material as MeshStandardMaterial).clone();
+          const from = mesh.material as MeshStandardMaterial;
+          const mat = from.clone();
+          // clone() leaves out the shader patch (hallow()) that stands a model on the ground and
+          // lights and fogs it: without it they sat half sunk in the rise under the stage.
+          mat.onBeforeCompile = from.onBeforeCompile;
+          mat.customProgramCacheKey = from.customProgramCacheKey;
           mat.color.copy(gummyColors[i] as Color);
           mesh.material = mat;
         }
@@ -331,12 +336,13 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   // Coloured uplights: violet on the oak, magenta and amber on the candy, blue in the woods.
   const glowLights: GlowLight[] = [...pumpkins.glowLights(1.6, 0.35), ...handleLights.lights, ...theWeb.glow, ...theTrap.glow];
-  const wash = (x: number, z: number, c: Color, r: number, i: number) => glowLights.push({ x: STAGE.x + x, z: STAGE.z + z, radius: r, color: c, intensity: i, flicker: 0 });
-  wash(0.4, -2.2, new Color(0.45, 0.2, 1), 5, 0.7);
-  wash(-5.5, -1, new Color(1, 0.2, 0.7), 4, 0.5);
-  wash(5.5, -1, new Color(1, 0.35, 0.6), 4, 0.5);
-  wash(0, 2.5, new Color(1, 0.7, 0.4), 4, 0.45);
-  for (let i = 0; i < 10; i++) wash((rnd() - 0.5) * 30, -6 - rnd() * 14, new Color(0.15, 0.3, 1), 5, 0.4);
+  // (each at the height of what it washes: the oak's crown, the candy, the trees)
+  const wash = (x: number, z: number, c: Color, r: number, i: number, y: number) => glowLights.push({ x: STAGE.x + x, z: STAGE.z + z, y, radius: r, color: c, intensity: i, flicker: 0 });
+  wash(0.4, -2.2, new Color(0.45, 0.2, 1), 6.5, 1.0, 6.5);
+  wash(-5.5, -1, new Color(1, 0.2, 0.7), 4, 0.5, 1);
+  wash(5.5, -1, new Color(1, 0.35, 0.6), 4, 0.5, 1);
+  wash(0, 2.5, new Color(1, 0.7, 0.4), 4, 0.45, 1.2);
+  for (let i = 0; i < 10; i++) wash((rnd() - 0.5) * 30, -6 - rnd() * 14, new Color(0.15, 0.3, 1), 5, 0.4, 3);
   const sources: LightSource[] = [
     ...theWeb.sources,
     ...theTrap.sources,
@@ -350,8 +356,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const sprinkles = new Burst(tier === 'low' ? 300 : 700);
   scene.add(sprinkles.mesh);
 
-  const night = skyState({ zenith: new Color(0.004, 0.008, 0.04), horizon: new Color(0.02, 0.03, 0.09), stars: 0.9 });
-  const grade: Grade = { ...defaultGrade(), exposure: 1.1, bloom: 0.1, saturation: 1.38, power: 1.08, tint: new Color(1.0, 0.98, 1.04), lift: new Color(0.008, 0.004, 0.025) };
+  const night = skyState({ zenith: new Color(0.004, 0.008, 0.04), horizon: new Color(0.02, 0.03, 0.09), stars: 0.9, clouds: 0.3 });
+  const grade: Grade = { ...defaultGrade(), exposure: 1.24, bloom: 0.11, saturation: 1.38, power: 1.16, tint: new Color(1.0, 0.98, 1.04), lift: new Color(0.008, 0.004, 0.025) };
 
   let time = 0;
   const played: number[] = [];
@@ -370,6 +376,21 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     music: 'hollow',
     ambience: 'hollow',
     steps: 'step-gravel', // a gravel path between the leaves
+    // Glitter in the violet light, twinkling pink, blue, gold and violet.
+    glimmers: {
+      count: 260,
+      box: 26,
+      height: [0.2, 4.5],
+      colors: [
+        new Color(1, 0.4, 0.85).multiplyScalar(3),
+        new Color(0.4, 0.9, 1).multiplyScalar(3),
+        new Color(1, 0.85, 0.4).multiplyScalar(3),
+        new Color(0.7, 0.45, 1).multiplyScalar(3),
+      ],
+      size: 0.018,
+      style: 'glitter',
+      drift: [0.03, 0.02, 0.03],
+    },
 
     enter() {
       ctx.glow.setBounds(...bounds);

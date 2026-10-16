@@ -298,7 +298,7 @@ export async function pictureShow(ctx: ChapterContext, at: Vector3, yaw: number)
       ...globes.lights,
       ...blues.lights,
       ...leds.lights,
-      { x: screenCentre.x, z: screenCentre.z + 0, radius: 9, color: new Color(1, 0.85, 0.6), intensity: 0.25, flicker: 0.3 },
+      { x: screenCentre.x, z: screenCentre.z + 0, y: screenCentre.y, radius: 9, color: new Color(1, 0.85, 0.6), intensity: 0.25, flicker: 0.3 },
     ],
     sources: [{ position: toWorld(new Vector3(0, 2, 4)), color: new Color(1, 0.88, 0.7), intensity: 3, distance: 12 }],
     update(dt) {

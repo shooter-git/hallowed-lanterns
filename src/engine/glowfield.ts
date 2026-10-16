@@ -34,12 +34,21 @@ export interface GlowLight {
   flicker?: number;
   /** Order in which a "wave" lights it (see `wave`); leave out to be always on. */
   seq?: number;
+  /**
+   * How high it hangs above the ground (m): surfaces well above or below it get less of its
+   * light (a string of lights in the grass doesn't light the treetops). 1.5 if left out.
+   */
+  y?: number;
 }
 
+/** Height of a glow light that doesn't say. */
+const DEFAULT_Y = 1.5;
+
 /**
- * Lantern light pooled into a top-down texture each frame: every light is a soft additive splat.
- * Every material samples it (see `hlGlow`), so hundreds of lanterns light the ground, the fog and
- * each other for the cost of one draw call.
+ * Lantern light pooled into a top-down texture each frame: every light is a soft additive splat,
+ * and the alpha gathers how high the light at each spot hangs. Every material samples it (see
+ * `hlGlow`), so hundreds of lanterns light the ground, the fog and each other for the cost of one
+ * draw call.
  */
 export class GlowField {
   /** Lights whose `seq` is below this are on (fading in over `waveSoftness`). */
@@ -72,7 +81,7 @@ export class GlowField {
         uWaveSoft: { value: 2 },
       },
       vertexShader: /* glsl */ `
-        attribute vec3 aLight;   // x, z, radius
+        attribute vec4 aLight;   // x, z, radius, height
         attribute vec4 aColor;   // rgb * intensity, phase
         attribute vec3 aMore;    // flicker, seq, level
         uniform vec4 uBounds;
@@ -81,12 +90,14 @@ export class GlowField {
         uniform float uWaveSoft;
         varying vec2 vC;
         varying vec3 vCol;
+        varying float vY;
         ${NOISE}
         void main() {
           vec2 c = aLight.xy + position.xy * aLight.z;
           vec2 uv = (c - uBounds.xy) / uBounds.zw;
           gl_Position = vec4(uv * 2.0 - 1.0, 0.0, 1.0);
           vC = position.xy;
+          vY = aLight.w;
           float on = clamp((uWave - aMore.y) / uWaveSoft, 0.0, 1.0);
           float fl = mix(1.0, hlFlicker(uTime, aColor.w), aMore.x);
           vCol = aColor.rgb * fl * on * aMore.z;
@@ -94,12 +105,15 @@ export class GlowField {
       fragmentShader: /* glsl */ `
         varying vec2 vC;
         varying vec3 vCol;
+        varying float vY;
         void main() {
           float d = dot(vC, vC);
           float a = max(0.0, 1.0 - d);
           // Soft edge, bright core: roughly inverse-square near the light, smooth to zero at the edge.
           a = a * a / (1.0 + 10.0 * d);
-          gl_FragColor = vec4(vCol * a, 1.0);
+          vec3 c = vCol * a;
+          // Alpha gathers each light's height, weighted by its brightness (hlGlow divides it out).
+          gl_FragColor = vec4(c, dot(c, vec3(0.2126, 0.7152, 0.0722)) * vY);
         }`,
       blending: CustomBlending,
       blendEquation: AddEquation,
@@ -126,18 +140,18 @@ export class GlowField {
     const plane = new PlaneGeometry(2, 2);
     geo.index = plane.index;
     geo.setAttribute('position', plane.getAttribute('position'));
-    const light = new Float32Array(lights.length * 3);
+    const light = new Float32Array(lights.length * 4);
     const color = new Float32Array(lights.length * 4);
     const more = new Float32Array(lights.length * 3);
     lights.forEach((l, i) => {
-      light.set([l.x, l.z, l.radius], i * 3);
+      light.set([l.x, l.z, l.radius, l.y ?? DEFAULT_Y], i * 4);
       color.set(
         [l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, l.phase ?? 0],
         i * 4,
       );
       more.set([l.flicker ?? 0, l.seq ?? -1e9, 1], i * 3);
     });
-    geo.setAttribute('aLight', new InstancedBufferAttribute(light, 3));
+    geo.setAttribute('aLight', new InstancedBufferAttribute(light, 4));
     geo.setAttribute('aColor', new InstancedBufferAttribute(color, 4));
     this.levels = new InstancedBufferAttribute(more, 3);
     this.levels.setUsage(DynamicDrawUsage);
@@ -155,7 +169,7 @@ export class GlowField {
       geo.index = plane.index;
       geo.setAttribute('position', plane.getAttribute('position'));
       for (const [name, size] of [
-        ['aLight', 3],
+        ['aLight', 4],
         ['aColor', 4],
         ['aMore', 3],
       ] as const) {
@@ -174,7 +188,7 @@ export class GlowField {
     const n = Math.min(16, this.moving.length);
     for (let i = 0; i < n; i++) {
       const l = this.moving[i] as GlowLight;
-      light.setXYZ(i, l.x, l.z, l.radius);
+      light.setXYZW(i, l.x, l.z, l.radius, l.y ?? DEFAULT_Y);
       color.setXYZW(i, l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, l.phase ?? 0);
       more.setXYZ(i, l.flicker ?? 0, l.seq ?? -1e9, 1);
     }
@@ -194,8 +208,9 @@ export class GlowField {
     this.material.uniforms.uWaveSoft!.value = this.waveSoftness;
     const prev = renderer.getRenderTarget();
     renderer.setRenderTarget(this.target);
-    renderer.setClearColor(0x000000, 1);
+    renderer.setClearColor(0x000000, 0);
     renderer.clear(true, false, false);
+    renderer.setClearColor(0x000000, 1);
     this.uploadMoving();
     if (this.count || this.moving.length) renderer.render(this.scene, this.camera);
     renderer.setRenderTarget(prev);

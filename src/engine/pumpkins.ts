@@ -182,7 +182,7 @@ const PUMPKIN_COLOR = /* glsl */ `
 {
   // Skin: deeper and a little greener in the grooves, mottled, with faint streaks along the ribs.
   float ang = atan(vLocal.z, vLocal.x);
-  float mott = hlFbm(vLocal.xy * 9.0 + vLocal.z * 5.0);
+  float mott = hlFbmT(vLocal.xy * 9.0 + vLocal.z * 5.0);
   float streak = hlNoise(vec2(ang * 28.0, vLocal.y * 2.0));
   vec3 skin = vSkin * (0.82 + 0.3 * mott) * (0.92 + 0.12 * streak);
   skin = mix(skin, skin * vec3(0.42, 0.3, 0.16), clamp(vRib * 1.5, 0.0, 1.0));
@@ -489,6 +489,7 @@ export class PumpkinField {
         intensity: gain / Math.max(1, s.glow.r),
         phase,
         flicker: 1,
+        y: s.position.y,
         ...(s.seq !== undefined ? { seq: s.seq } : {}),
       });
     });

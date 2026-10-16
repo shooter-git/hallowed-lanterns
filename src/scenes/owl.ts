@@ -135,7 +135,7 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
     objects,
     glow: [
       ...pumpkins.glowLights(1.8, 0.2),
-      { x: centre.x, z: centre.z, radius: 6, color: new Color(0.3, 0.7, 0.9), intensity: 0.35, flicker: 0 },
+      { x: centre.x, z: centre.z, y: 2.2, radius: 6, color: new Color(0.3, 0.7, 0.9), intensity: 0.35, flicker: 0 },
     ],
     sources: [{ position: toWorld(new Vector3(0, 2.5, 3)), color: new Color(0.45, 0.8, 1), intensity: 5, distance: 9 }],
     update(dt, time) {

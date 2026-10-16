@@ -238,7 +238,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   // --- Glow field: every lantern and LED pools light on the gravel, the posts and the fog. ---
   const glowLights: GlowLight[] = pumpkins.glowLights(2.4, tier === 'low' ? 0.12 : 0.06);
   for (const l of ledPositions) {
-    glowLights.push({ x: l.p.x, z: l.p.z, radius: 0.6, color: l.c, intensity: 0.35, flicker: 0 });
+    glowLights.push({ x: l.p.x, z: l.p.z, y: l.p.y, radius: 0.6, color: l.c, intensity: 0.35, flicker: 0 });
   }
   glowLights.push(...entrance.glow);
 
@@ -251,10 +251,17 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   // Real woods along the left of the lane (behind the pumpkins, as in the photo) and behind the
   // hay-bale wall; the field stays open on the right.
   const woodAt: { x: number; z: number; scale: number; yaw: number }[] = [];
+  // None on the path where it turns off into them (one stood in the middle of it at the end).
+  const onPath = (x: number, z: number) => {
+    const n = path.nearest(new Vector2(x, z));
+    const c = path.points[n.index] as Vector2;
+    return Math.hypot(x - c.x, z - c.y) < n.width / 2 + 2.5;
+  };
   for (let z = 30; z > -66; z -= tier === 'low' ? 4.5 : 3.2) {
     for (let row = 0; row < (tier === 'low' ? 2 : 3); row++) {
       const x = -6.5 - row * 4.5 - rnd() * 2.5 + (z > 12 ? -6 : 0);
-      woodAt.push({ x, z: z + (rnd() - 0.5) * 2.5, scale: 0.85 + rnd() * 0.5, yaw: rnd() * 6.28 });
+      const tree = { x, z: z + (rnd() - 0.5) * 2.5, scale: 0.85 + rnd() * 0.5, yaw: rnd() * 6.28 };
+      if (!onPath(tree.x, tree.z)) woodAt.push(tree);
     }
   }
   const woods = forest(
@@ -281,13 +288,14 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   // Sunset at the entrance, dusk by the time you reach the trees.
   const sunset = skyState({
-    zenith: new Color(0.06, 0.09, 0.22),
-    horizon: new Color(0.95, 0.55, 0.32),
-    sunColor: new Color(1.0, 0.55, 0.25),
+    zenith: new Color(0.05, 0.08, 0.24),
+    horizon: new Color(1.0, 0.48, 0.2),
+    sunColor: new Color(1.0, 0.5, 0.2),
     sunDir: new Vector3(0.35, 0.03, -1).normalize(),
     sunGlow: 1.1,
     stars: 0,
     lightPollution: new Color(0.05, 0.03, 0.02),
+    clouds: 0.5,
   });
   const dusk = skyState({
     zenith: new Color(0.012, 0.02, 0.07),
@@ -297,26 +305,29 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     sunGlow: 0.35,
     stars: 0.35,
     lightPollution: new Color(0.03, 0.018, 0.012),
+    clouds: 0.42,
   });
   const gradeSunset: Grade = {
     ...defaultGrade(),
-    exposure: 0.95,
-    bloom: 0.085,
-    saturation: 1.18,
-    power: 1.18,
+    exposure: 1.0,
+    bloom: 0.1,
+    // AgX pales bright warm light: a richer look keeps the sunset's colour.
+    saturation: 1.36,
+    power: 1.3,
     tint: new Color(1.04, 0.98, 0.94),
     lift: new Color(0.004, 0.003, 0.009),
   };
   const gradeDusk: Grade = {
     ...defaultGrade(),
-    exposure: 1.25,
-    bloom: 0.09,
-    saturation: 1.15,
-    power: 1.16,
+    exposure: 1.3,
+    bloom: 0.11,
+    saturation: 1.26,
+    power: 1.26,
     tint: new Color(0.96, 0.97, 1.06),
     lift: new Color(0.003, 0.004, 0.012),
   };
-  const fogSunset = new Color(0.13, 0.08, 0.07);
+  // Cooler haze away from the sun; toward it the sky's own light warms it (see hlApplyFog).
+  const fogSunset = new Color(0.095, 0.07, 0.085);
   const fogDusk = new Color(0.035, 0.035, 0.06);
 
   // The lights that follow you.
@@ -342,6 +353,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     path,
     terrain,
     startYaw: Math.atan2(-(ENTRANCE.x - 1), -(ENTRANCE.z + 1.5 - 27.5)) - 0.12,
+    // Over the title: the sun going down over the field, the lane and its pergola off to the left,
+    // the hay-bale sign (which says the same as the title) just out of sight.
+    titleView: { yaw: -0.34, pitch: 0.09, leftOf: 0.2 },
     music: 'arbor',
     ambience: 'arbor',
     steps: 'step-gravel',
@@ -353,7 +367,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       ctx.glow.waveSoftness = 1.5;
       ctx.lights.sources = sources;
       ctx.ember.presence = 0;
-      shared.uFogDensity.value = 0.008;
+      // Clear evening air: the field keeps its shape out to the trees.
+      shared.uFogDensity.value = 0.0055;
       shared.uFogHeight.value = 5;
       shared.uFogGlow.value = 0.55;
       ctx.audio.preload('arbor', ['pumpkin-flare', 'ember-chime-arbor', 'step-gravel']);
@@ -380,7 +395,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       lerpGrade(ctx.post.grade, gradeSunset, gradeDusk, t);
       shared.uFogColor.value.copy(fogSunset).lerp(fogDusk, t);
       ctx.sky.mesh.material.uniforms.uSunColor!.value = ctx.sky.state.sunColor;
-      hemi.intensity = 0.5 * (1 - t) + 0.1 * t;
+      // Backlit by the low sun: the sky's fill is soft, so the land stays darker than the sunset.
+      hemi.intensity = 0.36 * (1 - t) + 0.1 * t;
       hemi.color.setRGB(1, 0.78 - 0.3 * t, 0.62 - 0.1 * t);
       sun.intensity = 1.0 * (1 - t) ** 2;
       sun.position.copy(ctx.sky.state.sunDir).multiplyScalar(50).add(ctx.camera.position);

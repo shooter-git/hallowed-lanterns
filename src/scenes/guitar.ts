@@ -133,7 +133,7 @@ export async function guitar(ctx: ChapterContext, at: Vector3, yaw: number): Pro
   const centre = toWorld(new Vector3(0, 0, 0.5));
   const glow: GlowLight[] = [
     ...pumpkins.glowLights(1.5, 0.14),
-    { x: centre.x, z: centre.z, radius: 7, color: new Color(0.25, 1, 0.35), intensity: 0.5, flicker: 0 },
+    { x: centre.x, z: centre.z, y: 2, radius: 7, color: new Color(0.25, 1, 0.35), intensity: 0.5, flicker: 0 },
   ];
   const played: number[] = [];
   // Strings, low to high: G D G B D E (the Marigold's G). The Ember's song (G E D B D) is strings 2 5 4 3 4.

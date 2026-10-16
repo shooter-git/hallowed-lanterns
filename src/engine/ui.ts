@@ -1,4 +1,4 @@
-import { SLIDER_DEFAULT } from './audio.ts';
+import { SOUND_DEFAULTS } from './audio.ts';
 
 /** The settings' two sound levels, 0-100 (SLIDER_DEFAULT is the mix as made). */
 export type SoundSettings = {
@@ -15,7 +15,25 @@ type ChapterEntry = { numeral: string; name: string; reached: boolean; go: () =>
  */
 const TITLE_HEADING = `
         <p class="hl-kicker">One October night at the pumpkin patch</p>
-        <h1>Hallowed Lanterns</h1>`;
+        <h1><span class="hl-name">Hallowed Lanterns</span><span class="hl-name-glow" aria-hidden="true">Hallowed Lanterns</span></h1>
+        <div class="hl-flourish" aria-hidden="true"><i></i><span class="hl-flame"></span><i></i></div>`;
+
+/**
+ * A few sparks drifting up through the title, as off a bonfire: each a soft dot on its own slow
+ * path (transform and opacity only, so the browser moves them without redrawing anything).
+ */
+function embers(count: number): string {
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    const x = (5 + ((i * 61) % 90) + Math.random() * 6).toFixed(1);
+    const drift = ((Math.random() - 0.5) * 18).toFixed(1);
+    const size = (2 + Math.random() * 2.6).toFixed(1);
+    const dur = (9 + Math.random() * 9).toFixed(1);
+    const delay = (-Math.random() * 18).toFixed(1);
+    html += `<i style="--x:${x}%;--drift:${drift}vw;--size:${size}px;--dur:${dur}s;--delay:${delay}s"></i>`;
+  }
+  return `<div class="hl-embers" aria-hidden="true">${html}</div>`;
+}
 
 export class UI {
   readonly root = document.createElement('div');
@@ -31,7 +49,7 @@ export class UI {
   private idleWatched = false;
   private readonly menu = document.createElement('div');
   private chapters: ChapterEntry[] = [];
-  private sound: SoundSettings = { music: SLIDER_DEFAULT, sounds: SLIDER_DEFAULT };
+  private sound: SoundSettings = { ...SOUND_DEFAULTS };
   private soundChanged: ((v: SoundSettings, done: boolean) => void) | null = null;
   private settingsOpen = false;
   private lineTimer = 0;
@@ -70,10 +88,20 @@ export class UI {
     // From the very first moment: the title on a solid night, while everything loads behind it.
     // Nothing is seen of the world until it has drawn itself a few times (showTitle lifts it).
     this.title.innerHTML = `
+      ${embers(16)}
       <div class="hl-title-inner">${TITLE_HEADING}
-        <p class="hl-loading">Lighting the lanterns…</p>
+        <div class="hl-actions">
+          <p class="hl-loading">Lighting the lanterns…</p>
+          <div class="hl-progress" aria-hidden="true"><i></i></div>
+        </div>
       </div>`;
     this.title.classList.add('hl-show', 'hl-cover');
+  }
+
+  /** How far loading has got (0–1), as a thin line of light filling under the title. */
+  loading(fraction: number) {
+    const bar = this.title.querySelector<HTMLElement>('.hl-progress i');
+    bar?.style.setProperty('transform', `scaleX(${Math.max(0, Math.min(1, fraction)).toFixed(3)})`);
   }
 
   /** Lifts the title away at once (when a developer starts partway in). */
@@ -87,14 +115,15 @@ export class UI {
    * plays while you look. Then a tap anywhere calls `onBegin` and resolves.
    */
   showTitle(options: { soundReady: boolean; onSound: () => void; onBegin: () => void }): Promise<void> {
-    const heading = TITLE_HEADING;
-    const ready = () => {
-      this.title.innerHTML = `
-      <div class="hl-title-inner">${heading}
-        <button type="button" class="hl-begin">Begin the walk</button>
-        <p class="hl-small">Best with headphones</p>
-      </div>`;
+    // The heading stays where it is; only what's under it changes.
+    const inner = (html: string) => {
+      const actions = this.title.querySelector('.hl-actions');
+      if (actions) actions.innerHTML = html;
     };
+    const ready = () =>
+      inner(`
+        <button type="button" class="hl-begin">Begin the walk</button>
+        <p class="hl-small">Best with headphones</p>`);
     // The night behind the title fades in under it.
     this.title.classList.add('hl-show');
     this.title.classList.remove('hl-cover');
@@ -105,11 +134,9 @@ export class UI {
         options.onSound();
         ready();
       } else {
-        this.title.innerHTML = `
-      <div class="hl-title-inner">${heading}
+        inner(`
         <button type="button" class="hl-begin hl-listen">Tap to hear the night</button>
-        <p class="hl-small">Sound on, best with headphones</p>
-      </div>`;
+        <p class="hl-small">Sound on, best with headphones</p>`);
       }
       // A tap anywhere on the title does it (the buttons are there to be found by keyboard too).
       const tap = () => {
@@ -297,7 +324,7 @@ export class UI {
       r.addEventListener('change', () => this.soundChanged?.({ ...this.sound }, true));
     }
     (panel.querySelector('.hl-reset') as HTMLButtonElement).addEventListener('click', () => {
-      this.sound = { music: SLIDER_DEFAULT, sounds: SLIDER_DEFAULT };
+      this.sound = { ...SOUND_DEFAULTS };
       show();
       this.soundChanged?.({ ...this.sound }, true);
     });
@@ -385,9 +412,11 @@ export class UI {
     const card = document.createElement('div');
     card.className = 'hl-title hl-show hl-ending';
     card.innerHTML = `
+      ${embers(12)}
       <div class="hl-title-inner">
         <p class="hl-kicker">and every light found its way home</p>
-        <h1>Hallowed Lanterns</h1>
+        <h1><span class="hl-name">Hallowed Lanterns</span><span class="hl-name-glow" aria-hidden="true">Hallowed Lanterns</span></h1>
+        <div class="hl-flourish" aria-hidden="true"><i></i><span class="hl-flame"></span><i></i></div>
         <p class="hl-small">Thank you for walking with us tonight.</p>
         <div class="hl-dialog-row" style="justify-content:center;margin-top:1.4em">
           <button type="button" class="hl-button hl-quiet" data-a="stay">Stay a while</button>

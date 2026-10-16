@@ -93,7 +93,7 @@ export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: nu
 
   // Orange glow pouring off the inflatables; blue light over the sea-floor leaves.
   const glow: GlowLight[] = [
-    ...[W(-0.5, -1.5), W(0.9, -2.6), W(-3.8, 0.4), W(4.6, -1.0), W(-2.5, -2.5)].map((p) => ({ x: p.x, z: p.z, radius: 5.5, color: new Color(1, 0.45, 0.08), intensity: 0.5, flicker: 0 })),
+    ...[W(-0.5, -1.5), W(0.9, -2.6), W(-3.8, 0.4), W(4.6, -1.0), W(-2.5, -2.5)].map((p) => ({ x: p.x, z: p.z, y: 1.5, radius: 5.5, color: new Color(1, 0.45, 0.08), intensity: 0.5, flicker: 0 })),
     ...[T(0, 1), W(0, 3)].map((p) => ({ x: p.x, z: p.z, radius: 5, color: new Color(0.2, 0.25, 1), intensity: 0.35, flicker: 0 })),
   ];
   const sources = [

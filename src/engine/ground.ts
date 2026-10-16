@@ -110,6 +110,29 @@ export class GroundMask {
   }
 }
 
+/** Ice crystals in the snow (see `sparkle`). */
+const SPARKLE: [string, string] = [
+  '#include <emissivemap_fragment>',
+  /* glsl */ `#include <emissivemap_fragment>
+  {
+    // One small cell in five holds a crystal whose facet catches the eye from some angles: it
+    // glints, then goes dark as you move. Close by only (far off they would only shimmer), and
+    // only as bright as the light around it.
+    // (Most of the ground is far off or holds no crystal: those pixels stop at once.)
+    float near = smoothstep(16.0, 4.0, distance(cameraPosition, vHlWorld));
+    vec2 cellP = vHlWorld.xz * 36.0;
+    vec2 h = hlHash22(floor(cellP));
+    if (near > 0.0 && h.x > 0.8) {
+      vec3 eye = normalize(cameraPosition - vHlWorld);
+      float facet = sin(dot(eye, vec3(23.0, 31.0, 19.0) * (0.6 + h.yxy)) + h.x * 60.0);
+      float glint = pow(max(facet, 0.0), 40.0);
+      float spot = smoothstep(0.3, 0.05, length(fract(cellP) - 0.5));
+      vec3 lit = hlGlow(vHlWorld) + vec3(0.12, 0.14, 0.2);
+      totalEmissiveRadiance += vec3(0.85, 0.92, 1.0) * lit * glint * spot * near * 6.0;
+    }
+  }`,
+];
+
 /**
  * The ground: two baked surfaces (say gravel and grass) blended by the mask, with large-scale
  * variation so the tiling never shows, lit by the glow field and fogged like everything else.
@@ -127,6 +150,8 @@ export function ground(options: {
   extent?: number;
   /** Overall brightness of the albedo (for wet or dusty looks). */
   tone?: number;
+  /** Ice crystals (snow): tiny glints that come and go as you move, wherever there's light. */
+  sparkle?: boolean;
 }): Mesh {
   const [minX, minZ, sx, sz] = options.mask.area;
   const extent = options.extent ?? 220;
@@ -139,7 +164,7 @@ export function ground(options: {
   skirtGeo.rotateX(-Math.PI / 2);
   skirtGeo.translate(minX + sx / 2, -0.12, minZ + sz / 2);
   const material = hallow(new MeshStandardMaterial({ roughness: 1, metalness: 0 }), {
-    key: 'ground',
+    key: options.sparkle ? 'ground-sparkle' : 'ground',
     glow: 1,
     uniforms: {
       tA: { value: options.a.albedo },
@@ -185,13 +210,14 @@ export function ground(options: {
           // Stones poke through at the path's edge rather than a soft smear.
           hlW = smoothstep(0.35, 0.65, m + (ha - 0.4) * 0.5 * (1.0 - abs(m * 2.0 - 1.0)));
           vec4 s = mix(b, a, hlW);
-          float macro = hlFbm(g * 0.08) * 0.5 + hlFbm(g * 0.6) * 0.5;
+          float macro = hlFbmT(g * 0.08) * 0.5 + hlFbmT(mat2(0.8, 0.6, -0.6, 0.8) * g * 0.6 + 3.7) * 0.5;
           diffuseColor.rgb *= s.rgb * (0.72 + 0.56 * macro) * uTone;
           hlRough = s.a;
         }
         `,
       ],
       ['#include <roughnessmap_fragment>', 'float roughnessFactor = hlRough;'],
+      ...(options.sparkle ? [SPARKLE] : []),
       [
         '#include <normal_fragment_maps>',
         /* glsl */ `

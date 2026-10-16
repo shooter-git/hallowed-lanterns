@@ -73,7 +73,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   mask.stroke(path.points.filter((_, i) => i % 4 === 0).map((p) => [p.x, p.y]), 2.2, 'r', 0.6);
   mask.soften(3);
   // Trodden snow on the path (a little darker), fresh snow everywhere else.
-  const floor = ground({ mask, a: ctx.surface('snow'), aScale: 1.8, b: ctx.surface('snow'), bScale: 3.1, tone: 0.85 });
+  const floor = ground({ mask, a: ctx.surface('snow'), aScale: 1.8, b: ctx.surface('snow'), bScale: 3.1, tone: 0.85, sparkle: true });
   scene.add(floor);
 
   // Snowy woods: pale, flocked canopies.
@@ -219,7 +219,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(breath.mesh);
 
   const glowLights: GlowLight[] = [...lights.lights];
-  for (const f of flakes) glowLights.push({ x: f.position.x, z: f.position.z, radius: 2.4, color: new Color(0.6, 0.8, 1), intensity: 0.12, flicker: 0 });
+  for (const f of flakes) glowLights.push({ x: f.position.x, z: f.position.z, y: f.position.y, radius: 2.4, color: new Color(0.6, 0.8, 1), intensity: 0.12, flicker: 0 });
   glowLights.push({ x: SNOWMAN.x, z: SNOWMAN.z + 1.5, radius: 4, color: new Color(1, 0.85, 0.6), intensity: 0.5, flicker: 0 });
   const sources: LightSource[] = [
     { position: SNOWMAN.clone().add(new Vector3(0, 2.4, 3)), color: new Color(1, 0.88, 0.7), intensity: 6, distance: 9 },
@@ -227,8 +227,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   ];
   scene.add(new HemisphereLight(0x5a6c96, 0x202630, 0.35));
 
-  const sky = skyState({ zenith: new Color(0.012, 0.016, 0.04), horizon: new Color(0.06, 0.07, 0.11), stars: 0.15 });
-  const grade: Grade = { ...defaultGrade(), exposure: 1.0, bloom: 0.1, saturation: 0.95, power: 1.05, tint: new Color(0.95, 0.99, 1.08), lift: new Color(0.012, 0.014, 0.025) };
+  // Snow cloud overhead, lit faintly from below by the farm's lights, a few stars in its gaps.
+  const sky = skyState({ zenith: new Color(0.012, 0.016, 0.04), horizon: new Color(0.06, 0.07, 0.11), stars: 0.15, clouds: 0.8, lightPollution: new Color(0.035, 0.03, 0.04) });
+  const grade: Grade = { ...defaultGrade(), exposure: 1.03, bloom: 0.11, saturation: 0.98, power: 1.1, tint: new Color(0.95, 0.99, 1.08), lift: new Color(0.009, 0.011, 0.02) };
 
   let time = 0;
   let toasted = false;

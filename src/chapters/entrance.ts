@@ -184,7 +184,7 @@ export function buildEntrance(ctx: ChapterContext, at: Vector3, yaw: number, rnd
   const glow: GlowLight[] = [...purple.lights, ...orange.lights];
   for (let k = 0; k < 5; k++) {
     const p = world((k - 2) * 2.8, 0, 1.8);
-    glow.push({ x: p.x, z: p.z, radius: 3.4, color: new Color(1, 0.42, 0.12), intensity: 0.45, flicker: 0 });
+    glow.push({ x: p.x, z: p.z, y: 0.3, radius: 3.4, color: new Color(1, 0.42, 0.12), intensity: 0.45, flicker: 0 });
   }
   const sources: LightSource[] = [
     { position: world(-3, 1.0, 3), color: new Color(1, 0.45, 0.15), intensity: 6, distance: 10 },

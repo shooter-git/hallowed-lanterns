@@ -1,11 +1,12 @@
 import type { Portal } from '@allthespaces/portal';
 import { createStage, type Stage } from '@allthespaces/portal/three';
-import { Color, NoToneMapping, Raycaster, Vector2, Vector3 } from 'three';
+import { Color, NoToneMapping, type PerspectiveCamera, Raycaster, Vector2, Vector3 } from 'three';
 import { CHAPTERS } from '../chapters/index.ts';
 import type { Chapter, ChapterContext, SurfaceKind, Tier } from '../chapters/types.ts';
-import { AudioDirector, SLIDER_DEFAULT, sliderGain } from './audio.ts';
+import { AudioDirector, SOUND_DEFAULTS, sliderGain } from './audio.ts';
 import { buildCarvingAtlas } from './carvings.ts';
 import { Ember } from './ember.ts';
+import { Glimmers } from './glimmers.ts';
 import { GlowField } from './glowfield.ts';
 import { LightPool } from './lights.ts';
 import { People } from './people.ts';
@@ -45,9 +46,13 @@ export class Engine {
   private begun = false;
   private progress: Progress = { reached: 0 };
   private readonly raycaster = new Raycaster();
+  private readonly sunPoint = new Vector3();
+  private readonly white = new Color(1, 1, 1);
   private readonly surfaces = new Map<SurfaceKind, SurfaceMaps>();
   private moved = false;
   private people!: People;
+  /** The current chapter's glimmers (made as it's entered, let go when the next one is). */
+  private glimmers: Glimmers | null = null;
 
   constructor(private readonly portal: Portal) {}
 
@@ -70,7 +75,7 @@ export class Engine {
     camera.far = 700;
     camera.updateProjectionMatrix();
 
-    const post = new Post(renderer, { samples: tier === 'low' ? 0 : 4, levels: tier === 'low' ? 5 : 6 });
+    const post = new Post(renderer, { samples: tier === 'low' ? 0 : 4, levels: tier === 'low' ? 5 : 6, sharpen: tier === 'high' ? 0.5 : 0, shafts: tier !== 'low' });
     const glow = new GlowField(tier === 'low' ? 256 : 512);
     const lights = new LightPool(tier === 'low' ? 2 : tier === 'mid' ? 4 : 6);
     const sky = new Sky();
@@ -84,6 +89,7 @@ export class Engine {
     if (portal.viewport.touch) portal.input.showTouchControls(false);
 
     portal.progress(0.15, 'Carving faces');
+    ui.loading(0.15);
     const atlas = buildCarvingAtlas();
     await audio.load();
     try {
@@ -93,12 +99,12 @@ export class Engine {
       // Nothing saved yet.
     }
     // The listener's sound levels (the chapters menu's settings), kept with their progress.
-    let sound: SoundSettings = { music: SLIDER_DEFAULT, sounds: SLIDER_DEFAULT };
+    let sound: SoundSettings = { ...SOUND_DEFAULTS };
     try {
       const saved = await portal.save.personal.get<SoundSettings>('sound');
       if (saved && Number.isFinite(saved.music) && Number.isFinite(saved.sounds)) sound = saved;
     } catch {
-      // Nothing saved yet: the mix as made.
+      // Nothing saved yet: where the sliders start.
     }
     const applySound = (v: SoundSettings) => {
       audio.setLevel('music', sliderGain(v.music));
@@ -144,10 +150,19 @@ export class Engine {
     );
 
     portal.progress(0.35, 'Lighting candles');
+    ui.loading(0.35);
     this.chapter = await this.build(0);
     // Set the scene (light, sky, fog) now, so the title sits over the real place.
     this.enter(this.chapter, true);
+    if (this.chapter.titleView) {
+      const view = this.chapter.titleView;
+      // Half the width of the view, as an angle.
+      const half = Math.atan(Math.tan((camera.fov * Math.PI) / 360) * camera.aspect);
+      walker.yaw = view.leftOf === undefined ? view.yaw : Math.min(view.yaw, view.leftOf - half - 0.03);
+      walker.pitch = view.pitch;
+    }
     portal.progress(0.75, 'Rolling in the fog');
+    ui.loading(0.75);
     await renderer.compileAsync(this.chapter.scene, camera);
 
     // Input: taps touch things; E / Enter / gamepad A touch what's in the middle of the view.
@@ -189,6 +204,7 @@ export class Engine {
       this.frame(dt);
     });
     portal.progress(1, 'Ready');
+    ui.loading(1);
     portal.ready();
     // Let the world draw itself a few times behind the title's cover (shaders compiled, the
     // evening's light settled) before it's seen: no flashes while it wakes.
@@ -252,6 +268,8 @@ export class Engine {
       void audio.setScene(music, ambience, 3);
     }
     ui.showControls();
+    // From the view behind the title round to where the walk begins (at once, for reduced motion).
+    if (this.chapter?.titleView) walker.glideTo(this.chapter.startYaw ?? walker.yaw, 0.04, this.ctx.reducedMotion ? 0.01 : 4.5);
     const info = CHAPTERS[this.index];
     if (info) setTimeout(() => ui.chapterCard(info.numeral, info.name, info.subtitle), 600);
     setTimeout(
@@ -287,6 +305,13 @@ export class Engine {
     }
     audio.setUnderwater(0);
     chapter.scene.add(sky.mesh, ember.group, ember.trail);
+    this.glimmers?.dispose();
+    this.glimmers = null;
+    if (chapter.glimmers) {
+      const g = chapter.glimmers;
+      this.glimmers = new Glimmers(this.ctx.tier === 'low' ? { ...g, count: Math.ceil(g.count / 2) } : g);
+      chapter.scene.add(this.glimmers.points);
+    }
     lights.attach(chapter.scene);
     this.people?.enter(chapter.scene, this.index);
     walker.seated = false;
@@ -362,12 +387,32 @@ export class Engine {
 
     if (this.begun) glow.moving.push(...this.people.update(dt, walker.position));
     const forward = new Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    ember.update(dt, renderer.domElement.height / (2 * Math.tan((camera.fov * Math.PI) / 360)), camera.position);
+    const pixelScale = renderer.domElement.height / (2 * Math.tan((camera.fov * Math.PI) / 360));
+    ember.update(dt, pixelScale, camera.position);
+    this.glimmers?.update(pixelScale);
     lights.update(dt, camera.position, forward);
     glow.render(renderer);
     sky.update(camera.position);
+    this.aimShafts(camera, forward);
     audio.update(camera);
     if (this.chapter) post.render(this.chapter.scene, camera, this.time);
+  }
+
+  /** Where the low sun is on the screen, and how strongly its shafts show (none once it's set). */
+  private aimShafts(camera: PerspectiveCamera, forward: Vector3) {
+    const { sky, post } = this.ctx;
+    const s = sky.state;
+    const facing = forward.dot(s.sunDir);
+    camera.updateMatrixWorld();
+    const p = this.sunPoint.copy(s.sunDir).multiplyScalar(100).add(camera.position).project(camera);
+    post.sun.screen.set(p.x * 0.5 + 0.5, p.y * 0.5 + 0.5);
+    // Fades as the sun leaves the view (it can be a little way off the edge and still shine in).
+    const off = Math.max(Math.abs(p.x), Math.abs(p.y));
+    const inView = facing > 0 ? 1 - Math.min(1, Math.max(0, (off - 1.1) / 0.8)) : 0;
+    const up = Math.min(1, Math.max(0, s.sunDir.y * 12 + 1));
+    post.sun.strength = Math.min(1, s.sunGlow) * inView * up * Math.min(1, facing * 3) * 0.6;
+    // Half-way to white: the sky the shafts gather is already the sun's colour.
+    post.sun.color.copy(s.sunColor).lerp(this.white, 0.5);
   }
 
   private stepTransition(dt: number) {

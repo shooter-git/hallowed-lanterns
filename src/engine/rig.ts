@@ -182,8 +182,21 @@ export class Walker {
     addEventListener('blur', () => this.keys.clear(), { signal });
   }
 
+  /** A slow turn of the view under way (see `glideTo`). */
+  private glide: { yaw: number; pitch: number; toYaw: number; toPitch: number; t: number; seconds: number } | null = null;
+
+  /**
+   * Turns the view to a heading and pitch over `seconds`, easing in and out, the short way round.
+   * Looking around yourself takes over at once.
+   */
+  glideTo(yaw: number, pitch: number, seconds: number) {
+    const d = Math.atan2(Math.sin(yaw - this.yaw), Math.cos(yaw - this.yaw));
+    this.glide = { yaw: this.yaw, pitch: this.pitch, toYaw: this.yaw + d, toPitch: pitch, t: 0, seconds };
+  }
+
   /** Puts you on a path, at distance `s`, facing along it. */
   setPath(path: Path, s = 0, lateral = 0) {
+    this.glide = null;
     this.path = path;
     const p = new Vector2();
     const t = new Vector2();
@@ -198,6 +211,7 @@ export class Walker {
   }
 
   private turn(dx: number, dy: number) {
+    this.glide = null;
     this.lastLook = this.now;
     this.lookVel.x -= dx;
     this.lookVel.y -= dy;
@@ -223,9 +237,18 @@ export class Walker {
       }
     }
     if (kx || ky) {
+      this.glide = null;
       this.lastLook = this.now;
       this.yaw -= kx * 1.6 * dt;
       this.pitch -= ky * 1.1 * dt;
+    }
+    if (this.glide) {
+      const g = this.glide;
+      g.t = Math.min(1, g.t + dt / g.seconds);
+      const k = g.t * g.t * (3 - 2 * g.t);
+      this.yaw = g.yaw + (g.toYaw - g.yaw) * k;
+      this.pitch = g.pitch + (g.toPitch - g.pitch) * k;
+      if (g.t >= 1) this.glide = null;
     }
     const take = 1 - Math.exp(-dt * 30);
     this.yaw += this.lookVel.x * take;

@@ -16,6 +16,8 @@ interface LoopInfo {
  * down; the curve is squared, close to how loudness is heard (80 is 0 dB, 100 about +4 dB, 40 -12 dB).
  */
 export const SLIDER_DEFAULT = 80;
+/** Where the sliders start (and Reset puts them): the music as made, the sound effects a little under it. */
+export const SOUND_DEFAULTS = { music: SLIDER_DEFAULT, sounds: 60 } as const;
 export const sliderGain = (v: number) => (Math.max(0, Math.min(100, v)) / SLIDER_DEFAULT) ** 2;
 
 export interface Manifest {

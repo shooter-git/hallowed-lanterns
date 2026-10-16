@@ -167,7 +167,7 @@ export async function well(ctx: ChapterContext, at: Vector3, yaw: number): Promi
   let surge = 0;
   let time = 0;
   // Its red light reaches out across the clearing, so you see it from down the path.
-  const glow: GlowLight = { x: mouth.x, z: mouth.z, radius: 3.6, color: new Color(1, 0.12, 0.08), intensity: 0.42, flicker: 0.15 };
+  const glow: GlowLight = { x: mouth.x, z: mouth.z, y: base.y, radius: 3.6, color: new Color(1, 0.12, 0.08), intensity: 0.42, flicker: 0.15 };
   const coinAt = model?.node('coin_drop')?.getWorldPosition(new Vector3()) ?? mouth.clone().setY(mouth.y + 0.5);
 
   return {

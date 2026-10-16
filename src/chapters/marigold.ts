@@ -579,9 +579,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
 
   // Light: the crest's teal, warm candles, a white wash on the tree.
   const glowLights: GlowLight[] = [...marigolds.lights, ...theGuitar.glow];
-  candleSpots.forEach((p) => glowLights.push({ x: p.x, z: p.z, radius: 1.2, color: new Color(1, 0.6, 0.25), intensity: 0.1, flicker: 1, phase: Math.random() }));
-  glowLights.push({ x: OFRENDA.x, z: OFRENDA.z + 1, radius: 7, color: new Color(0.2, 0.9, 0.75), intensity: 0.35, flicker: 0 });
-  glowLights.push({ x: TREE.x, z: TREE.z + 2, radius: 6, color: new Color(1, 0.9, 0.78), intensity: 0.62, flicker: 0 });
+  candleSpots.forEach((p) => glowLights.push({ x: p.x, z: p.z, y: p.y, radius: 1.2, color: new Color(1, 0.6, 0.25), intensity: 0.1, flicker: 1, phase: Math.random() }));
+  glowLights.push({ x: OFRENDA.x, z: OFRENDA.z + 1, y: 1.5, radius: 7, color: new Color(0.2, 0.9, 0.75), intensity: 0.35, flicker: 0 });
+  glowLights.push({ x: TREE.x, z: TREE.z + 2, y: 3, radius: 6, color: new Color(1, 0.9, 0.78), intensity: 0.62, flicker: 0 });
   glowLights.push({ x: TABLE.x, z: TABLE.z, radius: 2.2, color: new Color(0.85, 0.9, 1), intensity: 0.6, flicker: 0 });
   const sources: LightSource[] = [
     ...theGuitar.sources,
@@ -601,8 +601,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const sky = new SkyLanterns(tier === 'low' ? 300 : 700, TREE);
   scene.add(sky.mesh);
 
-  const night = skyState({ zenith: new Color(0.003, 0.008, 0.03), horizon: new Color(0.02, 0.04, 0.06), stars: 1.1, lightPollution: new Color(0.04, 0.025, 0.01) });
-  const grade: Grade = { ...defaultGrade(), exposure: 1.1, bloom: 0.11, saturation: 1.22, power: 1.08, tint: new Color(0.98, 1.02, 1.0), lift: new Color(0.004, 0.01, 0.014) };
+  const night = skyState({ zenith: new Color(0.003, 0.008, 0.03), horizon: new Color(0.02, 0.04, 0.06), stars: 1.1, lightPollution: new Color(0.04, 0.025, 0.01), clouds: 0.22 });
+  const grade: Grade = { ...defaultGrade(), exposure: 1.15, bloom: 0.12, saturation: 1.28, power: 1.18, tint: new Color(0.98, 1.02, 1.0), lift: new Color(0.004, 0.01, 0.014) };
 
   let time = 0;
   let offerOff: (() => void) | null = null;
@@ -676,6 +676,16 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     music: 'marigold',
     ambience: 'marigold',
     steps: 'step-gravel',
+    // Sparks rising from all the candles, gold and marigold orange.
+    glimmers: {
+      count: 120,
+      box: 28,
+      height: [0.2, 5.5],
+      colors: [new Color(1, 0.58, 0.15).multiplyScalar(3), new Color(1, 0.8, 0.35).multiplyScalar(2.4)],
+      size: 0.02,
+      style: 'spark',
+      drift: [0.02, 0, 0.18],
+    },
 
     enter() {
       ctx.glow.setBounds(bounds[0], bounds[1], bounds[2], bounds[3]);

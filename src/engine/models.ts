@@ -3,6 +3,16 @@ import { Box3, type Group, InstancedMesh, type Material, Matrix4, type Mesh, Mes
 import { hallow } from './shared.ts';
 
 const base = new URL('./models/', document.baseURI);
+
+/** Light through a glowing skin: more of it toward the outline (see `shell` in loadModel). */
+const SHELL: [string, string] = [
+  '#include <emissivemap_fragment>',
+  /* glsl */ `#include <emissivemap_fragment>
+  {
+    float facing = clamp(abs(dot(normal, normalize(vViewPosition))), 0.0, 1.0);
+    totalEmissiveRadiance *= mix(1.3, 0.68, facing * facing);
+  }`,
+];
 const cache = new Map<string, Promise<Group | null>>();
 
 export interface LoadedModel {
@@ -18,7 +28,17 @@ export interface LoadedModel {
  * (glow field and fog), and returns a fresh copy each time. Resolves to null if the model isn't
  * there (yet), so a chapter can stand in something simpler.
  */
-export async function loadModel(name: string, options: { glowReceive?: number } = {}): Promise<LoadedModel | null> {
+export async function loadModel(
+  name: string,
+  options: {
+    glowReceive?: number;
+    /**
+     * Its glowing parts are shells lit from inside (the inflatables): brighter toward their
+     * outlines, where you look through more of the skin, and softer face-on, so their shapes read.
+     */
+    shell?: boolean;
+  } = {},
+): Promise<LoadedModel | null> {
   let p = cache.get(name);
   if (!p) {
     p = (async () => {
@@ -46,7 +66,8 @@ export async function loadModel(name: string, options: { glowReceive?: number } 
       if ((mat as MeshStandardMaterial).isMeshStandardMaterial) {
         const m = (mat as MeshStandardMaterial).clone();
         const glow = m.name.startsWith('glow_');
-        hallow(m, { key: `model:${glow ? 'glow' : 'lit'}`, glow: options.glowReceive ?? 1 });
+        if (glow && options.shell) hallow(m, { key: 'model:shell', glow: options.glowReceive ?? 1, fragment: [SHELL] });
+        else hallow(m, { key: `model:${glow ? 'glow' : 'lit'}`, glow: options.glowReceive ?? 1 });
         if (glow) glows.set(m.name, m);
         out = m;
       }

@@ -23,6 +23,7 @@ import {
   Vector2,
   Vector3,
 } from 'three';
+import { Beams } from '../engine/beams.ts';
 import { CARVE } from '../engine/carvings.ts';
 import type { GlowLight } from '../engine/glowfield.ts';
 import { type Bounds, ground, GroundMask } from '../engine/ground.ts';
@@ -142,10 +143,12 @@ function caustics(bounds: Bounds): Mesh {
         return d;
       }
       void main() {
+        // Far off the ripples fade to nothing: don't work them out there.
+        float fade = exp(-distance(vHlWorld, cameraPosition) * 0.07);
+        if (fade < 0.02) discard;
         vec2 p = vHlWorld.xz * 0.9;
         float c = pow(cell(p), 2.5) + pow(cell(p * 1.7 + 3.0), 2.5) * 0.6;
         float k = smoothstep(0.25, 0.85, c);
-        float fade = exp(-distance(vHlWorld, cameraPosition) * 0.07);
         vec3 col = vec3(0.25, 0.55, 1.0) * k * 0.35 * fade;
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -184,11 +187,15 @@ function streamers(anchors: { p: Vector3; len: number; phase: number }[]): Mesh<
         attribute float aPhase;
         uniform float uHlTime;
         varying float vT;
+        varying float vX;
+        varying float vPhase;
         varying vec3 vHlWorld;
         ${VERTEX_TERRAIN}
         void main() {
           float t = -position.y;           // 0 at the bell, 1 at the tip
           vT = t;
+          vX = position.x * 20.0;          // -1 … 1 across
+          vPhase = aPhase;
           float wave = sin(uHlTime * 1.4 - t * 6.0 + aPhase * 6.28) * 0.12 * t;
           float wave2 = cos(uHlTime * 0.9 - t * 4.0 + aPhase * 3.0) * 0.1 * t;
           vec3 w = aAt.xyz + vec3(wave + cos(aPhase * 6.28) * 0.08, -t * aAt.w + hlTerrain(aAt.xz), wave2 + sin(aPhase * 6.28) * 0.08);
@@ -204,11 +211,19 @@ function streamers(anchors: { p: Vector3; len: number; phase: number }[]): Mesh<
       fragmentShader: /* glsl */ `
         ${SHADER_PARS}
         varying float vT;
+        varying float vX;
+        varying float vPhase;
         varying vec3 vHlWorld;
         void main() {
-          vec3 col = mix(vec3(1.0, 0.7, 0.5), vec3(0.7, 0.75, 1.0), vT) * (2.4 - 1.6 * vT);
-          col = hlApplyFog(col, vHlWorld);
-          gl_FragColor = vec4(col * 0.9, 1.0);
+          // Translucent: soft across, warm from the bell near the top, thinning to a faint blue
+          // toward the tip, and now and then a glow runs down it.
+          float across = max(1.0 - vX * vX, 0.0);
+          float thin = (1.0 - vT) * (1.0 - vT) * 0.85 + 0.15 * (1.0 - vT);
+          vec3 col = mix(vec3(1.0, 0.62, 0.38), vec3(0.6, 0.72, 1.0), vT) * (1.5 * thin + 0.1);
+          float run = fract(uHlTime * 0.22 + vPhase);
+          col += vec3(0.6, 0.8, 1.0) * smoothstep(0.1, 0.0, abs(vT - run)) * 0.8 * (1.0 - vT);
+          col = hlApplyFog(col, vHlWorld) * across;
+          gl_FragColor = vec4(col, 1.0);
         }`,
       transparent: true,
       depthWrite: false,
@@ -555,7 +570,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     });
   }
   // Modelled pufferfish replace the painted-pumpkin stand-ins when we have them.
-  const pufferModel = await loadModel('pufferfish', { glowReceive: 0.6 });
+  const pufferModel = await loadModel('pufferfish', { glowReceive: 0.6, shell: true });
   const pufferObjects: Object3D[] = [];
   if (pufferModel) {
     for (const i of puffers) {
@@ -629,7 +644,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(...wreck.objects);
 
   // The Keeper of the Deep.
-  const keeper = await loadModel('octopus', { glowReceive: 0.3 });
+  const keeper = await loadModel('octopus', { glowReceive: 0.3, shell: true });
   let keeperRoot: Object3D | null = null;
   const arms: Arm[] = [];
   let eyes: Object3D[] = [];
@@ -714,14 +729,17 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const bubbles = new Drift({ count: tier === 'low' ? 900 : 2200, box: 18, size: 0.07, color: new Color(0.5, 0.7, 1), style: 'bubble', opacity: 0.8 });
   bubbles.velocity.set(0.05, 0.55, 0);
   scene.add(bubbles.points);
+  // Blue light pouring down through the water in slow, swaying shafts.
+  const beams = tier === 'low' ? null : new Beams({ count: 14, box: 30, height: 16, color: new Color(0.12, 0.3, 0.75).multiplyScalar(0.34) });
+  if (beams) scene.add(beams.mesh);
 
   const glowLights: GlowLight[] = [...pumpkins.glowLights(2.2, tier === 'low' ? 0.08 : 0.05), ...wreck.glow];
   for (let s = 0; s <= path.length; s += 1.2) {
     path.at(s, tmp, tan);
-    for (const side of [-1, 1]) glowLights.push({ x: tmp.x - tan.y * 2.7 * side, z: tmp.y + tan.x * 2.7 * side, radius: 2.2, color: new Color(0.15, 0.3, 1), intensity: 0.22, flicker: 0 });
+    for (const side of [-1, 1]) glowLights.push({ x: tmp.x - tan.y * 2.7 * side, z: tmp.y + tan.x * 2.7 * side, y: 0.05, radius: 2.2, color: new Color(0.15, 0.3, 1), intensity: 0.22, flicker: 0 });
   }
   for (const c of corals) glowLights.push({ x: c.position.x, z: c.position.z, radius: 1.2, color: (c.material as MeshBasicGlow).color, intensity: 0.08, flicker: 0 });
-  glowLights.push({ x: KEEPER.x, z: KEEPER.z + 2, radius: 9, color: new Color(0.35, 0.2, 1), intensity: 0.5, flicker: 0 });
+  glowLights.push({ x: KEEPER.x, z: KEEPER.z + 2, y: 3, radius: 9, color: new Color(0.35, 0.2, 1), intensity: 0.5, flicker: 0 });
   const sources: LightSource[] = [
     ...wreck.sources,
     { position: KEEPER.clone().add(new Vector3(0, 1, 4)), color: new Color(0.45, 0.3, 1), intensity: 10, distance: 16 },
@@ -730,7 +748,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(new HemisphereLight(0x1c3cff, 0x02040c, 0.35));
 
   const sea = skyState({ zenith: new Color(0.0, 0.01, 0.05), horizon: new Color(0.0, 0.04, 0.14), stars: 0 });
-  const grade: Grade = { ...defaultGrade(), exposure: 1.15, bloom: 0.13, saturation: 1.25, power: 1.05, tint: new Color(0.85, 0.95, 1.15), lift: new Color(0.0, 0.006, 0.03) };
+  const grade: Grade = { ...defaultGrade(), exposure: 1.2, bloom: 0.13, saturation: 1.28, power: 1.14, tint: new Color(0.85, 0.95, 1.15), lift: new Color(0.0, 0.006, 0.03) };
 
   let time = 0;
   let risen = 0;
@@ -753,6 +771,16 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     music: 'deep',
     ambience: 'deep',
     steps: 'step-sand',
+    // The sea's own tiny lights, breathing blue-green, brighter as you pass.
+    glimmers: {
+      count: 380,
+      box: 22,
+      height: [0.2, 6],
+      colors: [new Color(0.25, 0.85, 1).multiplyScalar(1.6), new Color(0.4, 1, 0.7).multiplyScalar(1.3), new Color(0.55, 0.5, 1).multiplyScalar(1.4)],
+      size: 0.022,
+      style: 'plankton',
+      drift: [0.04, 0.01, 0.02],
+    },
 
     enter() {
       ctx.glow.setBounds(...bounds);
@@ -870,6 +898,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      beams?.dispose();
       wreck.dispose();
       terrain.dispose();
       ctx.audio.setUnderwater(0);

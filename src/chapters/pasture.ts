@@ -1,8 +1,10 @@
 import {
   Box3,
   BoxGeometry,
+  BufferGeometry,
   Color,
-  ConeGeometry,
+  DoubleSide,
+  Float32BufferAttribute,
   Group,
   HemisphereLight,
   Mesh,
@@ -49,6 +51,8 @@ interface Giant {
 
 /** Real-world heights, from the photo: a 1.2 m child barely reaches the standing one's knee. */
 const HEIGHT: Record<string, number> = { 'longhorn-standing': 7.0, 'longhorn-grazing': 5.2, 'longhorn-lying': 4.6 };
+/** How bright the giants glow (bright, but short of washing out to plain white). */
+const GLOW = 1.6;
 
 export async function build(ctx: ChapterContext): Promise<Chapter> {
   const { tier } = ctx;
@@ -85,7 +89,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   // The giants.
   const giants: Giant[] = [];
   const place = async (name: string, at: Vector3, yaw: number, phase: number) => {
-    const model = await loadModel(name, { glowReceive: 0.2 });
+    const model = await loadModel(name, { glowReceive: 0.2, shell: true });
     const root: Object3D = model?.root ?? standIn(new Vector3(3, HEIGHT[name] ?? 4, 6), new Color(0.9, 0.9, 0.88), new Vector3());
     // Make sure they're as huge as they really were.
     const box = new Box3().setFromObject(root);
@@ -96,7 +100,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     root.rotation.y = yaw;
     scene.add(root);
     for (const m of model?.glows.values() ?? []) {
-      m.emissiveIntensity = 2.2;
+      m.emissiveIntensity = GLOW;
       m.color.multiplyScalar(0.6);
     }
     const head = model?.node('head');
@@ -114,10 +118,14 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   };
   await place('longhorn-standing', new Vector3(6.5, 0, -28), -0.55, 0);
   await place('longhorn-grazing', new Vector3(-9, 0, -21), 0.9, 1.7);
-  await place('longhorn-lying', new Vector3(-5, 0, -39), 0.3, 3.1);
+  const LYING = new Vector3(-5, 0, -39);
+  await place('longhorn-lying', LYING, 0.3, 3.1);
+  // Its blower, round the far side of it (seen from little of the walk, and only from far off), the
+  // duct (the model's +z) running into the bull's side.
   const blower = await loadModel('longhorn-blower');
   if (blower) {
-    blower.root.position.set(-1.2, 0, -35.5);
+    blower.root.position.set(-7.36, 0, -40.36);
+    blower.root.rotation.y = Math.atan2(LYING.x - -7.36, LYING.z - -40.36);
     scene.add(blower.root);
   }
 
@@ -155,19 +163,24 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   }
   scene.add(stakes);
 
-  // A red barn and a stand of trees far off, as in the photo.
-  const barnMat = hallow(new MeshStandardMaterial({ color: 0x3a0e0a, roughness: 0.9 }), { key: 'barn', glow: 0.5 });
-  const barn = new Group();
-  const walls = new Mesh(new BoxGeometry(12, 6, 9), barnMat);
-  walls.position.y = 3;
-  const roof = new Mesh(new ConeGeometry(8.2, 3.5, 4, 1), barnMat);
-  roof.position.y = 7.6;
-  roof.rotation.y = Math.PI / 4;
-  roof.scale.set(1, 1, 0.78);
-  barn.add(walls, roof);
-  barn.position.set(34, 0, -44);
-  barn.rotation.y = -0.4;
+  // The barn behind the rope line to the right of the herd, as in the photo: long and low, its
+  // front to where the walk begins, the open lean-to at its left end toward the giants. Nothing
+  // out here lights it but the moon, so it stands mostly in shadow.
+  const barn = barnFromThePhoto();
+  barn.position.set(28.3, 0, -43);
+  barn.rotation.y = -0.532;
   scene.add(barn);
+  const barnTrees = forest([
+    {
+      species: 'oak',
+      at: [
+        { ...barnLocal(barn, 10.6, 0.8), scale: 1.05, yaw: 2.1 },
+        { ...barnLocal(barn, -1.5, -9), scale: 0.95, yaw: 0.4 },
+        { ...barnLocal(barn, 6, -10), scale: 1.15, yaw: 3 },
+      ],
+    },
+  ]);
+  scene.add(barnTrees.group);
   scene.add(treeLine({ radius: 140, height: 14, color: new Color(0.004, 0.006, 0.014), under: new Color(0.02, 0.012, 0.012), seed: 3 }));
 
   const fog = new FogBank({
@@ -206,7 +219,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       [-0.3, 0.3],
     ] as [number, number][]) {
       g.lights.push(glowLights.length);
-      glowLights.push({ x: c.x + dx * size.x, z: c.z + dz * size.z, radius: Math.max(size.x, size.z) * 0.75, color: white, intensity: 0.32, flicker: 0 });
+      glowLights.push({ x: c.x + dx * size.x, z: c.z + dz * size.z, y: 1.2, radius: Math.max(size.x, size.z) * 0.75, color: white, intensity: 0.32, flicker: 0 });
     }
   }
   const sources: LightSource[] = [...show.sources, ...giants.map((g) => ({
@@ -216,15 +229,18 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     distance: 14,
   }))];
 
-  // Out in the open, far from the lights: the heavens as a long exposure sees them.
+  // Out in the open under the moon, low over the field ahead and to the right: plenty of stars,
+  // and the Milky Way only as faint as it is by moonlight (in full it looked like a telescope's).
   const night = skyState({
-    zenith: new Color(0.003, 0.006, 0.03),
-    horizon: new Color(0.018, 0.026, 0.07),
-    stars: 1.3,
+    zenith: new Color(0.004, 0.008, 0.034),
+    horizon: new Color(0.022, 0.03, 0.078),
+    stars: 0.95,
     lightPollution: new Color(0.03, 0.015, 0.01),
-    milkyWay: 1,
+    milkyWay: 0.3,
+    moon: 1,
+    moonDir: new Vector3(0.45, 0.32, -0.83).normalize(),
   });
-  const grade: Grade = { ...defaultGrade(), exposure: 1.05, bloom: 0.12, saturation: 1.1, power: 1.08, tint: new Color(0.98, 1.0, 1.05), lift: new Color(0.004, 0.006, 0.018) };
+  const grade: Grade = { ...defaultGrade(), exposure: 1.1, bloom: 0.12, saturation: 1.16, power: 1.16, tint: new Color(0.98, 1.0, 1.05), lift: new Color(0.004, 0.006, 0.018) };
 
   let time = 0;
   const tmp = new Vector2();
@@ -268,7 +284,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
         g.root.scale.set(g.base.x * k, g.base.y * (1 + b * 0.018), g.base.z * k);
         g.flare = Math.max(0, g.flare - dt * 0.6);
         const level = 1 + b * 0.06 + g.flare * 0.8;
-        for (const m of g.model?.glows.values() ?? []) m.emissiveIntensity = 2.2 * level;
+        for (const m of g.model?.glows.values() ?? []) m.emissiveIntensity = GLOW * level;
         for (const i of g.lights) ctx.glow.setLevel(i, level);
       }
       // The standing giant notices you and lowers its head to look.
@@ -342,4 +358,94 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
   };
   return chapter;
+}
+
+/** A point in the barn's own frame (x along its front, z out of it), on the ground. */
+function barnLocal(barn: Object3D, x: number, z: number): { x: number; z: number } {
+  const c = Math.cos(barn.rotation.y);
+  const sn = Math.sin(barn.rotation.y);
+  return { x: barn.position.x + x * c + z * sn, z: barn.position.z - x * sn + z * c };
+}
+
+/**
+ * The pasture's barn, from the photo: a long low shed of weathered red boards (3.4 m walls) under a
+ * shallow roof whose ridge runs its length, a dark doorway toward its right end, and at its left
+ * end an open lean-to on posts, its roof sloping away, a few bales in its shadow. Built in its own
+ * frame: x along the front (left end at -8.5), the front facing +z.
+ */
+function barnFromThePhoto(): Group {
+  // Vertical boards about 30 cm wide with dark seams, each a little different, weathered in streaks.
+  const boards = hallow(new MeshStandardMaterial({ color: 0x7c3a2e, roughness: 0.92, side: DoubleSide }), {
+    key: 'barn-boards',
+    glow: 1,
+    vertexPars: 'varying vec2 vBoard;',
+    vertex: [['#include <begin_vertex>', '#include <begin_vertex>\nvBoard = vec2(abs(normal.x) > 0.5 ? position.z : position.x, position.y);']],
+    fragmentPars: 'varying vec2 vBoard;',
+    fragment: [
+      [
+        '#include <color_fragment>',
+        /* glsl */ `#include <color_fragment>
+        {
+          float b = vBoard.x / 0.3;
+          float f = fract(b);
+          float seam = smoothstep(0.0, 0.07, f) * smoothstep(1.0, 0.93, f);
+          float tone = 0.8 + 0.2 * fract(sin(floor(b) * 12.9898) * 43758.5453);
+          float streaks = 0.82 + 0.36 * hlFbmT(vec2(vBoard.x * 0.9, vBoard.y * 0.12));
+          diffuseColor.rgb *= mix(0.3, 1.0, seam) * tone * streaks;
+        }`,
+      ],
+    ],
+  });
+  const roofMat = hallow(new MeshStandardMaterial({ color: 0x2b2725, roughness: 0.75, metalness: 0.15 }), { key: 'barn-roof', glow: 0.3 });
+  const dark = hallow(new MeshStandardMaterial({ color: 0x090706, roughness: 1 }), { key: 'barn-dark', glow: 0.2 });
+  const hay = hallow(new MeshStandardMaterial({ color: 0x7a6538, roughness: 0.95 }), { key: 'barn-hay', glow: 0.5 });
+  const g = new Group();
+  const box = (w: number, h: number, d: number, m: MeshStandardMaterial, x: number, y: number, z: number) => {
+    const mesh = new Mesh(new BoxGeometry(w, h, d), m);
+    mesh.position.set(x, y, z);
+    g.add(mesh);
+    return mesh;
+  };
+  const WALL = 3.4;
+  const RIDGE = 5.0;
+  // The shed: 12 m along the front, 9 m deep.
+  box(12, WALL, 9, boards, 2.5, WALL / 2, 0);
+  // The doorway, toward the right end.
+  box(3, 2.8, 0.06, dark, 5.6, 1.4, 4.52);
+  // The roof: two shallow slopes meeting over the middle, overhanging a little all round.
+  const pitch = Math.atan2(RIDGE - WALL, 4.5);
+  const slope = Math.hypot(5, (RIDGE - WALL) * (5 / 4.5));
+  for (const side of [1, -1]) {
+    const r = box(12.8, 0.12, slope, roofMat, 2.5, (RIDGE + WALL - (RIDGE - WALL) * (0.5 / 4.5)) / 2, side * 2.5);
+    r.rotation.x = side * pitch;
+  }
+  // Its gable ends, boarded.
+  const gable = new BufferGeometry();
+  gable.setAttribute('position', new Float32BufferAttribute([0, WALL, -4.5, 0, WALL, 4.5, 0, RIDGE, 0], 3));
+  gable.computeVertexNormals();
+  for (const x of [-3.5, 8.5]) {
+    const m = new Mesh(gable, boards);
+    m.position.x = x;
+    g.add(m);
+  }
+  // The lean-to: a roof sloping down away from the shed (3.5 m against it, 2.7 m at its outer
+  // edge), a back wall under it, posts up to it, open in front.
+  const leanFall = Math.atan2(0.8, 5.4);
+  const lean = box(5.5, 0.12, 10, roofMat, -6.2, 3.1, 0);
+  lean.rotation.z = leanFall;
+  const underRoof = (x: number) => 3.1 + (x + 6.2) * Math.tan(leanFall) - 0.06;
+  box(5, 2.7, 0.15, boards, -6, 1.35, -4.42);
+  for (const [x, z] of [
+    [-8.35, 4.3],
+    [-6, 4.3],
+    [-8.35, -4.3],
+  ] as [number, number][]) {
+    const h = underRoof(x);
+    box(0.2, h, 0.2, boards, x, h / 2, z);
+  }
+  // Bales in its shadow.
+  box(1.1, 0.45, 0.5, hay, -7.1, 0.23, 2.4);
+  box(1.1, 0.45, 0.5, hay, -5.9, 0.23, 2.5);
+  box(1.1, 0.45, 0.5, hay, -6.5, 0.68, 2.45);
+  return g;
 }

@@ -73,8 +73,13 @@ export class Drift {
           // Fade out at the edges of the box so the wrap never shows.
           vec3 rel = abs(w - cameraPosition) / (uBox * 0.5);
           vFade = 1.0 - smoothstep(0.7, 1.0, max(rel.x, max(rel.y, rel.z)));
+          // Gone right at the eye too: a flake passing the lens was a pale disc across a third of
+          // the screen for a frame or two (a flash).
+          vFade *= smoothstep(0.3, 0.8, length(w - cameraPosition));
           gl_PointSize = uSize * (0.6 + aSeed * 0.8) * uScale / max(-mv.z, 0.1);
           gl_Position = projectionMatrix * mv;
+          // Nothing to draw: not even its square of discarded pixels.
+          if (vFade < 0.01) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         }`,
       fragmentShader: /* glsl */ `
         ${SHADER_PARS}

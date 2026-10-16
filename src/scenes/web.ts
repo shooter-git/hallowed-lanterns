@@ -707,7 +707,7 @@ export async function web(ctx: ChapterContext, at: Vector3, yaw: number): Promis
       ...leds.lights,
       ...[-4, 0, 4].map((z) => {
         const p = toWorld(new Vector3(0, 0, z));
-        return { x: p.x, z: p.z, radius: 6, color: new Color(0.5, 0.25, 1), intensity: 0.55, flicker: 0 };
+        return { x: p.x, z: p.z, y: 2, radius: 6, color: new Color(0.5, 0.25, 1), intensity: 0.55, flicker: 0 };
       }),
     ],
     sources: [

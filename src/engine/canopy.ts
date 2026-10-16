@@ -139,10 +139,20 @@ export function woodland(path: Path, options: WoodlandOptions) {
   const t = new Vector2();
   const q = new Quaternion();
   const m = new Matrix4();
+  const near = new Vector2();
   const add = (x: number, y: number, z: number, s: number) => {
     if (options.clear?.(x, z, y)) return;
     q.setFromAxisAngle(new Vector3(rnd() - 0.5, 1, rnd() - 0.5).normalize(), rnd() * Math.PI * 2);
-    m.compose(new Vector3(x, y, z), q, new Vector3(s, s * (0.75 + rnd() * 0.4), s));
+    const sy = s * (0.75 + rnd() * 0.4);
+    // Where the path bends back near itself, a stretch's undergrowth can land on another stretch:
+    // none hangs below head height closer to any part of the path than the walls begin. (Checked
+    // after its random draws, so the rest of the woods stand where they always have.)
+    if (y - sy * 0.4 < 2.2) {
+      const n = path.nearest(near.set(x, z));
+      const c = path.points[n.index] as Vector2;
+      if (Math.hypot(x - c.x, z - c.y) < options.wallFrom) return;
+    }
+    m.compose(new Vector3(x, y, z), q, new Vector3(s, sy, s));
     mats.push(m.clone());
   };
   const step = 1 / options.density;

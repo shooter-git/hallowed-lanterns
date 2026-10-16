@@ -279,15 +279,16 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     horizon: new Color(0.025, 0.04, 0.11),
     stars: 0.7,
     lightPollution: new Color(0.05, 0.012, 0.012),
+    clouds: 0.2,
   });
   const grade: Grade = {
     ...defaultGrade(),
-    exposure: 1.1,
-    bloom: 0.11,
-    saturation: 1.18,
-    power: 1.1,
+    exposure: 1.15,
+    bloom: 0.12,
+    saturation: 1.26,
+    power: 1.2,
     tint: new Color(1.03, 0.98, 0.98),
-    lift: new Color(0.006, 0.004, 0.018),
+    lift: new Color(0.004, 0.003, 0.013),
   };
 
   let time = 0;
@@ -304,6 +305,16 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     music: 'garden',
     ambience: 'garden',
     steps: 'step-grass',
+    // Warm sparks drifting up through the lantern light.
+    glimmers: {
+      count: 90,
+      box: 26,
+      height: [0.3, 6],
+      colors: [new Color(1, 0.5, 0.2).multiplyScalar(2.6), new Color(1, 0.74, 0.4).multiplyScalar(2.2)],
+      size: 0.02,
+      style: 'spark',
+      drift: [0.03, 0.01, 0.12],
+    },
 
     enter() {
       ctx.glow.setBounds(...bounds);

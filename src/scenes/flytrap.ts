@@ -306,7 +306,7 @@ export async function flytrap(ctx: ChapterContext, at: Vector3, yaw: number): Pr
   const glow: GlowLight[] = [
     ...leds.lights,
     ...pumpkins.glowLights(1.5, 0.2),
-    { x: hinge.x, z: hinge.z, radius: 4, color: new Color(1, 0.1, 0.08), intensity: 0.3, flicker: 0 },
+    { x: hinge.x, z: hinge.z, y: hinge.y, radius: 4, color: new Color(1, 0.1, 0.08), intensity: 0.3, flicker: 0 },
   ];
   const red: LightSource = { position: hinge.clone().add(new Vector3(0, -0.4, 1.4)), color: new Color(1, 0.2, 0.15), intensity: 4, distance: 6, rank: 4 };
 

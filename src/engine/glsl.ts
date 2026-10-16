@@ -32,6 +32,12 @@ float hlFbm(vec2 p) {
   }
   return v;
 }
+// hlFbm read from the texture it was baked into (src/engine/noisetex.ts): the same kind of noise in
+// one lookup, repeating every 16 cells. For the surfaces that cover most of the screen.
+uniform sampler2D uHlNoise;
+float hlFbmT(vec2 p) {
+  return texture2D(uHlNoise, p * (1.0 / 16.0)).r;
+}
 // A candle's flicker: mostly steady, with small fast wobbles and the odd gust.
 float hlFlicker(float t, float phase) {
   float f = 0.82
@@ -64,14 +70,29 @@ uniform vec3 uFogColor;
 uniform float uFogDensity;
 uniform float uFogHeight;
 uniform float uFogGlow;
+uniform vec3 uFogSun;
+uniform vec3 uFogSunDir;
 uniform float uHlTime;
 
 vec3 hlGlow(vec3 wp) {
   vec2 uv = (wp.xz - uGlowBounds.xy) / uGlowBounds.zw;
   vec2 inside = step(vec2(0.0), uv) * step(uv, vec2(1.0));
-  // Lanterns hang overhead: surfaces nearer their height catch more of their light.
-  float lift = 1.0 + 0.6 * clamp((wp.y - hlTerrain(wp.xz)) / 3.0, 0.0, 1.0);
-  return texture2D(uGlowMap, uv).rgb * (inside.x * inside.y) * uGlowGain * lift;
+  vec4 g = texture2D(uGlowMap, uv);
+  // The height the light here comes from (its lights' heights, weighted by brightness): surfaces
+  // near it catch the most, and less the further above or below they are, so lanterns overhead
+  // light the leaves around them and a string of lights in the grass lights the ground.
+  float srcY = clamp(g.a / max(dot(g.rgb, vec3(0.2126, 0.7152, 0.0722)), 1e-4), 0.0, 20.0);
+  float dy = wp.y - hlTerrain(wp.xz) - srcY;
+  float fall = 1.4 / (1.0 + dy * dy / 12.0);
+  return g.rgb * (inside.x * inside.y) * uGlowGain * fall;
+}
+
+// The glow in the open air on the way to a surface (for the fog's light): one lookup, at the
+// brightness lantern light has a little above the ground, without working out heights.
+vec3 hlGlowAir(vec3 wp) {
+  vec2 uv = (wp.xz - uGlowBounds.xy) / uGlowBounds.zw;
+  vec2 inside = step(vec2(0.0), uv) * step(uv, vec2(1.0));
+  return texture2D(uGlowMap, uv).rgb * (inside.x * inside.y) * uGlowGain * 1.3;
 }
 
 vec3 hlApplyFog(vec3 col, vec3 wp) {
@@ -85,7 +106,13 @@ vec3 hlApplyFog(vec3 col, vec3 wp) {
   float mean = abs(dy) > 0.01 ? (exp(-k * y0) - exp(-k * y1)) / (k * dy) : exp(-k * y0);
   float f = 1.0 - exp(-uFogDensity * d * mean);
   // The fog is lit by the lanterns it passes: sample the glow along the ray.
-  vec3 lit = (hlGlow(cameraPosition + ray * 0.2) + hlGlow(cameraPosition + ray * 0.5) + hlGlow(wp)) * (uFogGlow / 3.0);
+  vec3 lit = (hlGlowAir(cameraPosition + ray * 0.2) + hlGlowAir(cameraPosition + ray * 0.5) + hlGlow(wp)) * (uFogGlow / 3.0);
+  // Toward a low sun the haze glows gold (light scattered forward through it). At night there is
+  // none, and the many layers of fog and falling snow skip the sum.
+  if (uFogSun.r + uFogSun.g + uFogSun.b > 0.0) {
+    float sunward = max(dot(ray / max(d, 1e-4), uFogSunDir), 0.0);
+    lit += uFogSun * (0.22 * sunward * sunward + 0.9 * pow(sunward, 16.0));
+  }
   return mix(col, uFogColor + lit, f);
 }
 `;

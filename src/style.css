@@ -45,10 +45,16 @@ body {
   display: grid;
   place-items: center;
   padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
-  background: radial-gradient(ellipse at 50% 55%, rgba(10, 6, 8, 0.15), rgba(5, 3, 6, 0.72) 75%);
+  /* The night shows through: a soft shade behind the words (so they read over a bright sky),
+     darker toward the corners, the top and the ground. */
+  background:
+    radial-gradient(ellipse 52% 34% at 50% 46%, rgba(10, 5, 8, 0.3), rgba(10, 5, 8, 0) 100%),
+    radial-gradient(ellipse 115% 95% at 50% 42%, rgba(6, 3, 6, 0) 50%, rgba(6, 3, 6, 0.45) 100%),
+    linear-gradient(to bottom, rgba(6, 3, 6, 0.18), rgba(6, 3, 6, 0) 22%, rgba(6, 3, 6, 0) 70%, rgba(6, 3, 6, 0.42));
   opacity: 0;
   transition: opacity 1.4s ease;
   isolation: isolate;
+  overflow: hidden;
 }
 /* The solid night the title sits on while everything loads; it fades away to show the world. */
 .hl-title::before {
@@ -56,7 +62,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: #0b0809;
+  background: radial-gradient(ellipse at 50% 60%, #1a0f0c, #0b0809 70%);
   opacity: 0;
   transition: opacity 2s ease;
   pointer-events: none;
@@ -69,11 +75,6 @@ body {
   opacity: 1;
   transition: none;
 }
-.hl-loading {
-  margin: 1.2em 0 0;
-  font: italic 400 1rem / 1.3 var(--hl-serif);
-  color: var(--hl-dim);
-}
 .hl-title.hl-show {
   opacity: 1;
   pointer-events: auto;
@@ -85,52 +86,238 @@ body {
 }
 .hl-title-inner {
   text-align: center;
-  max-width: 34rem;
-}
-.hl-title h1 {
-  margin: 0.15em 0 0.7em;
-  font: 400 clamp(2.4rem, 9vw, 4.6rem) / 1 var(--hl-serif);
-  letter-spacing: 0.01em;
-  text-shadow: 0 0 28px var(--hl-glow), 0 0 2px rgba(255, 220, 170, 0.6);
+  max-width: 40rem;
 }
 .hl-kicker {
   margin: 0;
-  font: italic 400 clamp(1rem, 3.6vw, 1.2rem) / 1.3 var(--hl-serif);
+  /* Centred: the letter-spacing trails the last letter, so the same space leads the first. */
+  padding-left: 0.3em;
+  font: 400 clamp(0.7rem, 2.6vw, 0.86rem) / 1.4 var(--hl-serif);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 228, 196, 0.78);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
+}
+/* The name, lit like candlelight from below: cream at the top, warming to amber, with a soft glow
+   behind the letters that flickers now and then. */
+.hl-title h1 {
+  position: relative;
+  /* Its own layer, so the glow (z-index -1) always stays behind the letters. */
+  isolation: isolate;
+  margin: 0.2em 0 0.16em;
+  font: 400 clamp(2.6rem, 10vw, 5.1rem) / 1.02 var(--hl-serif);
+  letter-spacing: 0.012em;
+  color: #fff1dc;
+}
+.hl-name {
+  background: linear-gradient(180deg, #fffaf1 12%, #ffe4b8 52%, #f6a861 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.hl-name-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  color: rgb(255, 128, 40);
+  -webkit-text-fill-color: rgb(255, 128, 40);
+  filter: blur(16px);
+  opacity: 0.6;
+  animation: hl-candle 6s ease-in-out infinite;
+  will-change: opacity;
+  pointer-events: none;
+}
+@keyframes hl-candle {
+  0%,
+  100% {
+    opacity: 0.58;
+  }
+  17% {
+    opacity: 0.7;
+  }
+  29% {
+    opacity: 0.5;
+  }
+  48% {
+    opacity: 0.72;
+  }
+  66% {
+    opacity: 0.6;
+  }
+  83% {
+    opacity: 0.68;
+  }
+}
+/* A thin rule either side of a small flame, under the name. */
+.hl-flourish {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8em;
+  width: min(17rem, 62vw);
+  margin: 0.15em auto 1.7em;
+}
+.hl-flourish i {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, rgba(255, 200, 140, 0), rgba(255, 200, 140, 0.65));
+}
+.hl-flourish i:last-child {
+  background: linear-gradient(to left, rgba(255, 200, 140, 0), rgba(255, 200, 140, 0.65));
+}
+.hl-flame {
+  width: 8px;
+  height: 13px;
+  border-radius: 50% 50% 50% 50% / 64% 64% 36% 36%;
+  background: radial-gradient(ellipse 60% 55% at 50% 68%, #fffbe8 0%, #ffd27a 38%, #ff8a2e 72%, #f2551a 100%);
+  box-shadow: 0 0 10px 2px rgba(255, 140, 50, 0.6), 0 0 26px 6px rgba(255, 110, 30, 0.22);
+  transform-origin: 50% 90%;
+  animation: hl-flame 2.6s ease-in-out infinite;
+}
+@keyframes hl-flame {
+  0%,
+  100% {
+    transform: scale(1, 1) rotate(-2deg);
+  }
+  35% {
+    transform: scale(0.9, 1.1) rotate(2.5deg);
+  }
+  62% {
+    transform: scale(1.05, 0.94) rotate(-1deg);
+  }
+}
+.hl-loading {
+  margin: 0;
+  font: italic 400 1rem / 1.3 var(--hl-serif);
   color: var(--hl-dim);
+}
+/* Loading: a thin line of light filling under the words. */
+.hl-progress {
+  width: min(11rem, 46vw);
+  height: 1px;
+  margin: 1em auto 0;
+  background: rgba(255, 200, 140, 0.16);
+}
+.hl-progress i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255, 170, 90, 0.35), #ffd9a0);
+  box-shadow: 0 0 8px rgba(255, 160, 70, 0.8);
+  transform: scaleX(0.04);
+  transform-origin: left;
+  transition: transform 0.9s ease;
+}
+/* The words arrive one after another out of the dark: the line above, the name, the flame, and
+   then whatever is asked of you (it fades in afresh each time it changes). */
+.hl-title .hl-kicker,
+.hl-title h1,
+.hl-title .hl-flourish,
+.hl-actions > * {
+  animation: hl-arrive 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.hl-title h1 {
+  animation-delay: 0.25s;
+}
+.hl-title .hl-flourish {
+  animation-delay: 0.6s;
+}
+.hl-actions > * {
+  animation-delay: 0.2s;
+}
+.hl-actions > * + * {
+  animation-delay: 0.5s;
+}
+@keyframes hl-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 }
 .hl-begin {
   pointer-events: auto;
   min-height: 52px;
-  padding: 0 1.8em;
+  padding: 0 2em;
   border-radius: 999px;
-  border: 1px solid var(--hl-edge);
-  background: rgba(40, 20, 10, 0.5);
+  border: 1px solid rgba(255, 200, 140, 0.5);
+  background: linear-gradient(180deg, rgba(74, 36, 16, 0.6), rgba(30, 14, 8, 0.6));
   font: 500 1.05rem / 1 var(--hl-serif) !important;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  color: #fff3e2 !important;
   cursor: pointer;
-  box-shadow: 0 0 30px rgba(255, 140, 50, 0.25), inset 0 0 12px rgba(255, 170, 90, 0.15);
+  box-shadow: 0 0 30px rgba(255, 140, 50, 0.25), inset 0 1px 0 rgba(255, 220, 170, 0.18), inset 0 0 14px rgba(255, 170, 90, 0.12);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  transition: box-shadow 0.4s ease, transform 0.2s ease;
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
 }
 .hl-begin:hover,
 .hl-begin:focus-visible {
-  box-shadow: 0 0 46px rgba(255, 150, 60, 0.45), inset 0 0 14px rgba(255, 170, 90, 0.25);
+  border-color: rgba(255, 210, 160, 0.8);
+  box-shadow: 0 0 46px rgba(255, 150, 60, 0.45), inset 0 1px 0 rgba(255, 220, 170, 0.25), inset 0 0 16px rgba(255, 170, 90, 0.25);
   outline: none;
 }
 /* The first tap's invitation breathes gently until it's taken. */
 .hl-listen {
-  animation: hl-breathe 2.8s ease-in-out infinite;
+  animation: hl-arrive 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.2s both, hl-breathe 2.8s ease-in-out 2s infinite;
 }
 @keyframes hl-breathe {
   50% {
-    box-shadow: 0 0 26px rgba(255, 170, 90, 0.45);
+    box-shadow: 0 0 34px rgba(255, 170, 90, 0.5), inset 0 1px 0 rgba(255, 220, 170, 0.18), inset 0 0 14px rgba(255, 170, 90, 0.2);
   }
 }
 .hl-small {
   margin: 1.1em 0 0;
   font-size: 0.85rem;
+  letter-spacing: 0.02em;
   color: var(--hl-dim);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+/* A phone held upright: the line above the name keeps to one or two tidy lines. */
+@media (max-width: 440px) {
+  .hl-kicker {
+    letter-spacing: 0.18em;
+    padding-left: 0.18em;
+  }
+}
+/* Sparks drifting up through the title (see embers() in src/engine/ui.ts). */
+.hl-embers {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hl-embers i {
+  position: absolute;
+  left: var(--x);
+  bottom: -10px;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff3cf 0%, #ffb257 42%, rgba(255, 120, 40, 0) 72%);
+  opacity: 0;
+  animation: hl-spark var(--dur) linear var(--delay) infinite;
+  will-change: transform, opacity;
+}
+@keyframes hl-spark {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  45% {
+    transform: translate3d(calc(var(--drift) * 0.35 + 1.2vw), -36vh, 0) scale(0.85);
+  }
+  70% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate3d(var(--drift), -82vh, 0) scale(0.35);
+    opacity: 0;
+  }
 }
 
 /* Chapter cards. */
@@ -524,12 +711,15 @@ html.hl-idle .ats-touch {
     max-width: 46rem;
   }
   .hl-title h1 {
-    margin: 0.1em 0 0.45em;
+    margin: 0.12em 0 0.08em;
     font-size: clamp(2rem, 12vh, 3.4rem);
     white-space: nowrap;
   }
   .hl-kicker {
-    font-size: clamp(0.9rem, 4.2vh, 1.1rem);
+    font-size: clamp(0.66rem, 3.2vh, 0.8rem);
+  }
+  .hl-flourish {
+    margin-bottom: 0.9em;
   }
   .hl-small {
     margin-top: 0.7em;
@@ -554,8 +744,17 @@ html.hl-idle .ats-touch {
   .hl-line {
     transition-duration: 0.01s;
   }
-  .hl-listen {
+  .hl-listen,
+  .hl-title .hl-kicker,
+  .hl-title h1,
+  .hl-name-glow,
+  .hl-title .hl-flourish,
+  .hl-flame,
+  .hl-actions > * {
     animation: none;
+  }
+  .hl-embers {
+    display: none;
   }
 }
 

@@ -103,8 +103,8 @@ export class FogBank {
           if (src < 0.01) discard;
           float t = uHlTime;
           // Two layers of drifting noise, offset per slice so the fog has depth.
-          float n1 = hlFbm(p * 0.32 + uWind * t + vSlice * 2.3);
-          float n2 = hlFbm(p * 1.05 - uWind * t * 1.7 + vec2(7.1, 3.3) + vSlice * 5.0);
+          float n1 = hlFbmT(p * 0.32 + uWind * t + vSlice * 2.3);
+          float n2 = hlFbmT(p * 1.05 - uWind * t * 1.7 + vec2(7.1, 3.3) + vSlice * 5.0);
           float billow = n1 * 0.75 + n2 * 0.45;
           float dens = smoothstep(0.42 + vSlice * 0.4, 1.05, billow + src * 0.3) * src;
           dens *= 1.0 - vSlice * 0.6;
@@ -118,7 +118,10 @@ export class FogBank {
           dens *= smoothstep(0.4, 2.2, dc);
           float a = clamp(dens * uDensity, 0.0, 0.9);
           if (a < 0.003) discard;
-          vec3 light = uTint + hlGlow(vHlWorld) * uLit;
+          // The billows catch the light unevenly: their crowns brighter, the hollows between them
+          // dimmer, so the fog has body rather than lying flat like a sheet.
+          float crown = smoothstep(0.25, 0.95, n2) * 0.6 + smoothstep(0.35, 0.9, n1) * 0.4;
+          vec3 light = (uTint + hlGlow(vHlWorld) * uLit) * (0.6 + 0.8 * crown);
           light = hlApplyFog(light, vHlWorld);
           gl_FragColor = vec4(light, a);
         }`,

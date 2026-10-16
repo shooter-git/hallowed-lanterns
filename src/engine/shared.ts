@@ -6,10 +6,12 @@ import {
   RGBAFormat,
   RedFormat,
   type Texture,
+  Vector3,
   Vector4,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
 import { GLOW_FOG_PARS, NOISE, TERRAIN_PARS, WORLD_POS_VERTEX } from './glsl.ts';
+import { fbmTexture } from './noisetex.ts';
 
 const black = new DataTexture(new Uint16Array(4), 1, 1, RGBAFormat, HalfFloatType);
 black.needsUpdate = true;
@@ -31,7 +33,12 @@ export const shared = {
   uFogHeight: { value: 4 },
   /** How much the lanterns light the fog. */
   uFogGlow: { value: 0.6 },
+  /** Sunlight in the haze (around sunset): the air toward the sun glows this colour. */
+  uFogSun: { value: new Color(0, 0, 0) },
+  uFogSunDir: { value: new Vector3(0, -1, 0) },
   uHlTime: { value: 0 },
+  /** hlFbm baked into a tiling texture (see `hlFbmT`). */
+  uHlNoise: { value: fbmTexture() as Texture },
   /** Ground height over the chapter (see Terrain). */
   uTerrain: { value: flat as Texture },
   uTerrainBounds: { value: new Vector4(-1, -1, 2, 2) },

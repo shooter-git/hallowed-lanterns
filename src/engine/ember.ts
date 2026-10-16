@@ -189,6 +189,7 @@ export class Ember {
     this.light.intensity = this.presence * (2.2 + this.excitement * 2) * fl;
     this.glow.x = this.group.position.x;
     this.glow.z = this.group.position.z;
+    this.glow.y = this.group.position.y - heightAt(this.glow.x, this.glow.z);
     this.glow.intensity = this.presence * (1.2 + this.excitement);
 
     // Sparks: shed from the flame, drifting up and away.

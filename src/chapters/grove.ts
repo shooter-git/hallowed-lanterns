@@ -163,8 +163,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   scene.add(leds);
 
   const glowLights: GlowLight[] = pumpkins.glowLights(3.4, tier === 'low' ? 0.09 : 0.055);
+  // Every other pair (the spots alternate sides), so both strings light the fog.
   ledSpots.forEach((p, i) => {
-    if (i % 2 === 0) glowLights.push({ x: p.x, z: p.z, radius: 1.3, color: red, intensity: 0.6, flicker: 0 });
+    if (i % 4 < 2) glowLights.push({ x: p.x, z: p.z, y: p.y, radius: 1.3, color: red, intensity: 0.6, flicker: 0 });
   });
 
   const theWell = await well(ctx, WELL, Math.PI / 2);
@@ -176,7 +177,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     mask: mask.texture(),
     slices: tier === 'low' ? 5 : 10,
     height: 1.1,
-    tint: new Color(0.008, 0.01, 0.022),
+    tint: new Color(0.012, 0.016, 0.036),
     density: 0.24,
     glow: 0.6,
     wind: new Vector2(0.12, -0.2),
@@ -193,6 +194,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     sunDir: new Vector3(0.4, -0.1, -1).normalize(),
     sunGlow: 0.4,
     stars: 0.25,
+    clouds: 0.35,
   });
   const lateBlue = skyState({
     zenith: new Color(0.006, 0.014, 0.06),
@@ -201,18 +203,19 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     sunColor: new Color(0.3, 0.12, 0.15),
     sunDir: new Vector3(0.4, -0.2, -1).normalize(),
     stars: 0.6,
+    clouds: 0.3,
   });
   // Deep blue shadows and rich candlelight: blacks kept down, contrast and colour up.
   const gradeA: Grade = {
     ...defaultGrade(),
-    exposure: 0.98,
-    bloom: 0.11,
+    exposure: 1.08,
+    bloom: 0.12,
     saturation: 1.38,
     power: 1.24,
     tint: new Color(0.97, 0.98, 1.06),
     lift: new Color(0.001, 0.002, 0.012),
   };
-  const gradeB: Grade = { ...gradeA, exposure: 1.04, lift: new Color(0.001, 0.002, 0.01) };
+  const gradeB: Grade = { ...gradeA, exposure: 1.14, lift: new Color(0.001, 0.002, 0.01) };
   const fogA = new Color(0.026, 0.038, 0.09);
   const fogB = new Color(0.012, 0.018, 0.046);
 
