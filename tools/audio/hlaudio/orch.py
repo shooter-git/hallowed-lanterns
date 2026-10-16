@@ -99,6 +99,11 @@ TONE = {
     "oboe_stac": dict(soften=0.5, eq=[("peak", 1400, 0.8, -1.5), ("peak", 3200, 0.9, -3.5), ("hs", 5500, 0.7, -6.0)]),
     "bassoon": dict(soften=0.3, eq=[("peak", 2500, 0.9, -2.5), ("hs", 5000, 0.7, -5.0)]),
     "bassoon_stac": dict(soften=0.5, eq=[("peak", 2500, 0.9, -2.5), ("hs", 5000, 0.7, -5.0)]),
+    # the Iowa clarinet and bassoon (the picture show): the same tone as the others they stand in for
+    "clarinet_iowa": dict(soften=0.3, eq=[("peak", 250, 0.9, 1.0), ("peak", 3000, 0.9, -2.5), ("hs", 6000, 0.7, -5.0)]),
+    "clarinet_iowa_stac": dict(soften=0.5, eq=[("peak", 3000, 0.9, -3.0), ("hs", 6000, 0.7, -5.0)]),
+    "bassoon_iowa": dict(soften=0.3, eq=[("peak", 2500, 0.9, -2.5), ("hs", 5000, 0.7, -5.0)]),
+    "bassoon_iowa_stac": dict(soften=0.5, eq=[("peak", 2500, 0.9, -2.5), ("hs", 5000, 0.7, -5.0)]),
     "marimba": dict(soften=0.6, eq=[("peak", 200, 0.8, 1.5), ("peak", 3000, 0.9, -3.0), ("hs", 5000, 0.7, -5.0)]),
     "triangle": dict(soften=0.8, eq=[("hs", 4000, 0.7, -6.0), ("lp", 7000, 0.7)]),
     "sleighbells": dict(soften=0.7, eq=[("hs", 4000, 0.7, -6.0), ("lp", 7000, 0.7)]),

@@ -584,7 +584,7 @@
     {
       "path": "public/audio/music/picture-show.mp3",
       "license": "own",
-      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios)"
+      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios) and the University of Iowa Musical Instrument Samples' clarinet and bassoon (Electronic Music Studios, University of Iowa; free for any use: https://theremin.music.uiowa.edu/MIS.html)"
     },
     {
       "path": "public/audio/sfx/chest-open.mp3",

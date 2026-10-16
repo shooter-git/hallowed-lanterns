@@ -310,14 +310,15 @@ def render():
             seed=10, gain_db=5, release=0.4)
     st.play("cellos_pizz", S(G("moonrise.vc_pz"), 11, 0.006), "cellos_pizz", seed=11, gain_db=1, seat="cellos")
 
-    # WOODS: the tiptoe walk, clarinet / bassoon, the owl, the bats
+    # WOODS: the tiptoe walk, clarinet / bassoon, the owl, the bats (the clarinet and bassoon here and in the
+    # giant are the Iowa recordings, each part's level matched to the VSCO one it replaced)
     st.play("cellos_pizz", S(G("woods.walk_vc"), 12, 0.008), "cellos_pizz", seed=12, gain_db=4, seat="cellos")
     st.play("violas_pizz", S(G("woods.walk_vla") + G("woods.tip"), 13, 0.008), "violas_pizz", seed=13, gain_db=1,
             seat="violas")
     cl = G("woods.cl")
-    st.play("clarinets", S(cl, 14, 0.01), "clarinet", seed=14, gain_db=5, shape=shape, lag=0.02,
+    st.play("clarinets", S(cl, 14, 0.01), "clarinet_iowa", seed=14, gain_db=5, shape=shape, lag=0.02,
             dyn=Curve([(0, 0.55)]))
-    st.play("bassoon", S(G("woods.bsn_mel"), 15, 0.01), "bassoon", seed=15, gain_db=4, shape=shape, lag=0.02,
+    st.play("bassoon", S(G("woods.bsn_mel"), 15, 0.01), "bassoon_iowa", seed=15, gain_db=8.3, shape=shape, lag=0.02,
             dyn=Curve([(0, 0.55)]))
     st.play("flutes", S(G("woods.owl"), 16, 0.0), "flute_nv", seed=16, gain_db=4,
             shape={"attack": 0.12, "swell": 0.1, "taper": 3.0}, legato=False, dyn=Curve([(0, 0.45)]))
@@ -333,8 +334,8 @@ def render():
     st.play("trombones", S(G("giant.tbn"), 22), "trombones", seed=22, gain_db=3, **br)
     st.play("horns", S(G("giant.hn") + G("giant.hn_counter"), 23), "horns", seed=23, gain_db=3, **br)
     st.play("tuba", S(G("giant.tuba_aug"), 24), "tuba", seed=24, gain_db=1, **br)
-    st.play("bassoon", S(G("giant.bsn"), 25, 0.006), "bassoon_stac", seed=25, gain_db=6)
-    st.play("clarinets", S(G("giant.cl_stac"), 26, 0.006), "clarinet_stac", seed=26, gain_db=1)
+    st.play("bassoon", S(G("giant.bsn"), 25, 0.006), "bassoon_iowa_stac", seed=25, gain_db=7.4)
+    st.play("clarinets", S(G("giant.cl_stac"), 26, 0.006), "clarinet_iowa_stac", seed=26, gain_db=-2.7)
     st.play("marimba", S(G("giant.ping"), 27, 0.004), "marimba", seed=27, gain_db=-4)
     st.play("violas_pizz", S(G("giant.chords_vla"), 28, 0.008), "violas_pizz", seed=28, gain_db=-1, seat="violas")
     st.play("piano", S(G("giant.piano_low"), 29, 0.008), "piano", seed=29, gain_db=3, layer_bias=-0.2)

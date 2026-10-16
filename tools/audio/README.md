@@ -161,6 +161,32 @@ plucks, which ring longest, the first milliseconds of each pluck left out (the
 side of the finger, not the orchestra's snap), and a gentle compressor
 (`effects.compress`) for the even sustain of a bass through its amp.
 
+## Samples: University of Iowa MIS (the picture show's clarinet and bassoon)
+
+The picture show's clarinet and bassoon are the **University of Iowa Musical
+Instrument Samples** (Electronic Music Studios, University of Iowa): a B-flat
+clarinet and a bassoon recorded in an anechoic chamber without vibrato, every
+semitone at pp, mf and ff. "Since 1997, these recordings have been freely
+available on this website and may be downloaded and used for any projects,
+without restrictions" (<https://theremin.music.uiowa.edu/MIS.html>); credited
+in `assets.lock.json` all the same. Each download is one dynamic's run of
+single notes, so `fetch_iowa.py` fetches them into `.cache/iowa/raw/` and cuts
+every note out (from just before its attack to the end of its decay), names
+it by its place in the run and checks it against its measured pitch, dropping
+any more than 40 cents out (three of the clarinet's highest notes, one bassoon
+G#2 the pitch tracker could not confirm), into `.cache/iowa/Clarinet/` and
+`.cache/iowa/Bassoon/` (git-ignored, about 80 MB downloaded):
+
+```sh
+tools/audio/.venv/bin/python tools/audio/fetch_iowa.py
+```
+
+They are the sampler's `clarinet_iowa` and `bassoon_iowa` (catalogue
+`.cache/iowa-catalog.json`), and `clarinet_iowa_stac` and `bassoon_iowa_stac`,
+the same recordings stopped short (no staccato was recorded): a tongued note.
+They replaced VSCO's clarinet and bassoon in the picture show, which sounded
+synthetic there; the other pieces keep VSCO's.
+
 ## Samples: FreePats (the Spanish classical guitar)
 
 No piece plays it now (the Marigold Garden did, before its present score); it
@@ -281,12 +307,13 @@ stinger: `pieces/sfx/keeper.py`.)
 
 ```
 render.py            command line (targets = pieces/<kind>/<name>.py)
+fetch_iowa.py        fetches the Iowa clarinet and bassoon and cuts them into single notes
 requirements.txt
 hlaudio/             the library
   core.py            sample rate, note names, envelopes, noise, Track (circular stereo buffer)
   score.py           notes, a tiny text notation, chords, voice-leading, tempo clocks (rubato)
   arrange.py         arranging helpers (pads by rank, comping, dynamics shapes, augmentation)
-  sampler.py         the VSCO 2 CE + VCSL + FreePats sampler (catalogues, tuning, layers, loops, legato,
+  sampler.py         the VSCO 2 CE + VCSL + FreePats + Meatbass + Iowa sampler (catalogues, tuning, layers, loops, legato,
                      re-bowing, pitch curves for bends and vibrato)
   festival.py        the Garden's festival instruments on the stage (seats, tone chains) and the
                      guzheng's idioms: slide_in, vibrato, press, glissandi landing on the beat

@@ -40,6 +40,10 @@ sfzinstruments/karoryfer.meatbass), gives the Snow a real jazz double bass: a 19
 Otto Rubner plucked at four dynamics with four round robins, sampled every minor
 third (C, E-flat, G-flat, A) and named by sounding pitch; its plucks ring for
 seconds, as a bass in a concert does.
+A fifth, the University of Iowa's Musical Instrument Samples (free for any use; tools/audio/.cache/iowa/,
+cut into single notes by fetch_iowa.py), gives the picture show a real clarinet and bassoon: recorded
+in an anechoic chamber without vibrato, every semitone at pp, mf and ff, named by sounding pitch. Their
+staccato is the same recordings stopped short (a tongued note), as no staccato was recorded.
 Plucked and struck notes can carry a pitch curve: `x["bend"]` (time, semitone
 breakpoints: a guzheng press or slide) and `x["vib"]` (a pressed vibrato).
 """
@@ -67,8 +71,10 @@ FREEPATS = Path(__file__).resolve().parents[1] / ".cache" / "freepats"
 FREEPATS_CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "freepats-catalog.json"
 MEATBASS = Path(__file__).resolve().parents[1] / ".cache" / "meatbass"
 MEATBASS_CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "meatbass-catalog.json"
+IOWA = Path(__file__).resolve().parents[1] / ".cache" / "iowa"
+IOWA_CATALOG = Path(__file__).resolve().parents[1] / ".cache" / "iowa-catalog.json"
 LIBS = {"vsco": (VSCO, CATALOG, 9), "vcsl": (VCSL, VCSL_CATALOG, 1), "freepats": (FREEPATS, FREEPATS_CATALOG, 1),
-        "meatbass": (MEATBASS, MEATBASS_CATALOG, 1)}
+        "meatbass": (MEATBASS, MEATBASS_CATALOG, 1), "iowa": (IOWA, IOWA_CATALOG, 1)}
 NOTE = {"C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5, "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11}
 
 # Timpani have no note names: principal (1,1)-mode frequencies measured from the
@@ -102,7 +108,7 @@ class Inst:
     pitch: str = "name"       # "name" | "organ" | "timp_hit" | "timp_roll" | "none"
     single_layer: bool = False
     organ_base: int = 0
-    lib: str = "vsco"         # "vsco" | "vcsl" | "freepats" | "meatbass"
+    lib: str = "vsco"         # "vsco" | "vcsl" | "freepats" | "meatbass" | "iowa"
     # VCSL, FreePats and Meatbass measuring options
     tune_from: float = 0.04   # s after the attack where a pluck's tuning is read
     tune_n: int = 1           # how many 0.35 s windows (0.5 s apart)
@@ -293,6 +299,16 @@ INSTRUMENTS = {i.name: i for i in [
     Inst("vibes_bowed", "Idiophones/Struck Idiophones/Vibraphone/Bowed", "oneshot", lib="vcsl", octave=12,
          release=2.0, ref_db=-20, pan=0.0, width=0.6, body=1.0, single_layer=True, max_shift=4.0, tune_from=1.0,
          tune_n=2, level="peak"),
+    # ---- University of Iowa MIS: the picture show's clarinet and bassoon (sustained recordings; the
+    # staccato plays them stopped short, their tuning read once the tone has settled)
+    Inst("clarinet_iowa", "Clarinet", "sus", lib="iowa", release=0.35, lag=0.02, ref_db=-21, pan=0.15, width=0.4,
+         max_shift=2.0),
+    Inst("clarinet_iowa_stac", "Clarinet", "short", lib="iowa", release=0.2, ref_db=-19, pan=0.15, width=0.4,
+         body=0.12, max_shift=2.0, tune_from=0.3, tune_n=2),
+    Inst("bassoon_iowa", "Bassoon", "sus", lib="iowa", release=0.35, lag=0.02, ref_db=-21, pan=0.25, width=0.4,
+         max_shift=2.0),
+    Inst("bassoon_iowa_stac", "Bassoon", "short", lib="iowa", release=0.2, ref_db=-19, pan=0.25, width=0.4,
+         body=0.12, max_shift=2.0, tune_from=0.3, tune_n=2),
     # the jazz double bass (Meatbass): its pluck rings until the next note stops the string
     Inst("upright", "Samples/pizz", "oneshot", lib="meatbass", match=r"^(a|c|eb|gb)\d_vl\d_rr\d", release=0.3,
          ref_db=-17, pan=0.05, width=0.35, body=0.4, layer_spread=10, max_shift=2.0, tune_from=0.2, tune_n=2),
@@ -995,6 +1011,7 @@ REBOW = {"violins": 5.5, "violas": 5.5, "cellos": 6.0, "basses": 6.0, "solo_viol
          "violins_trem": 6.0, "violas_trem": 6.0, "cellos_trem": 6.0,
          "horns": 7.0, "horns_mute": 7.0, "trombones": 7.0, "trombones_vib": 7.0, "tuba": 7.0,
          "flute": 6.0, "flute_nv": 6.0, "clarinet": 7.0, "oboe": 6.0, "bassoon": 6.0,
+         "clarinet_iowa": 7.0, "bassoon_iowa": 6.0,
          "ocarina": 5.0, "ocarina_vib": 5.5}
 REBOW_OVERLAP = 0.35
 

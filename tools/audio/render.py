@@ -95,6 +95,10 @@ MEATBASS = (" and Karoryfer's Meatbass double bass (CC0, Karoryfer Samples: "
             "https://github.com/sfzinstruments/karoryfer.meatbass)")
 # The music that also plays the Meatbass double bass.
 USES_MEATBASS = ("snow",)
+IOWA_WOODWINDS = (" and the University of Iowa Musical Instrument Samples' clarinet and bassoon (Electronic Music "
+                  "Studios, University of Iowa; free for any use: https://theremin.music.uiowa.edu/MIS.html)")
+# The music whose clarinet and bassoon are the Iowa recordings.
+USES_IOWA = ("picture-show",)
 # Credit lines this file once wrote, so the lock's old entries are still ours to correct.
 FORMER = (VCSL_MUSIC + FREEPATS_GUITAR,)
 SAMPLED_SFX = ("xylo-", "guitar-", "ember-chime-", "snowflake-", "sprinkle-burst", "wish-hang")
@@ -119,7 +123,8 @@ def source_for(path):
     if "/audio/music/" in path:
         piece = name.removesuffix(".mp3")
         base = VCSL_MUSIC if piece in USES_VCSL else VSCO_MUSIC
-        return base + (FREEPATS_GUITAR if piece in USES_FREEPATS else "") + (MEATBASS if piece in USES_MEATBASS else "")
+        return (base + (FREEPATS_GUITAR if piece in USES_FREEPATS else "") + (MEATBASS if piece in USES_MEATBASS else "")
+                + (IOWA_WOODWINDS if piece in USES_IOWA else ""))
     if "/audio/sfx/" in path and name.startswith("passage-final"):
         return _passage_source() + "; its far bell from the Versilian Community Sample Library (CC0, Versilian Studios)"
     if "/audio/sfx/" in path and name.startswith("passage-"):
@@ -145,7 +150,7 @@ def update_lock():
         e["source"] = source_for(e["path"])
     lock = root / "assets.lock.json"
     ours = {SYNTH, VSCO_MUSIC, VCSL_MUSIC, VSCO_SFX, _passage_source(), source_for("public/audio/sfx/passage-final.mp3"),
-            *(source_for(f"public/audio/music/{p}.mp3") for p in USES_FREEPATS + USES_MEATBASS), *FORMER,
+            *(source_for(f"public/audio/music/{p}.mp3") for p in USES_FREEPATS + USES_MEATBASS + USES_IOWA), *FORMER,
             *(_wind_source(k) for k in RECORDED_WIND)}
 
     def merged(data):
