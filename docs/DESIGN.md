@@ -42,7 +42,10 @@ on a tablet and on a laptop, with touch or with mouse and keyboard. The top-left
   of light slant down through the water the same way (`src/engine/beams.ts`).
 - **Carved lanterns** are instanced: one draw call for hundreds of pumpkins. A shader cuts the
   carving from an atlas of designs (faces, candles, stars, moons, owls) drawn at load time, lights
-  the inner flesh, and lets candle light glow through the thin skin around each cut.
+  the inner flesh, and lets candle light glow through the thin skin around each cut. Each is drawn
+  at the height it is given (its bottom, top or middle kept where it was placed: sitting, hanging or
+  held); one that sits on something rests on it (`restingOn`) with a soft contact shadow, and ones
+  scattered at random are kept clear of each other (`clearOf`).
 - **Fog** is height fog in every material, plus soft, lit fog banks that roll along the ground and
   part around you.
 - **Walking** follows each chapter's path: stick or WASD to walk, drag or mouse to look, tap or

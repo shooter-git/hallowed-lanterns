@@ -38,9 +38,10 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
   const specs: PumpkinSpec[] = [];
   const feather = (i: number) => ({
     position: new Vector3(),
-    size: new Vector3(0.24, 0.27, 0.22),
+    size: new Vector3(0.24, 0.21, 0.22),
     yaw,
     carve: CARVE.feathers,
+    anchor: 'centre' as const,
     skin: new Color(0.7, 0.26, 0.05),
     glow: new Color(1, 0.55, 0.15).multiplyScalar(3.2),
     phase: i * 0.37,
@@ -62,7 +63,8 @@ export async function owl(ctx: ChapterContext, at: Vector3, yaw: number): Promis
       const out = new Vector3(0, 0, 1).applyQuaternion(o.getWorldQuaternion(new Quaternion()));
       s.yaw = Math.atan2(out.x, out.z);
       const r = o.getWorldScale(new Vector3()).x / 2;
-      s.size = new Vector3(r, r * 1.1, r * 0.92);
+      // Round, a little squat, as the photo's are (with dark gaps between them).
+      s.size = new Vector3(r, r * 0.88, r * 0.92);
       specs.push(s);
     });
   } else {

@@ -6,7 +6,7 @@ import type { LightSource } from '../engine/lights.ts';
 import { loadModel } from '../engine/models.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
 import { archway, reedFence, standIn, walkwayFrame } from '../engine/props.ts';
-import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
+import { clearOf, PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec, restingOn } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
 import { owl } from '../scenes/owl.ts';
 import { aroundPath, heightAt, onGround, Terrain } from '../engine/terrain.ts';
@@ -238,9 +238,18 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     const big2 = i < 3;
     const w = big2 ? 0.2 + rnd() * 0.04 : 0.08 + rnd() * 0.08;
     const onFirst = i % 2 === 0;
+    // Somewhere on its pallet that another isn't (a few tries, else one fewer).
+    const size = new Vector3(w, w * 0.85, w);
+    let position = new Vector3();
+    let room = false;
+    for (let t = 0; t < 10 && !room; t++) {
+      position = new Vector3((onFirst ? 9.2 : 6) + (rnd() - 0.5) * 1.0, restingOn(0.14, size.y), (onFirst ? -28.4 : -29.2) + (rnd() - 0.5) * 0.8);
+      room = clearOf(pspecs, { position, size }, 0.01);
+    }
+    if (!room) continue;
     pspecs.push({
-      position: new Vector3((onFirst ? 9.2 : 6) + (rnd() - 0.5) * 1.0, 0.14 + w * 0.65, (onFirst ? -28.4 : -29.2) + (rnd() - 0.5) * 0.8),
-      size: new Vector3(w, w * 0.85, w),
+      position,
+      size,
       yaw: rnd() * 6.28,
       carve: -1,
       skin: (PUMPKIN_ORANGE[i % PUMPKIN_ORANGE.length] as Color).clone(),

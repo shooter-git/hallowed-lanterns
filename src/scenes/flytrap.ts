@@ -28,7 +28,7 @@ import { stringLights } from '../engine/lanterns.ts';
 import type { LightSource } from '../engine/lights.ts';
 import { instanceModel, loadModel } from '../engine/models.ts';
 import { Burst } from '../engine/particles.ts';
-import { PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
+import { PumpkinField, type PumpkinSpec, restingOn } from '../engine/pumpkins.ts';
 import { hallow } from '../engine/shared.ts';
 import { heightAt, pointOnGround } from '../engine/terrain.ts';
 import type { SetPiece } from './types.ts';
@@ -279,9 +279,10 @@ export async function flytrap(ctx: ChapterContext, at: Vector3, yaw: number): Pr
   ];
   const leds = stringLights(runs, { spacing: 0.16, color: new Color(0.2, 1, 0.85), brightness: 9, glowEvery: 3, glowRadius: 1.2, glowIntensity: 0.18 });
   objects.push(leds.mesh);
-  const specs: PumpkinSpec[] = [-0.7, 0, 0.6, -0.25, 0.35].map((x, i) => ({
-    position: toWorld(new Vector3(x, 0.18 + (i > 2 ? 0.28 : 0), 1.3 + (i % 2) * 0.25)),
-    size: new Vector3(0.24, 0.2, 0.24).multiplyScalar(i > 2 ? 0.75 : 1),
+  // On the ground in a shallow curve round the plant, big and small in turn, each clear of the next.
+  const specs: PumpkinSpec[] = [-1.0, -0.5, 0, 0.5, 1.0].map((x, i) => ({
+    position: toWorld(new Vector3(x, restingOn(0, 0.2 * (i % 2 ? 0.75 : 1)), 1.38 - 0.14 * Math.abs(x))),
+    size: new Vector3(0.24, 0.2, 0.24).multiplyScalar(i % 2 ? 0.75 : 1),
     yaw: yaw + (i - 2) * 0.3,
     carve: CARVE.faces[(i * 5) % CARVE.faces.length] as number,
     skin: new Color(0.72, 0.3, 0.06),

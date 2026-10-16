@@ -17,7 +17,7 @@ import {
 import type { GlowLight } from '../engine/glowfield.ts';
 import { stringLights } from '../engine/lanterns.ts';
 import type { LightSource } from '../engine/lights.ts';
-import { PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
+import { PumpkinField, type PumpkinSpec, restingOn } from '../engine/pumpkins.ts';
 import { hallow } from '../engine/shared.ts';
 import type { ChapterContext } from './types.ts';
 
@@ -142,16 +142,27 @@ export function buildEntrance(ctx: ChapterContext, at: Vector3, yaw: number, rnd
   const specs: PumpkinSpec[] = [];
   const skins = [new Color(0.75, 0.24, 0.03), new Color(0.82, 0.8, 0.7), new Color(0.8, 0.52, 0.45), new Color(0.7, 0.32, 0.06), new Color(0.6, 0.62, 0.45)];
   const world = (x: number, y: number, z: number) => new Vector3(x, y, z).applyAxisAngle(new Vector3(0, 1, 0), yaw).add(at);
+  const placed: { x: number; z: number; r: number; step: boolean }[] = [];
   for (let i = 0; i < 46; i++) {
     const onStep = i < 26;
     const big = rnd() < 0.15;
     const r = big ? 0.32 + rnd() * 0.08 : 0.1 + rnd() * 0.12;
-    const x = (rnd() - 0.5) * cols * baleW * 0.95;
-    const y = onStep ? 0.6 + r * 0.7 : r * 0.7;
-    const z = onStep ? 1.0 + (rnd() - 0.5) * 0.6 : 1.7 + rnd() * 1.2;
+    // Scattered, but never into one already there (a few tries; if there's no room, one fewer).
+    let x = 0;
+    let z = 0;
+    let room = false;
+    for (let t = 0; t < 14 && !room; t++) {
+      x = (rnd() - 0.5) * cols * baleW * 0.95;
+      z = onStep ? 1.0 + (rnd() - 0.5) * 0.6 : 1.7 + rnd() * 1.2;
+      room = placed.every((p) => p.step !== onStep || Math.hypot(p.x - x, p.z - z) > (p.r + r) * 1.05 + 0.03);
+    }
+    if (!room) continue;
+    placed.push({ x, z, r, step: onStep });
+    const size = new Vector3(r, r * (0.7 + rnd() * 0.25), r);
     specs.push({
-      position: world(x, y, z),
-      size: new Vector3(r, r * (0.7 + rnd() * 0.25), r),
+      // Resting on the step's top, or on the ground.
+      position: world(x, restingOn(onStep ? baleH : 0, size.y), z),
+      size,
       yaw: rnd() * 6.28,
       carve: -1,
       skin: (skins[Math.floor(rnd() * skins.length)] as Color).clone(),

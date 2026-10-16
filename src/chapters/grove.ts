@@ -16,7 +16,7 @@ import type { GlowLight } from '../engine/glowfield.ts';
 import { type Bounds, ground, GroundMask } from '../engine/ground.ts';
 import type { LightSource } from '../engine/lights.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
-import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
+import { clearOf, PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
 import { aroundPath, Terrain } from '../engine/terrain.ts';
 import { hallow, shared } from '../engine/shared.ts';
@@ -118,20 +118,33 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   const tmp = new Vector2();
   const tan = new Vector2();
   for (let i = 0; i < count; i++) {
-    const s = rnd() * path.length;
-    path.at(s, tmp, tan);
-    // Most over and beside the path, the rest deeper in the trees, at every height up to the canopy.
-    const off = (rnd() - 0.5) * 2 * (rnd() < 0.6 ? 3.6 : 9.5);
-    const x = tmp.x - tan.y * off;
-    const z = tmp.y + tan.x * off;
-    const y = 2.0 + rnd() * rnd() * 5.5 + Math.abs(off) * 0.08;
-    const w = 0.13 + rnd() * rnd() * 0.13;
+    // Most over and beside the path, the rest deeper in the trees, at every height up to the canopy;
+    // never into a lantern already hung there (a few tries, else one fewer).
+    let s = 0;
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    let w = 0;
+    let h = 0;
+    let room = false;
+    for (let t = 0; t < 8 && !room; t++) {
+      s = rnd() * path.length;
+      path.at(s, tmp, tan);
+      const off = (rnd() - 0.5) * 2 * (rnd() < 0.6 ? 3.6 : 9.5);
+      x = tmp.x - tan.y * off;
+      z = tmp.y + tan.x * off;
+      y = 2.0 + rnd() * rnd() * 5.5 + Math.abs(off) * 0.08;
+      w = 0.13 + rnd() * rnd() * 0.13;
+      h = w * (1.05 + rnd() * 0.35);
+      room = clearOf(specs, { position: new Vector3(x, y, z), size: new Vector3(w, h, w), hang: 1 }, 0.03);
+    }
+    if (!room) continue;
     // Face back down the path, toward the people coming along it.
     const from = path.at(Math.max(0, s - 7 - rnd() * 4));
     const yaw = Math.atan2(from.x - x, from.y - z) + (rnd() - 0.5) * 0.6;
     specs.push({
       position: new Vector3(x, y, z),
-      size: new Vector3(w, w * (1.05 + rnd() * 0.35), w),
+      size: new Vector3(w, h, w),
       yaw,
       tilt: (rnd() - 0.5) * 0.2,
       carve: pick(),

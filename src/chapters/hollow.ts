@@ -24,7 +24,7 @@ import type { LightSource } from '../engine/lights.ts';
 import { loadModel } from '../engine/models.ts';
 import { Burst, RAINBOW } from '../engine/particles.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
-import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
+import { PUMPKIN_ORANGE, PumpkinField, type PumpkinSpec, restingOn } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
 import { flytrap } from '../scenes/flytrap.ts';
 import { web } from '../scenes/web.ts';
@@ -241,11 +241,14 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   });
   // The xylophone: eight letter pumpkins on a low bench at the front, m s m s…
   const benchMat = hallow(new MeshStandardMaterial({ color: 0x2a1c12, roughness: 0.9 }), { key: 'bench' });
-  const bench = new Mesh(new CylinderGeometry(0.1, 0.1, 3.6, 6), benchMat);
+  // (Cut along its length so it follows the ground as the pumpkins on it do: a bench with ends alone
+  // ran straight between them, and the pumpkins sank into it where the ground dips.)
+  const bench = new Mesh(new CylinderGeometry(0.1, 0.1, 3.6, 6, 24), benchMat);
   bench.rotation.z = Math.PI / 2;
   bench.position.copy(STAGE).add(new Vector3(0, 0.25, 2.2));
   bench.scale.set(1, 1, 2.2);
   scene.add(bench);
+  const benchTop = 0.25 + 0.1 * Math.sin(Math.PI / 3);
   const xylo: number[] = [];
   const paint = [new Color(0.95, 0.75, 0.1), new Color(0.95, 0.45, 0.08), new Color(0.98, 0.9, 0.3)];
   const shells = [new Color(0.35, 0.06, 0.03), new Color(0.06, 0.04, 0.1), new Color(0.5, 0.05, 0.04), new Color(0.32, 0.12, 0.32), new Color(0.6, 0.25, 0.04)];
@@ -253,8 +256,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     const r = 0.195 - i * 0.007; // bigger pumpkins ring lower
     xylo.push(
       add({
-        position: STAGE.clone().add(new Vector3(-1.6 + i * 0.46, 0.35 + r * 0.6, 2.25)),
+        position: STAGE.clone().add(new Vector3(-1.6 + i * 0.46, restingOn(benchTop, r * 0.85), 2.25)),
         size: new Vector3(r, r * 0.85, r),
+        shadow: false, // (the bench is narrower than they are)
         carve: 100 + (CARVE.letters[i % 2] as number),
         skin: (shells[i % shells.length] as Color).clone(),
         glow: (paint[i % paint.length] as Color).clone(),
@@ -267,7 +271,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     const x = -3.4 + i * 0.52 + (rnd() - 0.5) * 0.1;
     const carved = rnd() < 0.6;
     add({
-      position: STAGE.clone().add(new Vector3(x, 0.17, 2.9 + (rnd() - 0.5) * 0.2)),
+      position: STAGE.clone().add(new Vector3(x, restingOn(0, 0.14), 2.9 + (rnd() - 0.5) * 0.2)),
       size: new Vector3(0.16, 0.14, 0.16),
       carve: carved ? (CARVE.faces[Math.floor(rnd() * CARVE.faces.length)] as number) : -1,
       skin: carved ? (PUMPKIN_ORANGE[i % 5] as Color).clone() : (shells[i % shells.length] as Color).clone(),
@@ -276,20 +280,22 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     });
   }
   // A third row up on a ledge behind: more letters, faces lit in candy colours, painted ones.
+  const ledgeTop = 0.58 + 0.06 * Math.sin(Math.PI / 3);
   for (let i = 0; i < 13; i++) {
     const x = -3.1 + i * 0.52 + (rnd() - 0.5) * 0.08;
     const kind = rnd();
     const r = 0.15 + rnd() * 0.05;
     add({
-      position: STAGE.clone().add(new Vector3(x, 0.62 + r * 0.6, 1.55 + (rnd() - 0.5) * 0.15)),
+      position: STAGE.clone().add(new Vector3(x, restingOn(ledgeTop, r * 0.85), 1.55 + (rnd() - 0.5) * 0.15)),
       size: new Vector3(r, r * 0.85, r),
+      shadow: false,
       carve: kind < 0.35 ? 100 + (CARVE.letters[i % 2] as number) : kind < 0.75 ? (CARVE.faces[Math.floor(rnd() * CARVE.faces.length)] as number) : -1,
       skin: (shells[(i + 2) % shells.length] as Color).clone(),
       glow: kind < 0.35 ? (paint[i % paint.length] as Color).clone() : kind < 0.75 ? (candy[(i + 1) % candy.length] as Color).clone().multiplyScalar(3.2) : new Color(0, 0, 0),
       yaw: (rnd() - 0.5) * 0.3,
     });
   }
-  const ledge = new Mesh(new CylinderGeometry(0.06, 0.06, 7.2, 6), benchMat);
+  const ledge = new Mesh(new CylinderGeometry(0.06, 0.06, 7.2, 6, 48), benchMat);
   ledge.rotation.z = Math.PI / 2;
   ledge.position.copy(STAGE).add(new Vector3(0, 0.58, 1.55));
   ledge.scale.set(1, 1, 3);

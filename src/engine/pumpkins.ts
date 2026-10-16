@@ -4,6 +4,7 @@ import {
   type Camera,
   Color,
   CylinderGeometry,
+  DataTexture,
   DynamicDrawUsage,
   Float32BufferAttribute,
   Group,
@@ -12,7 +13,9 @@ import {
   LineBasicMaterial,
   LineSegments,
   Matrix4,
+  MeshBasicMaterial,
   MeshStandardMaterial,
+  PlaneGeometry,
   Quaternion,
   type Ray,
   type Texture,
@@ -48,9 +51,108 @@ export interface PumpkinSpec {
   hang?: number;
   /** Chunk key: pumpkins with the same key are drawn (and culled) together. */
   chunk?: string;
+  /**
+   * What stays where it was placed when the pumpkin is drawn its full height (see TALL): its
+   * bottom (the default: it sits on something), its top (`hang`ing ones, by default: the string
+   * stays tied to it) or its centre (one held by its middle: on a body, or floating).
+   */
+  anchor?: 'bottom' | 'top' | 'centre';
+  /**
+   * A soft shadow on what it rests on, where it touches (on by default for a pumpkin that sits on
+   * something): without one a pumpkin on the ground looks sunk into it. Off for one on a narrow
+   * rail, where the shadow would hang past the edge.
+   */
+  shadow?: boolean;
 }
 
 const RIBS = 10;
+
+/**
+ * The unit pumpkin is 1.33 tall but 2.1 wide, so each one is drawn this much taller than its
+ * shape: then `size` is what it says (a half-height of 0.19 on a half-width of 0.16 is a pumpkin a
+ * little taller than it is wide, as the Arbor's are). Without it every pumpkin came out at 63% of
+ * the height it was given: squat, squashed-looking.
+ */
+const TALL = 1.5818;
+/** The unit pumpkin's lowest and highest points, and the floor of the dimple its stem stands in. */
+const BOTTOM = 0.6651;
+const TOP = 0.6625;
+const DIMPLE = 0.58;
+
+/**
+ * Where to put a pumpkin (`position.y`) of half-height `halfHeight` for it to rest on a surface at
+ * height `surface`: its lowest point just settled into it, as a real one sits.
+ */
+export function restingOn(surface: number, halfHeight: number, settle = 0.006): number {
+  return surface + BOTTOM * halfHeight - settle;
+}
+
+/**
+ * Whether pumpkin `s` would stand clear of every one of `others` by `gap` (m), each taken as the
+ * ellipsoid it is drawn as: for scattering them without one ending up inside another.
+ */
+export function clearOf(others: readonly PumpkinSpec[], s: Pick<PumpkinSpec, 'position' | 'size' | 'anchor' | 'hang'>, gap = 0.02): boolean {
+  const ay = s.position.y + lift(s as PumpkinSpec);
+  const sr = Math.max(s.size.x, s.size.y, s.size.z);
+  for (const o of others) {
+    const dx = o.position.x - s.position.x;
+    const dz = o.position.z - s.position.z;
+    const dy = o.position.y + lift(o) - ay;
+    const far = 1.05 * (sr + Math.max(o.size.x, o.size.y, o.size.z)) + gap;
+    if (Math.abs(dx) > far || Math.abs(dz) > far || Math.abs(dy) > far) continue;
+    const d = Math.hypot(dx, dy, dz);
+    if (d < 1e-6) return false;
+    // Each one's reach toward the other (drawn half-extents are 1.05 × size).
+    const reach = (z: Vector3) => 1.05 / Math.hypot(dx / d / z.x, dy / d / z.y, dz / d / z.z);
+    if (d < reach(s.size) + reach(o.size) + gap) return false;
+  }
+  return true;
+}
+
+/** How far (m, up) a pumpkin's centre moves when it is drawn its full height, to keep its anchor. */
+function lift(s: PumpkinSpec): number {
+  const anchor = s.anchor ?? (s.hang ? 'top' : 'bottom');
+  if (anchor === 'bottom') return BOTTOM * s.size.y * (TALL - 1);
+  if (anchor === 'top') return -TOP * s.size.y * (TALL - 1);
+  return 0;
+}
+
+/** The contact shadow's darkness across it (0 centre, 1 rim): dark under the pumpkin, fading out
+ * a little beyond its sides. */
+function contactShadowTexture(): DataTexture {
+  const n = 64;
+  const data = new Uint8Array(n * n * 4);
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const r = Math.hypot((i + 0.5) / n - 0.5, (j + 0.5) / n - 0.5) * 2;
+      const t = Math.min(1, Math.max(0, (r - 0.5) / 0.5));
+      const a = Math.round(255 * (1 - t * t * (3 - 2 * t)));
+      data.set([a, a, a, 255], (j * n + i) * 4);
+    }
+  }
+  const tex = new DataTexture(data, n, n);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const _at = new Vector3();
+const _up = new Vector3();
+const _scale = new Vector3();
+
+/**
+ * The matrices a pumpkin is drawn with: its body at its full height, kept to its anchor; its stem
+ * its own size, standing in the dimple on top. `scale`, `raise` and `squash` pose it (wobbles).
+ */
+function pumpkinMatrices(s: PumpkinSpec, q: Quaternion, body: Matrix4, stem: Matrix4, scale = 1, raise = 0, squash = 1) {
+  const sx = (s.size.x * scale) / Math.sqrt(squash);
+  const sy = s.size.y * scale * squash;
+  const sz = (s.size.z * scale) / Math.sqrt(squash);
+  _at.copy(s.position);
+  _at.y += raise + lift(s);
+  body.compose(_at, q, _scale.set(sx, sy * TALL, sz));
+  _up.set(0, DIMPLE * (TALL - 1) * sy, 0).applyQuaternion(q);
+  stem.compose(_at.add(_up), q, _scale.set(sx, sy, sz));
+}
 
 /** The pumpkin's surface, unit-sized: equator radius 1, height about 1.3 (−0.65 … 0.65). */
 function shape(theta: number, phi: number, out: Vector3) {
@@ -275,6 +377,8 @@ export class PumpkinField {
   private readonly where: { chunk: Chunk; local: number }[] = [];
   private readonly body: MeshStandardMaterial;
   private readonly stemMat: MeshStandardMaterial;
+  private shadowMat: MeshBasicMaterial | null = null;
+  private shadows: InstancedMesh | null = null;
   private readonly uniforms = { uWave: { value: 1e9 }, uWaveSoft: { value: 2 } };
   private readonly flares = new Map<number, { t: number; base: number }>();
 
@@ -317,6 +421,7 @@ export class PumpkinField {
     });
 
     const m = new Matrix4();
+    const mStem = new Matrix4();
     const q = new Quaternion();
     const tiltQ = new Quaternion();
     const yAxis = new Vector3(0, 1, 0);
@@ -345,14 +450,14 @@ export class PumpkinField {
       const lo = make(loGeo, this.body);
       const stem = new InstancedMesh(stemGeo, this.stemMat, n);
       lo.instanceMatrix = hi.instanceMatrix;
-      stem.instanceMatrix = hi.instanceMatrix;
       const center = new Vector3();
       members.forEach((idx, local) => {
         const s = specs[idx] as PumpkinSpec;
         q.setFromAxisAngle(yAxis, s.yaw);
         if (s.tilt) q.multiply(tiltQ.setFromAxisAngle(xAxis, s.tilt));
-        m.compose(s.position, q, s.size);
+        pumpkinMatrices(s, q, m, mStem);
         hi.setMatrixAt(local, m);
+        stem.setMatrixAt(local, mStem);
         carve.setX(local, s.carve);
         skin.setXYZ(local, s.skin.r, s.skin.g, s.skin.b);
         glow.setXYZW(local, s.glow.r, s.glow.g, s.glow.b, s.phase ?? Math.random());
@@ -375,6 +480,28 @@ export class PumpkinField {
       const chunk: Chunk = { hi, lo, stem, center, radius, members, wave, carve };
       for (const idx of members) (this.where[idx] as { chunk: Chunk }).chunk = chunk;
       this.chunks.push(chunk);
+    }
+    // Contact shadows: for each pumpkin that sits on something, a soft dark patch where it touches,
+    // reaching a little beyond its sides (one draw call for the field).
+    const sitting = specs.filter((s) => (s.anchor ?? (s.hang ? 'top' : 'bottom')) === 'bottom' && s.shadow !== false && s.size.y > 0.01);
+    if (sitting.length) {
+      const plane = new PlaneGeometry(2, 2);
+      plane.rotateX(-Math.PI / 2);
+      this.shadowMat = hallow(
+        new MeshBasicMaterial({ color: 0x000000, alphaMap: contactShadowTexture(), transparent: true, opacity: 0.6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+        { key: 'pumpkin-shadow', glow: 0 },
+      );
+      const shadows = new InstancedMesh(plane, this.shadowMat, sitting.length);
+      sitting.forEach((s, i) => {
+        // On the surface it rests on (its lowest point is settled just into it), a hair above.
+        const r = Math.max(s.size.x, s.size.z) * 1.05 * 1.4;
+        m.compose(new Vector3(s.position.x, s.position.y - BOTTOM * s.size.y + 0.012, s.position.z), q.set(0, 0, 0, 1), new Vector3(r, 1, r));
+        shadows.setMatrixAt(i, m);
+      });
+      shadows.computeBoundingSphere();
+      shadows.renderOrder = 1;
+      this.shadows = shadows;
+      this.group.add(shadows);
     }
     if (lines.length) {
       const g = new BufferGeometry();
@@ -431,19 +558,19 @@ export class PumpkinField {
   }
 
   /** Squash, stretch or lift one pumpkin (1, 0 = as placed). For wobbles and bounces. */
-  pose(index: number, scale: number, lift = 0, squash = 1) {
+  pose(index: number, scale: number, raise = 0, squash = 1) {
     const w = this.where[index];
     const s = this.specs[index];
     if (!w || !s) return;
     const q = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), s.yaw);
     if (s.tilt) q.multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), s.tilt));
-    const m = new Matrix4().compose(
-      s.position.clone().add(new Vector3(0, lift, 0)),
-      q,
-      new Vector3(s.size.x * scale / Math.sqrt(squash), s.size.y * scale * squash, s.size.z * scale / Math.sqrt(squash)),
-    );
+    const m = new Matrix4();
+    const mStem = new Matrix4();
+    pumpkinMatrices(s, q, m, mStem, scale, raise, squash);
     w.chunk.hi.setMatrixAt(w.local, m);
     w.chunk.hi.instanceMatrix.needsUpdate = true;
+    w.chunk.stem.setMatrixAt(w.local, mStem);
+    w.chunk.stem.instanceMatrix.needsUpdate = true;
   }
 
   /** A quick bright flare, as if the candle caught a breath of air. */
@@ -458,9 +585,9 @@ export class PumpkinField {
     let bestT = maxDistance;
     const v = new Vector3();
     this.specs.forEach((s, i) => {
-      const r = Math.max(s.size.x, s.size.y) * 1.15;
+      const r = Math.max(s.size.x, s.size.y) * 1.2;
       v.subVectors(s.position, ray.origin);
-      v.y += heightAt(s.position.x, s.position.z);
+      v.y += heightAt(s.position.x, s.position.z) + lift(s);
       const t = v.dot(ray.direction);
       if (t < 0 || t > bestT) return;
       const d2 = v.lengthSq() - t * t;
@@ -489,7 +616,7 @@ export class PumpkinField {
         intensity: gain / Math.max(1, s.glow.r),
         phase,
         flicker: 1,
-        y: s.position.y,
+        y: s.position.y + lift(s),
         ...(s.seq !== undefined ? { seq: s.seq } : {}),
       });
     });
@@ -506,6 +633,12 @@ export class PumpkinField {
     }
     this.body.dispose();
     this.stemMat.dispose();
+    if (this.shadows) {
+      this.shadows.geometry.dispose();
+      this.shadows.dispose();
+      this.shadowMat?.alphaMap?.dispose();
+      this.shadowMat?.dispose();
+    }
   }
 }
 

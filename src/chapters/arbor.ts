@@ -153,7 +153,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   // As packed as the real arbor: eight rows overhead, two tiers along each side, nearly touching.
   const overheadRows = tier === 'low' ? [-2.0, -1.2, -0.45, 0.45, 1.2, 2.0] : [-2.2, -1.65, -1.1, -0.55, 0.55, 1.1, 1.65, 2.2];
   const sideRows = tier === 'low' ? [1.4] : [1.35, 2.2];
-  const spacing = tier === 'low' ? 0.48 : 0.36;
+  // Along each row, a little more than the widest of them (0.39 m), so neighbours never meet.
+  const spacing = tier === 'low' ? 0.5 : 0.42;
   const lanternColour = (r: number) => {
     if (r < 0.025) return new Color(1, 0.08, 0.1).multiplyScalar(4);
     if (r < 0.045) return new Color(1, 0.1, 0.55).multiplyScalar(3.5);
@@ -185,10 +186,15 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     });
   };
   for (let z = LANE_START - 0.3; z > LANE_END + 0.2; z -= spacing) {
-    for (const x of overheadRows) add(x, 3.05 - Math.abs(x) * 0.09 + (rnd() - 0.5) * 0.1, z + (rnd() - 0.5) * 0.08, 0, 0.3);
+    // (The outer rows leave a gap at each bay's frame, where its braces come down toward the posts.)
+    const atFrame = Math.abs(z - (LANE_START - Math.round((LANE_START - z) / BAY) * BAY)) < 0.3;
+    for (const x of overheadRows) {
+      if (atFrame && Math.abs(x) > 1.9) continue;
+      add(x, 3.05 - Math.abs(x) * 0.09 + (rnd() - 0.5) * 0.1, z + (rnd() - 0.5) * 0.02, 0, 0.3);
+    }
     for (const y of sideRows) {
-      add(-HALF - 0.05, y, z + (rnd() - 0.5) * 0.1, Math.PI / 2, 0.22);
-      add(HALF + 0.05, y, z + (rnd() - 0.5) * 0.1, -Math.PI / 2, 0.22);
+      add(-HALF - 0.05, y, z + (rnd() - 0.5) * 0.02, Math.PI / 2, 0.22);
+      add(HALF + 0.05, y, z + (rnd() - 0.5) * 0.02, -Math.PI / 2, 0.22);
     }
   }
   // The one that holds the Ember: low over the middle of the lane, near the end.

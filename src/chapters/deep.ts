@@ -30,7 +30,7 @@ import { type Bounds, ground, GroundMask } from '../engine/ground.ts';
 import type { LightSource } from '../engine/lights.ts';
 import { loadModel } from '../engine/models.ts';
 import { defaultGrade, type Grade, lerpGrade } from '../engine/post.ts';
-import { PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
+import { clearOf, PumpkinField, type PumpkinSpec } from '../engine/pumpkins.ts';
 import { Path } from '../engine/rig.ts';
 import { kraken } from '../scenes/kraken.ts';
 import { aroundPath, onGround, pointOnGround, Terrain } from '../engine/terrain.ts';
@@ -533,11 +533,15 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     const overPath = Math.abs(off) < 2.6;
     if (overPath) pos.y = Math.max(pos.y, 4.2);
     const r = 0.16 + rnd() * 0.12;
+    // Never one jellyfish inside another.
+    if (!clearOf(specs, { position: pos, size: new Vector3(r, r * 0.56, r), anchor: 'centre' }, 0.05)) continue;
     const purple = rnd() < 0.5;
     jellies.push(specs.length);
     specs.push({
       position: pos,
-      size: new Vector3(r, r * 0.88, r),
+      // A bell, wider than it is tall, held by its middle (its ribbons hang from under it).
+      size: new Vector3(r, r * 0.56, r),
+      anchor: 'centre',
       yaw: rnd() * 6,
       carve: -3,
       skin: purple ? new Color(0.35, 0.12, 0.55) : new Color(0.9, 0.42, 0.08),

@@ -84,10 +84,14 @@ export async function guitar(ctx: ChapterContext, at: Vector3, yaw: number): Pro
 
   // Pumpkins: big carved ones on the body (roses, sugar skulls) glowing red; little ones round the rim
   // carved with dots of light in pink and purple.
-  const specs: PumpkinSpec[] = [];
-  const radii = (d: number | undefined, fallback: Vector3) => (d ? new Vector3(d / 2, d * 0.55, d * 0.45) : fallback);
-  bodySpots.forEach((p, i) => specs.push({ position: p, size: radii(bodySize[i], new Vector3(0.24, 0.3, 0.2)), yaw, carve: i % 2 ? CARVE.rose : CARVE.sugarSkull, skin: new Color(0.55, 0.22, 0.05), glow: new Color(1, 0.12, 0.08).multiplyScalar(3.5), phase: i * 0.31 }));
-  rimSpots.forEach((p, i) => specs.push({ position: p, size: radii(rimSize[i], new Vector3(0.12, 0.11, 0.12)), yaw, carve: CARVE.stars[i % CARVE.stars.length] as number, skin: new Color(0.6, 0.25, 0.06), glow: (i % 2 ? new Color(1, 0.15, 0.7) : new Color(0.6, 0.2, 1)).multiplyScalar(4), phase: i * 0.13 }));
+  const body: PumpkinSpec[] = [];
+  const rim: PumpkinSpec[] = [];
+  // Big ones a little taller than wide, the rim's round, as in the photo.
+  const radii = (d: number | undefined, tall: number, fallback: Vector3) => (d ? new Vector3(d / 2, d * tall, d * 0.45) : fallback);
+  // (The model's big ones are 0.42 m across; the photo's are nearer a third of a metre.)
+  bodySpots.forEach((p, i) => body.push({ position: p, size: radii(bodySize[i] && bodySize[i] * 0.8, 0.55, new Vector3(0.19, 0.24, 0.16)), anchor: 'centre', yaw, carve: i % 2 ? CARVE.rose : CARVE.sugarSkull, skin: new Color(0.55, 0.22, 0.05), glow: new Color(1, 0.12, 0.08).multiplyScalar(3.5), phase: i * 0.31 }));
+  rimSpots.forEach((p, i) => rim.push({ position: p, size: radii(rimSize[i], 0.46, new Vector3(0.12, 0.11, 0.12)), anchor: 'centre', yaw, carve: CARVE.stars[i % CARVE.stars.length] as number, skin: new Color(0.6, 0.25, 0.06), glow: (i % 2 ? new Color(1, 0.15, 0.7) : new Color(0.6, 0.2, 1)).multiplyScalar(4), phase: i * 0.13 }));
+  const specs = fitToBoard(body, rim, at, yaw);
   const pumpkins = new PumpkinField(specs, ctx.atlas, { detail: [28, 12], simple: [14, 7] });
   objects.push(pumpkins.group);
 
@@ -189,4 +193,64 @@ export async function guitar(ctx: ChapterContext, at: Vector3, yaw: number): Pro
     },
   };
   return piece;
+}
+
+/**
+ * The model's spots were laid out for smaller pumpkins than these. Fit them to the board as the photo
+ * has them: the rim's a ring of little ones each clear of the next, the body's big ones clear of each
+ * other and of the ring (a little smaller where they must be; one with no room is left out). On the
+ * board, a pumpkin reaches 1.05 × its half-width across and 1.05 × its half-height up.
+ */
+function fitToBoard(body: PumpkinSpec[], rim: PumpkinSpec[], at: Vector3, yaw: number): PumpkinSpec[] {
+  const across = new Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  const onBoard = (s: PumpkinSpec) => [s.position.clone().sub(at).dot(across), s.position.y] as const;
+  // How far apart two are, in units of their summed reaches (1 = just touching).
+  const apart = (a: PumpkinSpec, b: PumpkinSpec) => {
+    const [ua, va] = onBoard(a);
+    const [ub, vb] = onBoard(b);
+    return Math.hypot((ua - ub) / (1.05 * (a.size.x + b.size.x)), (va - vb) / (1.05 * (a.size.y + b.size.y)));
+  };
+  const shrink = (group: PumpkinSpec[]) => {
+    const k = group.map((a) => Math.min(1, ...group.filter((b) => b !== a).map((b) => apart(a, b) * 0.9)));
+    group.forEach((a, i) => a.size.multiplyScalar(k[i] as number));
+  };
+  shrink(rim);
+  shrink(body);
+  // A big one that would sit on the ring gets smaller (to 70%) until it clears it; else it's left out.
+  const kept = body.filter((b) => {
+    const size = b.size.clone();
+    for (let f = 1; f >= 0.69; f -= 0.05) {
+      b.size.copy(size).multiplyScalar(f);
+      if (rim.every((r) => apart(b, r) > 1.08)) return true;
+    }
+    return false;
+  });
+  // The photo's board is full: fill the room left inside the ring with more of the big ones, row by
+  // row from the bottom, outward from the strings on each side, wherever one fits.
+  // (A little smaller than the largest big one kept, so they pack the gaps as a real display does.)
+  const proto = [...kept].sort((x, y) => y.size.x - x.size.x)[0] ?? body[0];
+  if (proto) {
+    const out = new Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+    const depth = proto.position.clone().sub(at).dot(out);
+    const size = proto.size.clone().multiplyScalar(0.8);
+    for (let v = 0.3; v < 3.2; v += 0.05) {
+      // Inside the ring: between its leftmost and rightmost at this height.
+      const row = rim.map(onBoard).filter(([, rv]) => Math.abs(rv - v) < 0.15);
+      if (row.length < 2) continue;
+      const left = Math.min(...row.map(([ru]) => ru));
+      const right = Math.max(...row.map(([ru]) => ru));
+      for (const side of [-1, 1]) {
+        for (let du = 0.05; du < 1.3; du += 0.05) {
+          const u = side * du;
+          if (u <= left || u >= right) continue;
+          // Clear of the strings, from the bridge up.
+          if (v > 0.95 && Math.abs(u) - 1.05 * size.x < 0.3) continue;
+          const c: PumpkinSpec = { ...proto, size: size.clone(), carve: kept.length % 2 ? CARVE.rose : CARVE.sugarSkull, phase: kept.length * 0.31 };
+          c.position = at.clone().addScaledVector(across, u).addScaledVector(out, depth).setY(v);
+          if (rim.every((r) => apart(c, r) > 1.08) && kept.every((k) => apart(c, k) > 1.06)) kept.push(c);
+        }
+      }
+    }
+  }
+  return [...kept, ...rim];
 }
