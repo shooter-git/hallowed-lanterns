@@ -72,6 +72,8 @@ function square(size, share) {
 
 /** Rounded corners (a radius of 22.5%) with clear corners, for icons shown as they are. */
 const rounded = (size) => [
+  // The frame has no alpha channel of its own; without one the cut corners are written black.
+  ['-alpha', 'set'],
   ['(', '-size', `${size}x${size}`, 'xc:none', '-fill', 'white'],
   ['-draw', `roundrectangle 0,0,${size - 1},${size - 1},${size * 0.225},${size * 0.225}`, ')'],
   ['-compose', 'DstIn', '-composite'],
