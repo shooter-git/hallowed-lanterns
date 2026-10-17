@@ -3,6 +3,7 @@ MP3 encoding with post-encode verification, QA pictures and the manifest."""
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -14,7 +15,10 @@ from . import master as M
 from . import qa
 
 ROOT = Path(__file__).resolve().parents[3]          # project root
-OUT = ROOT / "public" / "audio"
+# A preview for HO[LO] Desk (HL_AUDIO_OUT=<folder>): the mastered mix is written there as a WAV, and nothing of
+# the game's (public/audio, its manifest, the QA cache) is touched.
+PREVIEW = os.environ.get("HL_AUDIO_OUT") or None
+OUT = Path(PREVIEW) if PREVIEW else ROOT / "public" / "audio"
 CACHE = Path(__file__).resolve().parents[1] / ".cache"
 MANIFEST = OUT / "manifest.json"
 VERBOSE = True
@@ -111,6 +115,15 @@ def _qa(name, y, kind):
     M.write_wav(CACHE / "wav" / f"{kind}-{name}.wav", y)
 
 
+def _preview(kind, name, y, t0):
+    """HL_AUDIO_OUT: the mastered mix as a 32-bit float WAV, ready for the studio to play."""
+    path = OUT / kind / f"{name}.wav"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    M.write_wav(path, np.asarray(y, dtype=np.float32))
+    _log(f"  {kind}/{name}: preview {y.shape[1] / SR:.1f}s -> {path} ({time.time() - t0:.0f}s)")
+    return dict(preview=str(path))
+
+
 def _encode_verified(y, path, kbps, target_lufs, tp_max=-1.6, mono=False, tries=5, lufs_tol=0.15,
                      measure_lufs=True):
     """Encode, measure the MP3, nudge gain/ceiling until it lands. Returns (y, I, TP)."""
@@ -145,6 +158,8 @@ def finish_loop(kind, name, x, loop_seconds, tail_seconds, target_lufs, kbps, me
     y = M.master(x, target_lufs, ceiling, circular=True, glue=glue, tilt_hs_db=tilt_hs_db)
     tail = ns(tail_seconds)
     full = np.concatenate([y, y[:, :tail]], axis=1)
+    if PREVIEW:
+        return _preview(kind, name, full, t0)
     corr = M.loop_correlation(full, n, tail)
     st = qa.stats(y)
     path = OUT / kind / f"{name}.mp3"
@@ -182,6 +197,8 @@ def finish_oneshot(kind, name, x, target_lufs, kbps, meta=None, ceiling=-2.2, gl
         y = y[:, : ns(max_s)].copy()
         k = ns(min(end_fade, max_s / 3))
         y[:, -k:] *= np.cos(np.linspace(0, np.pi / 2, k)) ** 2
+    if PREVIEW:
+        return _preview(kind, name, y, t0)
     st = qa.stats(y)
     path = OUT / kind / f"{name}.mp3"
     y, I, TP = _encode_verified(y, path, kbps, target_lufs)

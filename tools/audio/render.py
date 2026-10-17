@@ -75,6 +75,10 @@ def run_one(key):
     t0 = time.time()
     print(f"[{key}] rendering…", flush=True)
     mod = importlib.import_module(f"{kind}.{stem}")
+    if kind == "music" and hasattr(mod, "score"):
+        # tracks edited in HO[LO] Desk (tools/audio/sessions/<piece>.holo.json) play in place of the code's own
+        from hlaudio.session import wrap
+        mod.score = wrap(stem, mod.score)
     mod.render()
     print(f"[{key}] done in {time.time() - t0:.0f}s", flush=True)
 

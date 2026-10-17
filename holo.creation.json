@@ -1,0 +1,22 @@
+{
+  "format": "holo-creation",
+  "version": 1,
+  "name": "hallowed-lanterns",
+  "title": "Hallowed Lanterns",
+  "sessions": "tools/audio/sessions",
+  "exportHelp": "In holo-desk: node local/hallowed-lanterns/hl-export.mjs <piece> (title, arbor, grove, garden, pasture, picture_show, hollow, snow, deep, marigold, finale)",
+  "renderHelp": "In HO[LO] Desk: Hear it as Hallowed Lanterns (needs pnpm runner on this computer), or python3 tools/audio/render.py music:<piece>",
+  "render": {
+    "command": [
+      "python3",
+      "tools/audio/render.py",
+      "--no-lock",
+      "music:{piece}"
+    ],
+    "env": {
+      "HL_AUDIO_OUT": "{out}",
+      "HOLO_SESSIONS": "{sessions}"
+    },
+    "output": "{out}/music/*.wav"
+  }
+}
