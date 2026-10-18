@@ -105,11 +105,16 @@ Actions**, and in **Settings → Environments → github-pages**, add a deployme
   its README).
 - `node tools/lock-assets.mjs` — records new models and sounds in `assets.lock.json` as our own.
 
-Every picture, model and sound is made by this project's own tools, with four kinds of borrowed
-recordings, all released under CC0:
+Every picture, model and sound is made by this project's own tools, with five kinds of borrowed
+recordings, all free for anyone to use (the Iowa samples without restriction, the rest released
+under CC0):
 
 - The orchestra is played from [VSCO 2 Community Edition](https://github.com/sgossner/VSCO-2-CE)
   by Versilian Studios: the score is composed and performed by `tools/audio`, on their recordings.
+- The picture show's clarinet and bassoon are the
+  [University of Iowa Musical Instrument Samples](https://theremin.music.uiowa.edu/MIS.html),
+  recorded by the University of Iowa Electronic Music Studios and free to use in any project
+  without restriction.
 - The Arbor's vibraphone, the Lantern Garden's zither, temple gong, finger cymbals, temple block and
   clay-flute ocarina, the Marigold Garden's gong and shaker, and October Snow's woodblock and finger
   cymbals come from the [Versilian Community Sample Library](https://github.com/sgossner/VCSL), also
