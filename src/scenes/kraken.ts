@@ -111,7 +111,14 @@ export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: nu
   const gold = new Burst(160, { gravity: 4, brightness: 3 });
   objects.push(gold.mesh);
   let lidOpen = 0;
+  // The tentacles' curl (0 at rest, 1 curled up), moved by a soft spring: a tap pulls them up and holds
+  // them there a moment, then lets them sink back. Tapped again while they move, they carry on from where
+  // they are (held up longer, or lifted again on the way down), never snapping back to start over.
+  const CURL_HOLD = 1.4;
+  let clock = 0;
   let curl = 0;
+  let curlSpeed = 0;
+  let curlUntil = -1;
   const seat = T(0, 0.95);
 
   return {
@@ -120,8 +127,17 @@ export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: nu
     glow,
     sources,
     update(dt) {
-      curl = Math.max(0, curl - dt / 3);
-      const k = Math.sin(Math.min(1, curl) * Math.PI);
+      clock += dt;
+      // Up a little quicker than down (as a curl rising from the floor and sinking back to it); in small
+      // steps, so a long frame can't throw it.
+      for (let left = Math.min(dt, 0.1); left > 1e-6; left -= 1 / 120) {
+        const h = Math.min(left, 1 / 120);
+        const up = clock < curlUntil;
+        const w = up ? 2.8 : 1.8;
+        curlSpeed += (w * w * ((up ? 1.06 : 0) - curl) - 2 * w * curlSpeed) * h;
+        curl += curlSpeed * h;
+      }
+      const k = Math.max(0, Math.min(1, curl));
       tentacles.forEach((t, i) => (t.wave.value = i % 2 === 0 ? k : k * 0.5));
       // The lid rests open; a tap lets it drop a little and creak back (the chains can't follow).
       if (chestLid) chestLid.rotation.x = lidRest + Math.sin(lidOpen * Math.PI) * 0.45;
@@ -146,7 +162,7 @@ export async function kraken(ctx: ChapterContext, wreckAt: Vector3, wreckYaw: nu
       for (const p of [W(-0.5, -1.5), W(0.9, -2.6), W(-3.8, 0.4), W(4.6, -1.0)]) {
         if (ray.distanceSqToPoint(pointOnGround(p.clone().setY(2.5))) < 4) {
           return () => {
-            curl = 1;
+            curlUntil = clock + CURL_HOLD;
             void ctx.audio.sfx('tentacle-curl', { at: pointOnGround(p.clone().setY(2)), volume: 0.9 });
             void ctx.audio.sfx('kraken-groan', { at: pointOnGround(W(0, -3)), volume: 0.8 });
           };

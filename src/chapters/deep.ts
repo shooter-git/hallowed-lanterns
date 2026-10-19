@@ -60,6 +60,12 @@ function rng(seed: number) {
 }
 
 const KEEPER = new Vector3(0, 0, -60);
+/**
+ * Near the Keeper: from here it rises, asks for a wave (and waves first if you don't), and once it has
+ * waved the night goes on from wherever you stand. (Walking by hand, people stop to look well before the
+ * path's end, 11 m from it; only "Walk with me" always went all the way.)
+ */
+const KEEPER_NEAR = 22;
 const WRECK = new Vector3(-8.5, 0, -14);
 const TREASURE = new Vector3(5.6, 0, -32.5);
 
@@ -766,6 +772,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   let sweepPhase = 0;
   let hinted = 0;
   let wavedBack = false;
+  let keeperDistance = Infinity;
+  /** When the wave last finished (the arm settled), on the chapter's clock. */
+  let stillSince = -1;
   const puffed = new Map<number, number>();
 
   const chapter: Chapter = {
@@ -835,7 +844,8 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       // The Keeper rises as you come near.
       if (keeperRoot) {
         const d = Math.hypot(w.position.x - KEEPER.x, w.position.z - KEEPER.z);
-        if (!rising && d < 22) {
+        keeperDistance = d;
+        if (!rising && d < KEEPER_NEAR) {
           rising = true;
           void ctx.audio.sfx('keeper-rise', { volume: 1 });
           ctx.ui.say('Something enormous is rising…', 5);
@@ -852,7 +862,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
           eye.rotation.x += (-Math.asin(Math.max(-1, Math.min(1, dir.y))) * 0.4 - eye.rotation.x) * (1 - Math.exp(-dt * 2));
         }
         moveArms(dt);
-        if (k > 0.9 && !hinted && d < 14) {
+        if (k > 0.9 && !hinted && d < KEEPER_NEAR) {
           hinted = time;
           ctx.ui.say('Wave to it.', 4);
         }
@@ -898,7 +908,15 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     finished() {
-      return wavedBack && risen >= 1 && ctx.walker.s > path.length - 1.2 && !waveGoing();
+      // (no Keeper, if its model couldn't be loaded: the path's end, as everywhere else)
+      if (!keeperRoot) return ctx.walker.s > path.length - 1.2;
+      // Once it has risen and waved (and a breath after the arm settles), from the path's end or anywhere near it.
+      if (!wavedBack || risen < 1 || waveGoing()) {
+        stillSince = -1;
+        return false;
+      }
+      if (stillSince < 0) stillSince = time;
+      return time - stillSince > 1.5 && (ctx.walker.s > path.length - 1.2 || keeperDistance < KEEPER_NEAR);
     },
 
     dispose() {
