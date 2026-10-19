@@ -1219,6 +1219,16 @@
       "path": "tools/icons/arbor-at-sunset.png",
       "license": "own",
       "source": "The Arbor of Faces at sunset, drawn by the engine (node tools/icons.mjs --capture); the icons are cropped from it"
+    },
+    {
+      "path": "public/audio/music/finale-in-g.mp3",
+      "license": "own",
+      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios)"
+    },
+    {
+      "path": "public/audio/music/finale-in.mp3",
+      "license": "own",
+      "source": "Composed with tools/audio (Hallowed Lanterns), using VSCO 2 Community Edition orchestral samples (CC0, Versilian Studios)"
     }
   ]
 }

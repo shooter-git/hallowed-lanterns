@@ -32,17 +32,42 @@ sixteenth pickup into each second bar as the build grows; on the A pedal
 (28-29) they hold back to the downbeats under the braam, then come in full
 with the statement (30) and fall away through bars 36-37, so the coda is
 the piano alone.
+
+THE WAY IN (finale-in, finale-in-g): two bars that carry the Marigold
+Garden's "Remember Me" into the finale. The game starts one on a bar line of
+the Marigold's music and lets that fall away under it, as the Marigold's own
+release does, and the finale's downbeat follows exactly `leadIn` seconds
+later, when the lanterns rise:
+
+  bar 1  still the Marigold's tempo (quarter = 72): the felt piano turns the
+         Marigold's figure once more while the bass slides beneath it to A
+         (the Marigold's own trick: the same notes, a new colour), over a far
+         organ A and an open fifth in the strings, a breath of glass above.
+         finale-in has the figure as it is (B E F# G: E minor 9 over A);
+         finale-in-g, for the afterglow, a third higher as it is there
+         (D G A B: G over A).
+  bar 2  quickening to the finale's 80: the figure turns into the finale's
+         own broken-chord cycle on A7sus4 (E G A D), the glass rings the
+         finale's three notes, a soft timpani roll on A, and in its last
+         half-second a harp glissando and a reversed shimmer draw in.
+  then   the downbeat: the sus resolves (G to F#, D to C#) into the finale's
+         D major 9, with one soft deep hit, the horns blooming on D and three
+         glockenspiel notes falling away. The strings' A and E ring on into it.
+
+Each is mastered at the finale's own level (the gain the finale got, measured
+over its opening), so the two sum as one piece.
 """
 import numpy as np
 
-from hlaudio.core import SR
+from hlaudio.core import SR, ns, tvec, undb
 from hlaudio.score import N, prog, humanize, Clock, chord_pcs
 from hlaudio.sampler import Curve
 from hlaudio.orch import Stage, sustain_chords, roots
 from hlaudio import process as PR
 from hlaudio import electro as EL, effects as FX
+from hlaudio import master as MS
 from hlaudio.beats import groove, drum_pitch
-from hlaudio.piece import finish_oneshot
+from hlaudio.piece import finish_oneshot, update_manifest, PREVIEW, OUT, CACHE, _qa
 from hlaudio import lead as LD
 
 TITLE = "Hallowed Lanterns"
@@ -208,7 +233,8 @@ def score():
     return pr, P
 
 
-def render():
+def mix():
+    """The finale, rendered (before mastering)."""
     pr, P = score()
     clk = Clock(bpm=BPM_UNIT)
     S = lambda notes, seed, j=0.008: humanize(clk.notes(notes), seed, t_jit=j)
@@ -307,10 +333,149 @@ def render():
         n.v = float(n.v * (0.55 + 0.5 * arc(n.t)))
     EL.sub_pulse(sb, sub, gain=0.4, seed=30, decay=0.35)
 
+    return st.render({"concert": {"seed": 91}, "cathedral2": {"seed": 92},
+                      "shimmer:cathedral2": {"seed": 93, "gens": 2, "fb": 0.42}}, warmth=0.35)
+
+
+# ---- the way in from the Marigold Garden (see the notes at the top)
+
+# the Marigold's figure (pieces/music/marigold.py FIG, FIG_G) and its accents
+MARIGOLD_FIG = {"e": [59, 64, 66, 71, 66, 64, 67, 64], "g": [62, 67, 69, 74, 69, 67, 71, 67]}
+MARIGOLD_ACC = [1.0, .55, .6, .9, .55, .6, .85, .6]
+# ... and the glass above it, on the figure's notes
+LEAD_GLASS = {"e": [71, 76, 78], "g": [74, 79, 81]}
+# bar 1 at the Marigold's quarter = 72, bar 2 quickening to the finale's 80 (eighths per minute)
+LEAD_CLOCK = Clock(points=[(0.0, 144.0), (8.0, 144.0), (16.0, 160.0)])
+LEAD_IN = LEAD_CLOCK.s(16.0)       # the finale's downbeat (s)
+LEAD_SECONDS = LEAD_IN + 7.0       # and the bloom dying away under the finale's first bars
+SUS = [64, 67, 69, 74]             # A7sus4 (E G A D): the finale's first voicing (E F# A C#) with G and D a step up
+
+
+def lead_in(variant):
+    """One of the two bars into the finale (before mastering): 'e' after the Marigold's E minor, 'g' after its
+    afterglow in G."""
+    clk = LEAD_CLOCK
+    S = lambda notes, seed, j=0.008: humanize(clk.notes(notes), seed, t_jit=j)
+    st = Stage(LEAD_SECONDS, circular=False)
+    down = LEAD_IN
+    bar2 = clk.s(8)
+
+    # bar 1: the Marigold's figure once more, at the Marigold's own touch and growing quieter, over the bass
+    # sliding to A
+    fig = [N(i, 1.6, float(p), (0.52 - 0.1 * i / 7) * MARIGOLD_ACC[i]) for i, p in enumerate(MARIGOLD_FIG[variant])]
+    lh = [N(0, 3.2, 33.0, 0.54), N(0, 3.2, 45.0, 0.54), N(3, 5.2, 33.0, 0.36), N(3, 5.2, 45.0, 0.36)]
+    # bar 2: the finale's broken-chord cycle on A7sus4, at its opening's touch
+    cyc = [N(8 + i, 2.2, float(SUS[idx]), 0.43 * ACC[i]) for i, idx in enumerate(PAT["A"])]
+    lh += [N(8, 9.0, 33.0, 0.42), N(12, 5.0, 45.0, 0.3)]
+    st.play("piano", S(fig + cyc, 101, 0.006), "piano", seed=101, gain_db=9, layer_bias=-0.25, release=0.9)
+    st.play("piano", S(lh, 102, 0.01), "piano", seed=102, gain_db=6, layer_bias=-0.3, release=1.5)
+
+    # the far organ on A (the finale's own D pedal takes over on the downbeat), and the strings' open fifth,
+    # far back, ringing on into the finale's first bar
+    st.play("organ", S([N(0, 16.2, 33.0, 0.45)], 103, 0.0), "organ_soft_pedal", seed=103,
+            dyn=Curve([(0.0, 0.5), (bar2, 0.42), (down, 0.45)]), gain_db=-7)
+    st.play("organ", S([N(0, 16.2, 45.0, 0.42)], 104, 0.0), "organ_soft", seed=104,
+            dyn=Curve([(0.0, 0.45), (bar2, 0.36), (down, 0.4)]), gain_db=-12)
+    st.stems["organ"].buf = FX.tremulant(st.stems["organ"].buf, 5.0, 0.03, 0.08).astype("float32")
+    # (the string bed takes the Marigold's weight as it falls away, and lets it go)
+    st.play("violas", S([N(0, 24.0, 57.0, 0.5), N(0, 24.0, 64.0, 0.5)], 105, 0.0), "violas", seed=105,
+            dyn=Curve([(0.0, 0.55), (bar2, 0.36), (down, 0.4), (down + 1.5, 0.34), (down + 3.0, 0.15)]),
+            gain_db=-15, shape={"attack": 0.5, "swell": 0.1, "taper": 2.5}, **LD.bed())
+    st.play("cellos", S([N(0, 17.0, 45.0, 0.5), N(0, 17.0, 52.0, 0.5)], 114, 0.0), "cellos", seed=114,
+            dyn=Curve([(0.0, 0.55), (bar2, 0.32), (down, 0.26), (down + 1.0, 0.1)]),
+            gain_db=-17, shape={"attack": 0.5, "swell": 0.05, "taper": 2.0}, **LD.bed())
+
+    # the glass: a breath over bar 1, then the finale's three notes (D A E) a bar early
+    gl = st.stem("glass", {"shimmer:cathedral2": 0.35, "concert": 0.55}, depth=0.65)
+    halo = S([N(0, 8.5, float(p), 0.36) for p in LEAD_GLASS[variant]], 106, 0.0)
+    EL.glass(gl, halo, gain=0.24, seed=106, attack=1.4, release=3.0, bright=0.5, pan_spread=0.4, breath=0.1)
+    gp = S([N(8 + pos, 1.0, p, 0.42 if pos == 0 else 0.34) for pos, p in ((0, 74.0), (3, 81.0), (6, 76.0))], 107, 0.0)
+    for n in gp:
+        n.v = float(n.v * 0.85)
+        n.x["attack"] = 0.03
+        n.x["release"] = 1.1
+    EL.glass(gl, gp, gain=0.38, seed=107, bright=0.5, pan_spread=0.35, breath=0.05)
+    gl.buf = FX.eq(gl.buf.astype(np.float64), ("lp", 4200, 0.7))
+    gl.buf = (gl.buf + FX.echo(gl.buf, clk.s(1.5), fb=0.38, mix=0.32, lp=2200)[:, : gl.buf.shape[1]]).astype("float32")
+
+    # drawing in: a soft roll on A, a harp glissando up through A7sus4 and a reversed shimmer, all landing on the
+    # downbeat
+    st.play("timpani", S([N(10, 5.9, 45.0, 0.5)], 108, 0.0), "timpani_roll", seed=108,
+            dyn=Curve([(clk.s(10), 0.04), (down - 0.15, 0.3), (down, 0.06)]), gain_db=-9, release=0.5)
+    gls = [45, 50, 52, 55, 57, 62, 64, 67, 69, 74, 76, 79, 81]
+    span = 0.5
+    st.play("harp", [N(down - span + i * span / len(gls), 2.0, float(p), 0.24 + 0.02 * i) for i, p in enumerate(gls)],
+            "harp", seed=109, gain_db=-6)
+    chord = Stage(4.5, circular=False)
+    chord.play("glock", [N(0.0, 1.5, float(p), 0.42) for p in (86, 93, 100)], "glock", seed=110, sends={})
+    wet = FX.reverb(chord.render({}, warmth=0.0, air=None), "cathedral2")[:, : ns(3.2)]
+    st.stem("reverse", {}, depth=0.3).add(down - wet.shape[1] / SR, wet[:, ::-1], gain=0.32)
+
+    # the downbeat: one soft deep hit, the horns blooming on D, three glockenspiel notes falling away
+    st.play("timpani", S([N(16, 3.0, 38.0, 0.45)], 111, 0.003), "timpani", seed=111, gain_db=-4)
+    n = ns(1.8)
+    t = tvec(n)
+    f = 440 * 2 ** ((38 - 69) / 12) * (1 + 0.2 * np.exp(-t / 0.05))
+    hit = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.5) * (1 - np.exp(-t / 0.004))
+    st.stem("sub", {}, depth=0.1).add(down, hit, gain=0.16)
+    bloom = Curve([(down, 0.34), (down + 0.4, 0.5), (down + 2.4, 0.4), (LEAD_SECONDS - 1.5, 0.08)])
+    st.play("horns", [N(down + 0.05, 4.6, float(p), 0.42) for p in (57, 66)], "horns", seed=112, dyn=bloom,
+            gain_db=-10, shape={"attack": 0.35, "swell": 0.1, "taper": 2.2})
+    falls = [N(down + 0.45 + 0.42 * i, 1.8, float(p), 0.28 - 0.05 * i) for i, p in enumerate((93, 90, 86))]
+    st.play("glock", falls, "glock", seed=113, gain_db=-8, sends={"shimmer:cathedral2": 0.3, st.hall: 0.6})
+
     out = st.render({"concert": {"seed": 91}, "cathedral2": {"seed": 92},
                      "shimmer:cathedral2": {"seed": 93, "gens": 2, "fb": 0.42}}, warmth=0.35)
-    return finish_oneshot("music", "finale", out, -16.0, 192, max_s=SECONDS, end_fade=3.0,
-                          meta={"title": TITLE, "key": "D major", "meter": "4/4", "bpm": 80, "beat": "quarter"})
+    out = out[:, : ns(LEAD_SECONDS)]
+    # it begins nearer the Marigold's level and settles to the finale's over the first bar
+    t = tvec(out.shape[1])
+    out *= undb(3.0 * np.clip(1 - t / bar2, 0, 1))
+    k = ns(1.5)
+    out[:, -k:] *= np.cos(np.linspace(0, np.pi / 2, k)) ** 2
+    return out
+
+
+def _prep(x):
+    """The linear part of the mastering chain (master.master's low cut and tilt)."""
+    return FX.filt(np.atleast_2d(x), FX.chain(("hp", 28.0, 0.6), ("hs", 9000, 0.7, -1.0)), False, warm=2.0)
+
+
+def finish_lead_ins(raw, mastered):
+    """Masters the two ways in at the finale's own level: the gain the finale got over its opening bars (where
+    nothing but that gain and the tilt touches it), so a way in and the finale sum as one piece."""
+    k = ns(12.0)
+    gain = MS.lufs(mastered[:, :k]) - MS.lufs(_prep(raw)[:, :k])
+    for variant, name in (("e", "finale-in"), ("g", "finale-in-g")):
+        y = MS.limit(_prep(lead_in(variant)) * undb(gain), -2.2)
+        if PREVIEW:
+            path = OUT / "music" / f"{name}.wav"
+            MS.write_wav(path, y.astype(np.float32))
+            print(f"  music/{name}: preview {y.shape[1] / SR:.1f}s -> {path}", flush=True)
+            continue
+        path = OUT / "music" / f"{name}.mp3"
+        MS.encode_mp3(y, path, 192)
+        I, TP = MS.measure_file(path)
+        _qa(name, y, "music")
+        update_manifest("music", name, {"file": f"music/{name}.mp3", "oneShot": True,
+                                        "seconds": round(y.shape[1] / SR, 2), "leadIn": round(LEAD_IN, 6),
+                                        "title": "Hallowed Lanterns (the way in)", "key": "D major",
+                                        "from": "E minor" if variant == "e" else "G major"})
+        print(f"  music/{name}: {y.shape[1] / SR:.1f}s, gain {gain:+.2f} dB, mp3 I {I:.1f} LUFS, TP {TP:.1f} dBTP, "
+              f"{path.stat().st_size / 1e6:.2f} MB", flush=True)
+
+
+def render():
+    out = mix()
+    res = finish_oneshot("music", "finale", out, -16.0, 192, max_s=SECONDS, end_fade=3.0,
+                         meta={"title": TITLE, "key": "D major", "meter": "4/4", "bpm": 80, "beat": "quarter",
+                               # where the coda begins (s): the piano's last word, when the night says goodbye
+                               "coda": round(bar(38) * 60 / BPM_UNIT, 6)})
+    # the finale as it was written out (the verified encode's level), to master the ways in against
+    done = OUT / "music" / "finale.wav" if PREVIEW else CACHE / "wav" / "music-finale.wav"
+    from scipy.io import wavfile
+    mastered = wavfile.read(done)[1].T.astype(np.float64)
+    finish_lead_ins(out, mastered)
+    return res
 
 
 if __name__ == "__main__":

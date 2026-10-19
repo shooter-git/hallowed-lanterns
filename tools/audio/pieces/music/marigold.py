@@ -176,6 +176,12 @@ def bar(b):
     return b * BAR
 
 
+def bar_starts():
+    """Where each bar begins (s), with the rubato the piece is played with (render()'s Clock)."""
+    clk = Clock(bpm=BPM_UNIT, rubato=(4 * BAR, 0.02))
+    return [round(float(clk.s(bar(b))), 6) for b in range(BARS)]
+
+
 def C(pts):
     """A control curve over bars: [(bar, value), ...] (held before the first point and after the last)."""
     pts = list(pts) if len(pts) > 1 else [pts[0], (pts[0][0] + 1, pts[0][1])]
@@ -306,7 +312,7 @@ def score():
 
 def render():
     P = score()
-    clk = Clock(bpm=BPM_UNIT, rubato=(4 * BAR, 0.02))
+    clk = Clock(bpm=BPM_UNIT, rubato=(4 * BAR, 0.02))  # (as bar_starts() has it)
     S = lambda notes, seed, j=0.008: humanize(clk.notes(notes), seed, t_jit=j)
     st = Stage(LOOP, circular=True)
     bar_s = np.array([clk.s(bar(b)) for b in range(BARS + 1)])
@@ -527,7 +533,10 @@ def render():
     out = FX.eq(out, ("peak", 800, 0.6, -1.5), circular=True)
     return finish_loop("music", "marigold", out, LOOP, 4, -16.0, 192, tilt_hs_db=4.0,
                        meta={"title": TITLE, "bpm": 72, "meter": "4/4", "beat": "quarter", "key": "E minor",
-                             "instrument": "piano, glass, organ and orchestra"})
+                             "instrument": "piano, glass, organ and orchestra",
+                             # where every bar begins (the rubato's breath included): the finale's way in starts
+                             # on one of them
+                             "barStarts": bar_starts()})
 
 
 if __name__ == "__main__":

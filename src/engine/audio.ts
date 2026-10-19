@@ -9,6 +9,19 @@ interface LoopInfo {
   tailSeconds?: number;
   oneShot?: boolean;
   seconds?: number;
+  /** Where each bar of the piece begins (s into the loop), for music that can be left on a bar line. */
+  barStarts?: number[];
+  /** A way into a cue: seconds from its start to the downbeat where the cue itself begins. */
+  leadIn?: number;
+  /** Where a cue's coda begins (s). */
+  coda?: number;
+}
+
+/** A music cue that's playing (or about to): when it starts (AudioContext time) and how to stop it. */
+export interface Cue {
+  readonly start: number;
+  readonly seconds: number;
+  stop(fade?: number): void;
 }
 
 /**
@@ -32,9 +45,12 @@ const base = new URL('./audio/', document.baseURI);
 /** One looping track that crossfades into itself, so the seam never clicks. */
 class Loop {
   private nextStart = 0;
-  private readonly passes: { src: AudioBufferSourceNode; gain: GainNode; end: number }[] = [];
-  private stopped = false;
+  private readonly passes: { src: AudioBufferSourceNode; gain: GainNode; start: number; end: number }[] = [];
+  /** No pass starts at or after this (AudioContext time): it's stopping. */
+  private until = Infinity;
   readonly out: GainNode;
+  /** Open (inaudible) until the track falls away, when it takes the low end first. */
+  private readonly floor: BiquadFilterNode;
 
   constructor(
     private readonly ctx: AudioContext,
@@ -48,7 +64,10 @@ class Loop {
     this.out = ctx.createGain();
     this.out.gain.value = 0;
     this.out.gain.setTargetAtTime(volume, ctx.currentTime, Math.max(0.01, fadeIn / 3));
-    this.out.connect(destination);
+    this.floor = ctx.createBiquadFilter();
+    this.floor.type = 'highpass';
+    this.floor.frequency.value = 10;
+    this.out.connect(this.floor).connect(destination);
     this.nextStart = ctx.currentTime + 0.05;
     this.schedule(true);
   }
@@ -69,15 +88,14 @@ class Loop {
     gain.gain.setValueAtTime(1, at + loop);
     gain.gain.linearRampToValueAtTime(0, at + loop + this.tail);
     src.start(at);
-    src.stop(at + loop + this.tail + 0.05);
-    this.passes.push({ src, gain, end: at + loop + this.tail + 0.1 });
+    src.stop(Math.min(at + loop + this.tail + 0.05, this.until));
+    this.passes.push({ src, gain, start: at, end: at + loop + this.tail + 0.1 });
     this.nextStart = at + loop;
   }
 
   update() {
-    if (this.stopped) return;
     const now = this.ctx.currentTime;
-    if (now > this.nextStart - 1.5) this.schedule(false);
+    if (now > this.nextStart - 1.5 && this.nextStart < this.until) this.schedule(false);
     while (this.passes.length && (this.passes[0] as { end: number }).end < now) this.passes.shift();
   }
 
@@ -85,20 +103,60 @@ class Loop {
     return this.passes.length;
   }
 
+  /**
+   * The first bar line at or after `time` (AudioContext time): when it is, and which bar of the piece
+   * (`bars`: where each begins, s into the loop) it starts. Passes follow each other every `loopSeconds`.
+   */
+  nextBar(time: number, bars: number[]): { at: number; bar: number } | null {
+    let start: number | null = null;
+    for (const p of this.passes) if (p.start <= time) start = p.start;
+    if (start === null) start = this.passes[0]?.start ?? null;
+    if (start === null) return null;
+    const period = Math.min(this.loopSeconds, this.buffer.duration - this.tail);
+    for (let k = 0; k < 3; k++)
+      for (let i = 0; i < bars.length; i++) {
+        const at = start + k * period + (bars[i] as number);
+        if (at >= time) return { at, bar: i };
+      }
+    return null;
+  }
+
   stop(fade: number) {
-    this.stopped = true;
     const now = this.ctx.currentTime;
     this.out.gain.cancelScheduledValues(now);
     this.out.gain.setValueAtTime(this.out.gain.value, now);
     this.out.gain.linearRampToValueAtTime(0, now + fade);
+    this.end(now + fade + 0.1);
+  }
+
+  /**
+   * Plays on as it is until `at` (AudioContext time), then falls away the way a held chord dies (to a
+   * third every `tau` seconds, so it's gone in about five), its bass leaving first, so whatever starts
+   * there carries on from it with the low end to itself.
+   */
+  fallAway(at: number, tau: number) {
+    const now = this.ctx.currentTime;
+    const from = Math.max(now, at);
+    const g = this.out.gain;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.setValueAtTime(g.value, from);
+    g.setTargetAtTime(0, from, tau);
+    this.floor.frequency.setValueAtTime(10, from);
+    this.floor.frequency.setTargetAtTime(350, from, 0.15);
+    this.end(from + tau * 6);
+  }
+
+  private end(at: number) {
+    this.until = at;
     for (const p of this.passes) {
       try {
-        p.src.stop(now + fade + 0.1);
+        p.src.stop(Math.max(p.start, at));
       } catch {
         // Already stopped.
       }
     }
-    setTimeout(() => this.out.disconnect(), (fade + 0.3) * 1000);
+    setTimeout(() => this.floor.disconnect(), (at - this.ctx.currentTime + 0.3) * 1000);
   }
 }
 
@@ -123,6 +181,24 @@ export class AudioDirector {
   private started = false;
   /** The listener's own levels (the settings): 1 is the mix as made. */
   private readonly levels = { music: 1, sounds: 1 };
+  /** Music cues playing now (the finale, a stinger). */
+  private readonly cues = new Set<{ src: AudioBufferSourceNode; gain: GainNode }>();
+  /**
+   * The music and night sounds kept decoded, most recently wanted last. A piece decoded is ten times its
+   * file (about 70 MB for the Marigold's three minutes): a whole night's worth kept at once is more than a
+   * phone gives a page, so only the last few are kept (one you go back to is fetched again).
+   */
+  private readonly kept = { music: [] as string[], ambience: [] as string[] };
+  private static readonly KEEP = { music: 4, ambience: 2 };
+
+  /** Marks a music or ambience file as just wanted, letting go of the oldest beyond what's kept. */
+  private keep(kind: 'music' | 'ambience', path: string) {
+    const list = this.kept[kind];
+    const i = list.indexOf(path);
+    if (i >= 0) list.splice(i, 1);
+    list.push(path);
+    while (list.length > AudioDirector.KEEP[kind]) this.buffers.delete(list.shift() as string);
+  }
 
   constructor(private readonly portal: Portal) {}
 
@@ -257,9 +333,47 @@ export class AudioDirector {
     if (!m) return;
     const music = m.music[chapter];
     const amb = m.ambience[chapter];
-    if (music) void this.file(music.file);
-    if (amb) void this.file(amb.file);
+    if (music) {
+      this.keep('music', music.file);
+      void this.file(music.file);
+    }
+    if (amb) {
+      this.keep('ambience', amb.file);
+      void this.file(amb.file);
+    }
     for (const key of sfx) for (const f of m.sfx[key] ?? []) void this.file(f);
+  }
+
+  /** Starts fetching and decoding music cues (e.g. the finale and its ways in), ready before they're wanted. */
+  preloadCues(keys: string[]) {
+    const m = this.manifest;
+    if (!m) return;
+    for (const key of keys) {
+      const info = m.music[key];
+      if (!info) continue;
+      this.keep('music', info.file);
+      void this.file(info.file);
+    }
+  }
+
+  /** Whether these music cues are fetched and decoded (waiting for any still on their way). */
+  async ready(keys: string[]): Promise<boolean> {
+    const m = this.manifest ?? (await this.ensureManifest());
+    if (!m) return false;
+    const bufs = await Promise.all(
+      keys.map((k) => {
+        const info = m.music[k];
+        if (!info) return null;
+        this.keep('music', info.file);
+        return this.file(info.file);
+      }),
+    );
+    return bufs.every(Boolean);
+  }
+
+  /** A music entry of the manifest (its length, lead-in, coda…), if there is one. */
+  info(key: string): LoopInfo | undefined {
+    return this.manifest?.music[key];
   }
 
   /** The music playing now (its key in the manifest), or '' for none. */
@@ -283,6 +397,7 @@ export class AudioDirector {
       this.music = null;
       const info = key ? m.music[key] : undefined;
       if (!info) return;
+      this.keep('music', info.file);
       const buf = await this.whileWanted(info.file, () => this.musicKey === key);
       if (buf && this.musicKey === key)
         this.music = new Loop(this.ctx, buf, info.loopSeconds ?? buf.duration, info.tailSeconds ?? 0, this.sends.get('music') as AudioNode, 1, fade);
@@ -295,6 +410,7 @@ export class AudioDirector {
       this.ambience = null;
       const info = key ? m.ambience[key] : undefined;
       if (!info) return;
+      this.keep('ambience', info.file);
       const buf = await this.whileWanted(info.file, () => this.ambienceKey === key);
       if (buf && this.ambienceKey === key)
         this.ambience = new Loop(this.ctx, buf, info.loopSeconds ?? buf.duration, info.tailSeconds ?? 0, this.sends.get('ambience') as AudioNode, 1, fade);
@@ -321,14 +437,76 @@ export class AudioDirector {
     this.music.out.gain.setTargetAtTime(level, this.ctx.currentTime, seconds / 3);
   }
 
-  /** Plays a one-shot music cue (a stinger, the finale) over the current music. */
-  async cue(key: string, volume = 1) {
-    if (!this.started) return;
+  /** The night sounds' volume, from `at` (AudioContext time; now if left out). */
+  ambienceLevel(level: number, seconds = 2, at = 0) {
+    if (!this.ambience) return;
+    this.ambience.out.gain.setTargetAtTime(level, Math.max(at, this.ctx.currentTime), seconds / 3);
+  }
+
+  /** Whether sound is actually running now (it isn't before the first tap, or while a phone has it suspended). */
+  get running(): boolean {
+    return this.started && this.ctx.state === 'running';
+  }
+
+  /**
+   * The next bar line of the music playing now, at least `after` seconds from now: when it is (AudioContext
+   * time) and which bar of the piece it begins. Null if nothing is playing, or the piece doesn't list its bars.
+   */
+  nextBar(after = 0): { at: number; bar: number } | null {
+    const bars = this.manifest?.music[this.musicKey]?.barStarts;
+    if (!this.started || !this.music || !bars?.length) return null;
+    return this.music.nextBar(this.ctx.currentTime + after, bars);
+  }
+
+  /**
+   * Lets the music playing now fall away from `at` (AudioContext time): it plays on as it is until then,
+   * then dies away like a held chord, so whatever starts there carries on from it.
+   */
+  musicFallAway(at: number, tau = 0.9) {
+    this.music?.fallAway(at, tau);
+    this.music = null;
+    this.musicKey = '';
+  }
+
+  /**
+   * Plays a one-shot music cue (a stinger, the finale) over the current music: now, or at `at`
+   * (AudioContext time; a cue that isn't ready by then starts as soon as it is).
+   */
+  async cue(key: string, volume = 1, at = 0): Promise<Cue | null> {
+    if (!this.started) return null;
     const info = (this.manifest ?? (await this.ensureManifest()))?.music[key];
-    if (!info) return;
+    if (!info) return null;
+    this.keep('music', info.file);
     const buf = await this.file(info.file);
-    if (!buf) return;
-    this.playBuffer(buf, { volume, send: 'music' });
+    if (!buf || !this.started) return null;
+    const start = Math.max(at, this.ctx.currentTime + 0.02);
+    const voice = this.playBuffer(buf, { volume, send: 'music', when: start });
+    this.cues.add(voice);
+    voice.src.addEventListener('ended', () => this.cues.delete(voice));
+    return {
+      start,
+      seconds: buf.duration,
+      stop: (fade = 1.5) => this.stopVoice(voice, fade),
+    };
+  }
+
+  /** Fades out every music cue (the finale leaving with its chapter). */
+  stopCues(fade = 1.5) {
+    for (const v of [...this.cues]) this.stopVoice(v, fade);
+  }
+
+  private stopVoice(v: { src: AudioBufferSourceNode; gain: GainNode }, fade: number) {
+    this.cues.delete(v);
+    const now = this.ctx.currentTime;
+    const g = v.gain.gain;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.linearRampToValueAtTime(0, now + fade);
+    try {
+      v.src.stop(now + fade + 0.05);
+    } catch {
+      // Already stopped.
+    }
   }
 
   /**
@@ -364,8 +542,8 @@ export class AudioDirector {
 
   private playBuffer(
     buf: AudioBuffer,
-    options: { volume?: number; rate?: number; at?: Vector3; pan?: number; wet?: number; send?: 'sfx' | 'ui' | 'music' },
-  ) {
+    options: { volume?: number; rate?: number; at?: Vector3; pan?: number; wet?: number; send?: 'sfx' | 'ui' | 'music'; when?: number },
+  ): { src: AudioBufferSourceNode; gain: GainNode } {
     const ctx = this.ctx;
     const src = ctx.createBufferSource();
     src.buffer = buf;
@@ -400,7 +578,8 @@ export class AudioDirector {
       this.active--;
       src.disconnect();
     };
-    src.start();
+    src.start(options.when ?? 0);
+    return { src, gain: g };
   }
 
   /** Keeps the listener at the camera, facing where it faces. Call once a frame. */
@@ -427,15 +606,6 @@ export class AudioDirector {
       (l as unknown as { setPosition: (x: number, y: number, z: number) => void }).setPosition(p.x, p.y, p.z);
       (l as unknown as { setOrientation: (...a: number[]) => void }).setOrientation(f.x, f.y, f.z, u.x, u.y, u.z);
     }
-  }
-
-  stopAll(fade = 1.5) {
-    this.music?.stop(fade);
-    this.ambience?.stop(fade);
-    this.music = null;
-    this.ambience = null;
-    this.musicKey = '';
-    this.ambienceKey = '';
   }
 }
 

@@ -16,7 +16,7 @@ type ChapterEntry = { numeral: string; name: string; reached: boolean; go: () =>
 const TITLE_HEADING = `
         <p class="hl-kicker">One October night at the pumpkin patch</p>
         <h1><span class="hl-name">Hallowed Lanterns</span><span class="hl-name-glow" aria-hidden="true">Hallowed Lanterns</span></h1>
-        <div class="hl-flourish" aria-hidden="true"><i></i><span class="hl-flame"></span><i></i></div>`;
+        <div class="hl-flourish" aria-hidden="true"><i></i></div>`;
 
 /**
  * A few sparks drifting up through the title, as off a bonfire: each a soft dot on its own slow
@@ -52,6 +52,9 @@ export class UI {
   private sound: SoundSettings = { ...SOUND_DEFAULTS };
   private soundChanged: ((v: SoundSettings, done: boolean) => void) | null = null;
   private settingsOpen = false;
+  /** The end of the night's card, while it's up. */
+  private endingCard: HTMLElement | null = null;
+  private endingDone: (() => void) | null = null;
   private lineTimer = 0;
   private cardTimer = 0;
   private hintTimer = 0;
@@ -106,6 +109,8 @@ export class UI {
 
   /** Lifts the title away at once (when a developer starts partway in). */
   dropTitle() {
+    // (no longer showing, so the story's lines aren't held back for it)
+    this.title.classList.remove('hl-show');
     this.title.remove();
   }
 
@@ -338,46 +343,106 @@ export class UI {
     return wrap;
   }
 
+  /** Whether a card is up that the world shouldn't be touched through (a wish being written, the end of the night). */
+  get modal(): boolean {
+    return this.endingCard !== null || this.root.querySelector('.hl-dialog') !== null;
+  }
+
   /**
    * Asks for a wish: a few words and a leaf colour. Resolves with them, or null if they'd rather
-   * not. Nothing leaves the creation except into the group's own saves.
+   * not. Nothing leaves the creation except into the group's own saves. One thing to press: "Hang it"
+   * (carrying a leaf of the colour chosen); the colour is a pair of leaf swatches (a choice, not a
+   * button), and "Not now" a quiet × in the corner. Return hangs it (the words are one line anyway),
+   * Escape is "Not now". While it's open the walking controls and the story lines step aside (a
+   * joystick over the card would take its taps); with a phone's keyboard up, the card sits just
+   * above it, drawn tighter if the room left is short (a phone on its side).
    */
   askWish(): Promise<{ text: string; color: 'coral' | 'teal' } | null> {
     return new Promise((resolve) => {
       const panel = document.createElement('div');
-      panel.className = 'hl-dialog';
+      panel.className = 'hl-dialog hl-wish';
       panel.setAttribute('role', 'dialog');
-      panel.setAttribute('aria-label', 'Hang a wish on the tree');
+      panel.setAttribute('aria-labelledby', 'hl-wish-title');
       panel.innerHTML = `
-        <p class="hl-dialog-title">Hang a wish on the tree</p>
-        <textarea maxlength="80" rows="2" placeholder="A few words — for someone, or for something"></textarea>
-        <div class="hl-dialog-row" role="radiogroup" aria-label="Leaf colour">
-          <button type="button" class="hl-chip hl-coral" role="radio" aria-checked="true" data-c="coral">Coral leaf</button>
-          <button type="button" class="hl-chip hl-teal" role="radio" aria-checked="false" data-c="teal">Teal leaf</button>
+        <div class="hl-dialog-head">
+          <p class="hl-dialog-title" id="hl-wish-title">Hang a wish on the tree</p>
+          <button type="button" class="hl-dialog-close" data-a="cancel" aria-label="Not now" title="Not now">${CLOSE}</button>
         </div>
-        <div class="hl-dialog-row">
-          <button type="button" class="hl-button hl-quiet" data-a="cancel">Not now</button>
-          <button type="button" class="hl-button hl-go" data-a="hang">Hang it</button>
+        <textarea maxlength="80" rows="2" enterkeyhint="done" aria-label="Your wish"
+          placeholder="A few words — for someone, or for something"></textarea>
+        <div class="hl-dialog-foot">
+          <div class="hl-swatches" role="radiogroup" aria-labelledby="hl-wish-leaf">
+            <span class="hl-swatches-label" id="hl-wish-leaf">Leaf</span>
+            <button type="button" class="hl-swatch" role="radio" aria-checked="true" aria-label="Coral" data-c="coral"
+              style="--leaf: var(--hl-coral)"><i>${CHECK}</i></button>
+            <button type="button" class="hl-swatch" role="radio" aria-checked="false" aria-label="Teal" data-c="teal"
+              style="--leaf: var(--hl-teal)" tabindex="-1"><i>${CHECK}</i></button>
+          </div>
+          <button type="button" class="hl-button hl-go" data-a="hang"><span class="hl-ico" aria-hidden="true">${LEAF}</span>Hang it</button>
         </div>`;
       let color: 'coral' | 'teal' = 'coral';
       const text = panel.querySelector('textarea') as HTMLTextAreaElement;
-      panel.querySelectorAll<HTMLButtonElement>('.hl-chip').forEach((b) =>
-        b.addEventListener('click', () => {
-          color = b.dataset.c as 'coral' | 'teal';
-          panel.querySelectorAll('.hl-chip').forEach((o) => o.setAttribute('aria-checked', o === b ? 'true' : 'false'));
-        }),
-      );
+      const hangButton = panel.querySelector('[data-a="hang"]') as HTMLButtonElement;
+      const swatches = [...panel.querySelectorAll<HTMLButtonElement>('.hl-swatch')];
+      // A radio group: one stop for Tab, the arrows move the choice.
+      const choose = (b: HTMLButtonElement, focus = false) => {
+        color = b.dataset.c as 'coral' | 'teal';
+        for (const o of swatches) {
+          o.setAttribute('aria-checked', o === b ? 'true' : 'false');
+          o.tabIndex = o === b ? 0 : -1;
+        }
+        hangButton.style.setProperty('--leaf', `var(--hl-${color})`);
+        if (focus) b.focus();
+      };
+      for (const b of swatches) {
+        b.addEventListener('click', () => choose(b));
+        b.addEventListener('keydown', (e) => {
+          if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+          e.preventDefault();
+          choose(swatches[(swatches.indexOf(b) + 1) % swatches.length] as HTMLButtonElement, true);
+        });
+      }
+      choose(swatches[0] as HTMLButtonElement);
+      // Above a phone's on-screen keyboard: the part of the page it covers, measured by the visual viewport.
+      const vv = window.visualViewport;
+      const lift = () => {
+        const covered = vv ? Math.max(0, innerHeight - vv.height - vv.offsetTop) : 0;
+        panel.style.bottom = covered > 40 ? `${Math.round(covered + 8)}px` : '';
+        panel.classList.toggle('hl-dialog-tight', (vv?.height ?? innerHeight) < 330);
+      };
+      vv?.addEventListener('resize', lift);
+      vv?.addEventListener('scroll', lift);
+      const html = document.documentElement;
       const done = (v: { text: string; color: 'coral' | 'teal' } | null) => {
+        vv?.removeEventListener('resize', lift);
+        vv?.removeEventListener('scroll', lift);
+        html.classList.remove('hl-writing');
         panel.remove();
         resolve(v);
       };
-      (panel.querySelector('[data-a="cancel"]') as HTMLButtonElement).addEventListener('click', () => done(null));
-      (panel.querySelector('[data-a="hang"]') as HTMLButtonElement).addEventListener('click', () => {
+      const hang = () => {
         const t = text.value.replace(/\s+/g, ' ').trim();
         done({ text: t || '✶', color });
+      };
+      (panel.querySelector('[data-a="cancel"]') as HTMLButtonElement).addEventListener('click', () => done(null));
+      hangButton.addEventListener('click', hang);
+      text.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+          e.preventDefault();
+          hang();
+        }
+      });
+      panel.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          done(null);
+        }
       });
       this.root.append(panel);
-      setTimeout(() => text.focus(), 50);
+      html.classList.add('hl-writing');
+      lift();
+      // At once, inside the tap that asked for it: a phone shows its keyboard only for a focus made there.
+      text.focus({ preventScroll: true });
     });
   }
 
@@ -407,28 +472,79 @@ export class UI {
     this.offers.clear();
   }
 
-  /** The end of the night. */
-  ending(onAgain: () => void) {
+  /**
+   * The end of the night: the title again, over the world, with two choices. There's only ever one
+   * (asking again while it's up changes nothing). It fades in, and its buttons wake only once they've
+   * arrived, so a tap already on its way can't choose for you; meanwhile the walking controls, the
+   * chapters button and the story lines step aside. Escape is "Stay a while".
+   */
+  ending(choices: { onStay: () => void; onAgain: () => void }) {
+    if (this.endingCard) return;
+    this.toggleMenu(false);
     const card = document.createElement('div');
-    card.className = 'hl-title hl-show hl-ending';
+    card.className = 'hl-title hl-ending';
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-labelledby', 'hl-ending-name');
+    card.setAttribute('aria-describedby', 'hl-ending-words');
+    card.tabIndex = -1;
     card.innerHTML = `
       ${embers(12)}
       <div class="hl-title-inner">
         <p class="hl-kicker">and every light found its way home</p>
-        <h1><span class="hl-name">Hallowed Lanterns</span><span class="hl-name-glow" aria-hidden="true">Hallowed Lanterns</span></h1>
-        <div class="hl-flourish" aria-hidden="true"><i></i><span class="hl-flame"></span><i></i></div>
-        <p class="hl-small">Thank you for walking with us tonight.</p>
-        <div class="hl-dialog-row" style="justify-content:center;margin-top:1.4em">
-          <button type="button" class="hl-button hl-quiet" data-a="stay">Stay a while</button>
+        <h1 id="hl-ending-name"><span class="hl-name">Hallowed Lanterns</span><span class="hl-name-glow" aria-hidden="true">Hallowed Lanterns</span></h1>
+        <div class="hl-flourish" aria-hidden="true"><i></i></div>
+        <p class="hl-small" id="hl-ending-words">Thank you for walking with us tonight.</p>
+        <div class="hl-ending-choices">
+          <button type="button" class="hl-begin hl-begin-quiet" data-a="stay">Stay a while</button>
           <button type="button" class="hl-begin" data-a="again">Walk again</button>
         </div>
       </div>`;
-    (card.querySelector('[data-a="stay"]') as HTMLButtonElement).addEventListener('click', () => card.remove());
-    (card.querySelector('[data-a="again"]') as HTMLButtonElement).addEventListener('click', () => {
-      card.remove();
-      onAgain();
-    });
+    const row = card.querySelector('.hl-ending-choices') as HTMLElement;
+    row.inert = true;
+    const html = document.documentElement;
+    let wake = 0;
+    const close = () => {
+      if (this.endingCard !== card) return false;
+      this.endingCard = null;
+      this.endingDone = null;
+      clearTimeout(wake);
+      document.removeEventListener('keydown', onKey, true);
+      row.inert = true;
+      html.classList.remove('hl-ending-open');
+      card.classList.remove('hl-show');
+      card.classList.add('hl-gone');
+      setTimeout(() => card.remove(), 1600);
+      return true;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !row.inert && close()) {
+        e.preventDefault();
+        choices.onStay();
+      }
+    };
+    (card.querySelector('[data-a="stay"]') as HTMLButtonElement).addEventListener('click', () => close() && choices.onStay());
+    (card.querySelector('[data-a="again"]') as HTMLButtonElement).addEventListener('click', () => close() && choices.onAgain());
     this.root.append(card);
+    this.endingCard = card;
+    this.endingDone = () => {
+      close();
+      card.remove();
+    };
+    html.classList.add('hl-ending-open');
+    document.addEventListener('keydown', onKey, true);
+    // Fade in from nothing (the class after a first layout, so the transition runs).
+    void card.offsetWidth;
+    card.classList.add('hl-show');
+    card.focus({ preventScroll: true });
+    wake = window.setTimeout(() => {
+      row.inert = false;
+    }, ENDING_WAKE_MS);
+  }
+
+  /** Takes the end of the night's card away at once (the chapter it belongs to is leaving). */
+  closeEnding() {
+    this.endingDone?.();
   }
 
   toggleMenu(show = this.menu.hidden) {
@@ -440,7 +556,13 @@ export class UI {
 
 /** How long the joystick and the walk button stay clear after the last touch. */
 const IDLE_MS = 4000;
+/** How long after the end of the night's card appears its buttons can be pressed: they're well on their way in by then, and a tap that was already coming has landed. */
+const ENDING_WAKE_MS = 1000;
 
+/** The wish card's ×, the tick on the chosen leaf colour, and a leaf. */
+const CLOSE = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
+const CHECK = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 12.5l4 4 9-9"/></svg>`;
+const LEAF = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path class="hl-leaf" d="M4.5 19.5C4.5 10 10 4.5 19.5 4.5 19.5 14 14 19.5 4.5 19.5z"/><path d="M4.5 19.5L13 11" fill="none" stroke="rgba(20,12,8,0.55)" stroke-width="1.4" stroke-linecap="round"/></svg>`;
 const FOOTSTEPS = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><ellipse cx="8" cy="7" rx="2.6" ry="4"/><ellipse cx="8.2" cy="14.6" rx="1.9" ry="1.6"/><ellipse cx="16" cy="11" rx="2.6" ry="4"/><ellipse cx="16.2" cy="18.6" rx="1.9" ry="1.6"/></svg>`;
 const SLIDERS = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>`;
 const LANTERN = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 2.5v2"/><path d="M9 4.5h6"/><ellipse cx="12" cy="12" rx="6.5" ry="6.8"/><path d="M12 5.4c-2.2 2-2.2 11.2 0 13.2M12 5.4c2.2 2 2.2 11.2 0 13.2"/><path d="M12 18.8v2.7"/></svg>`;

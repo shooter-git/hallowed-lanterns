@@ -282,7 +282,7 @@ sounds in tune with what is playing:
 | snow     | First Snow     | A lydian, 4/4 3+3+2 (160 s)       | it begins to snow: glass colours over a far organ A (its wind is the chapter's ambience); a music box (glockenspiel, felt piano an octave below) turning one figure (E A C# D#) that never changes; a jazz double bass (Meatbass), low and ringing, two long notes a bar; the theme as the top voice of piano chords; the winter's percussion as an orchestra plays it (sleigh bells far left, triangle and finger-cymbal glints, the snowman's woodblock steps with his pizzicato-and-clarinet bounce, a stop and a clink, a warm B-over-A on the horns); the rise (tremolo strings, organ, horns, a soft concert bass drum, timpani, a cymbal swell); the flakes rise (a bell tree, reversed piano and glockenspiel, a harp sweep, a glass line climbing octave over octave); the hush again | harp + soft glock, A |
 | deep     | Where the Lanterns Swim | F# dorian / A lydian, 4/4 | a 1980s analog-synth colour (`analog.py`): the five-note arp phasing through a resonant ladder filter on the tide; a sixteenth bass pulse; a sixteenth sequencer walking the cell; pad swells in the light; mirror glass; whale glass; horn + oboe canon; drums in the light (22–38) | harp under water + glass, A F# E C# E |
 | marigold | Remember Me    | E minor, 4/4 at 72 (186.7 s)     | the stillness of Cliff Martinez, the build of Hans Zimmer, the turning piano and quiet beat of Ólafur Arnalds (their ways, none of their tunes): a glass world over the organ's E, colours drifting one note at a time; a felt piano turns one figure (B E F# G) while the bass slides beneath it; a beat born from real brush taps, a tuned sub kick, a warm analog bass only under the accents, booms (a sub diving onto the bass note, a timpani for its pop, a suspended cymbal's crescendo before, the gong under the greatest), a few phased shaker hats; the build (horns sing the cell, strings walk forward); the peak in C; the dark on B; the release; the afterglow lifting into G (the figure a third higher, the Ember chiming its own song, high strings), its last glass colour the intro's first. Every voice has a near and a far seat (`place()`) | big guitar, G |
-| finale   | Hallowed Lanterns | D, 4/4 (one-shot)              | the title grown: theme emerging, three-voice canon, Zimmer build with drums (24–37), a prepared A-pedal lift, coda | — |
+| finale   | Hallowed Lanterns | D, 4/4 (one-shot)              | the title grown: theme emerging, three-voice canon, Zimmer build with drums (24–37), a prepared A-pedal lift, coda; entered by finale-in / finale-in-g, two bars started on a Marigold bar line (its figure over A, then the finale's cycle on A7sus4) | — |
 | picture show | The Picture Show | F, 3/4 waltz (on purpose)   | upright piano, solo violin over pizzicato, clarinet, flute | — |
 
 Harmonic colour comes from voicing, pedal points and modal mixture inside
@@ -357,7 +357,8 @@ hlaudio/             the library
                      recorded wind for the ambiences, assets.lock.json entries
 pieces/music/        title arbor grove garden pasture hollow snow deep marigold   (loops)
                      picture_show (the shadow-puppet film's cue, loop)
-                     finale ember_born                                        (one-shots)
+                     finale ember_born                                        (one-shots;
+                     finale.py also writes finale-in and finale-in-g, its two bars in from the Marigold)
 pieces/ambience/     arbor grove garden pasture hollow snow deep marigold projector
 pieces/sfx/          footsteps ember_chimes lanterns creatures sparkles extras well_and_flytrap passage
                      keeper wings

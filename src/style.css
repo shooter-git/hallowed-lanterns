@@ -6,6 +6,9 @@
   --hl-glow: rgba(255, 150, 60, 0.55);
   --hl-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --hl-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* the wish leaves' two colours */
+  --hl-coral: rgb(244, 120, 102);
+  --hl-teal: rgb(70, 206, 184);
 }
 
 html,
@@ -90,6 +93,7 @@ body {
 }
 .hl-kicker {
   margin: 0;
+  text-wrap: balance;
   /* Centred: the letter-spacing trails the last letter, so the same space leads the first. */
   padding-left: 0.3em;
   font: 400 clamp(0.7rem, 2.6vw, 0.86rem) / 1.4 var(--hl-serif);
@@ -150,43 +154,16 @@ body {
     opacity: 0.68;
   }
 }
-/* A thin rule either side of a small flame, under the name. */
+/* A thin rule of light under the name, fading out at both ends. */
 .hl-flourish {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.8em;
   width: min(17rem, 62vw);
-  margin: 0.15em auto 1.7em;
+  margin: calc(0.15em + 6px) auto calc(1.7em + 6px);
 }
 .hl-flourish i {
   flex: 1;
   height: 1px;
-  background: linear-gradient(to right, rgba(255, 200, 140, 0), rgba(255, 200, 140, 0.65));
-}
-.hl-flourish i:last-child {
-  background: linear-gradient(to left, rgba(255, 200, 140, 0), rgba(255, 200, 140, 0.65));
-}
-.hl-flame {
-  width: 8px;
-  height: 13px;
-  border-radius: 50% 50% 50% 50% / 64% 64% 36% 36%;
-  background: radial-gradient(ellipse 60% 55% at 50% 68%, #fffbe8 0%, #ffd27a 38%, #ff8a2e 72%, #f2551a 100%);
-  box-shadow: 0 0 10px 2px rgba(255, 140, 50, 0.6), 0 0 26px 6px rgba(255, 110, 30, 0.22);
-  transform-origin: 50% 90%;
-  animation: hl-flame 2.6s ease-in-out infinite;
-}
-@keyframes hl-flame {
-  0%,
-  100% {
-    transform: scale(1, 1) rotate(-2deg);
-  }
-  35% {
-    transform: scale(0.9, 1.1) rotate(2.5deg);
-  }
-  62% {
-    transform: scale(1.05, 0.94) rotate(-1deg);
-  }
+  background: linear-gradient(to right, rgba(255, 200, 140, 0), rgba(255, 200, 140, 0.65) 50%, rgba(255, 200, 140, 0));
 }
 .hl-loading {
   margin: 0;
@@ -712,8 +689,8 @@ html.hl-idle .ats-touch {
   }
   .hl-title h1 {
     margin: 0.12em 0 0.08em;
-    font-size: clamp(2rem, 12vh, 3.4rem);
-    white-space: nowrap;
+    /* (never wider than the screen: a short window can be a narrow one too) */
+    font-size: clamp(2rem, min(12vh, 11vw), 3.4rem);
   }
   .hl-kicker {
     font-size: clamp(0.66rem, 3.2vh, 0.8rem);
@@ -738,6 +715,13 @@ html.hl-idle .ats-touch {
   }
 }
 
+/* ... and on its side, the name on one line. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .hl-title h1 {
+    white-space: nowrap;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hl-card,
   .hl-title,
@@ -749,8 +733,9 @@ html.hl-idle .ats-touch {
   .hl-title h1,
   .hl-name-glow,
   .hl-title .hl-flourish,
-  .hl-flame,
-  .hl-actions > * {
+  .hl-actions > *,
+  .hl-ending .hl-small,
+  .hl-ending-choices {
     animation: none;
   }
   .hl-embers {
@@ -796,35 +781,142 @@ html.hl-idle .ats-touch {
 .hl-dialog textarea:focus {
   outline: 2px solid rgba(255, 200, 140, 0.7);
 }
-.hl-dialog-row {
+.hl-dialog-head {
   display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  margin-top: 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: -4px -6px 10px 0;
 }
-.hl-chip {
-  min-height: 44px;
-  padding: 0 1em;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
+.hl-dialog-head .hl-dialog-title {
+  margin: 0;
+}
+/* "Not now": a quiet × in the corner, 44 px under a finger. */
+.hl-dialog-close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -6px -6px -6px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--hl-dim) !important;
   cursor: pointer;
 }
-.hl-chip[aria-checked="true"] {
-  border-color: rgba(255, 255, 255, 0.8);
+.hl-dialog-close:hover,
+.hl-dialog-close:focus-visible {
+  color: var(--hl-ink) !important;
+  background: rgba(255, 255, 255, 0.07);
+  outline: none;
 }
-.hl-coral {
-  box-shadow: inset 0 0 0 999px rgba(255, 120, 100, 0.25);
+.hl-dialog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
 }
-.hl-teal {
-  box-shadow: inset 0 0 0 999px rgba(80, 210, 190, 0.22);
+/* The leaf colour: two swatches, the chosen one ringed and ticked. */
+.hl-swatches {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.hl-swatches-label {
+  margin-right: 6px;
+  font: italic 400 0.95rem / 1 var(--hl-serif);
+  color: var(--hl-dim);
+}
+.hl-swatch {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.hl-swatch i {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--leaf);
+  color: rgba(20, 12, 8, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  opacity: 0.8;
+  transform: scale(0.86);
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hl-swatch i svg {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.hl-swatch[aria-checked="true"] i {
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 0 0 2px rgba(14, 9, 8, 0.9), 0 0 0 4px rgba(251, 243, 230, 0.9), 0 0 16px var(--leaf);
+}
+.hl-swatch[aria-checked="true"] i svg {
+  opacity: 1;
+}
+.hl-swatch:hover i {
+  opacity: 1;
+}
+.hl-swatch:focus-visible {
+  outline: 2px solid rgba(255, 200, 140, 0.9);
+  outline-offset: -2px;
+}
+.hl-leaf {
+  fill: var(--leaf, currentColor);
+  transition: fill 0.2s ease;
 }
 .hl-quiet {
   background: transparent;
 }
+/* "Hang it": the one thing to press, carrying a leaf of the colour chosen. */
 .hl-go {
   background: rgba(120, 60, 15, 0.6);
+  border-color: rgba(255, 200, 140, 0.6);
+  font: 500 1.02rem / 1 var(--hl-serif) !important;
+  box-shadow: 0 0 22px rgba(255, 140, 50, 0.22);
+}
+.hl-go:hover,
+.hl-go:focus-visible {
+  background: rgba(140, 72, 20, 0.7);
+  box-shadow: 0 0 28px rgba(255, 150, 60, 0.4);
+}
+/* While a wish is being written, the joystick and the walk button step aside (on a narrow phone the
+   joystick would sit over the card's buttons and take their taps), and so do the story lines. */
+html.hl-writing .hl-controls,
+html.hl-writing .ats-touch,
+html.hl-writing .hl-line {
+  visibility: hidden;
+}
+/* With a phone's keyboard up and little room left (a phone on its side): the same card, tighter, the
+   words in a one-line box. */
+.hl-dialog.hl-dialog-tight {
+  padding: 8px 12px 10px;
+}
+.hl-dialog-tight .hl-dialog-head {
+  margin-bottom: 4px;
+}
+.hl-dialog-tight .hl-dialog-title {
+  font-size: 1rem;
+}
+.hl-dialog-tight textarea {
+  min-height: 0;
+  height: 46px;
+  padding: 10px 12px;
+}
+.hl-dialog-tight .hl-dialog-foot {
+  margin-top: 8px;
 }
 .hl-offer {
   position: absolute;
@@ -839,9 +931,76 @@ html.hl-idle .ats-touch {
     bottom: calc(170px + env(safe-area-inset-bottom));
   }
 }
+/* The end of the night: the title again, over the world, and two choices. The card fades in, then
+   the words arrive, then the buttons (src/engine/ui.ts wakes them as they come). While it's up the
+   walking controls, the chapters button and the story lines step aside. */
 .hl-ending {
   background: radial-gradient(ellipse at 50% 50%, rgba(10, 6, 8, 0.2), rgba(5, 3, 6, 0.75) 80%);
+  cursor: default;
+  /* centred, or (in a window too short for it) scrolled rather than cut off */
+  place-items: stretch;
+  overflow-y: auto;
+}
+.hl-ending .hl-title-inner {
+  margin: auto;
+}
+.hl-ending.hl-show {
   pointer-events: auto;
+  cursor: default;
+}
+.hl-ending.hl-gone {
+  pointer-events: none;
+}
+.hl-ending:focus {
+  outline: none;
+}
+.hl-ending .hl-small {
+  animation: hl-arrive 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.45s both;
+}
+.hl-ending-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 1.5em;
+  animation: hl-arrive 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) 0.6s both;
+}
+/* The two the same width, side by side or (on a narrow phone) one above the other; on a short screen
+   on its side, side by side and a little smaller. */
+.hl-ending-choices .hl-begin {
+  min-width: 10.5em;
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .hl-ending-choices {
+    flex-wrap: nowrap;
+    margin-top: 1.1em;
+  }
+  .hl-ending-choices .hl-begin {
+    min-width: 0;
+    min-height: 46px;
+    padding: 0 1.5em;
+  }
+}
+/* "Stay a while": the same size and letters as "Walk again", quieter. */
+.hl-begin.hl-begin-quiet {
+  background: rgba(20, 12, 8, 0.28);
+  border-color: rgba(255, 200, 140, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.1);
+}
+.hl-begin.hl-begin-quiet:hover,
+.hl-begin.hl-begin-quiet:focus-visible {
+  border-color: rgba(255, 210, 160, 0.7);
+  box-shadow: 0 0 30px rgba(255, 150, 60, 0.25), inset 0 1px 0 rgba(255, 220, 170, 0.18);
+}
+html.hl-ending-open .hl-controls,
+html.hl-ending-open .hl-card,
+html.hl-ending-open .hl-round,
+html.hl-ending-open .hl-menu,
+html.hl-ending-open .hl-line,
+html.hl-ending-open .hl-hint,
+html.hl-ending-open .hl-offer,
+html.hl-ending-open .ats-touch {
+  visibility: hidden;
 }
 
 /* On an iPhone home screen, the page is laid out shorter than the screen by the status bar

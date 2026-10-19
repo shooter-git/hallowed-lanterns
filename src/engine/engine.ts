@@ -172,9 +172,10 @@ export class Engine {
       renderer.domElement.style.cursor = action ? 'pointer' : '';
     };
     addEventListener('keydown', (e) => {
-      if (!this.begun || e.repeat) return;
+      if (!this.begun || e.repeat || ui.modal) return;
       if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') {
-        if ((e.target as HTMLElement)?.closest?.('button, input')) return;
+        // (not while typing, nor pressing a button: the wish's words, the menu's rows)
+        if ((e.target as HTMLElement)?.closest?.('button, input, textarea, [contenteditable]')) return;
         this.tap(innerWidth / 2, innerHeight / 2);
       }
     });
@@ -199,7 +200,7 @@ export class Engine {
     this.stage.loop((dt) => {
       const pads = portal.input.gamepads();
       const a = pads.some((p) => (p.buttons[0] ?? 0) > 0.5);
-      if (a && !padA && this.begun) this.tap(innerWidth / 2, innerHeight / 2);
+      if (a && !padA && this.begun && !ui.modal) this.tap(innerWidth / 2, innerHeight / 2);
       padA = a;
       this.frame(dt);
     });
@@ -358,6 +359,8 @@ export class Engine {
     const info = CHAPTERS[index];
     if (info) void this.ctx.audio.sfx(passageFor(index), { volume: 0.7, send: 'music' });
     this.ctx.audio.musicLevel(0.35, 2.4);
+    // A cue playing out (the finale, walking again from the end of the night) leaves as the passage comes in.
+    this.ctx.audio.stopCues(2.4);
   }
 
   private frame(dt: number) {

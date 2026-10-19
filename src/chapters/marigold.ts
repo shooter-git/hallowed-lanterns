@@ -27,6 +27,7 @@ import {
   Vector3,
 } from 'three';
 import { FogBank } from '../engine/fogbank.ts';
+import type { Cue } from '../engine/audio.ts';
 import type { GlowLight } from '../engine/glowfield.ts';
 import { type Bounds, ground, GroundMask } from '../engine/ground.ts';
 import { stringLights } from '../engine/lanterns.ts';
@@ -48,6 +49,12 @@ import type { Chapter, ChapterContext, TapAction } from './types.ts';
  * lift from the marigolds. Beyond it, the Wishing Tree, every leaf a wish: hang your own (kept for
  * your group). Then the Ember settles on a branch and becomes a leaf of light, the night's
  * lanterns rise into the sky, and the whole theme plays.
+ *
+ * The finale keeps time with its music. It begins on a bar line of the Marigold's "Remember Me": a way
+ * in (music finale-in, or finale-in-g from the Marigold's afterglow in G) picks up the Marigold's figure
+ * as the Marigold falls away under it, and lands on the finale's downbeat `leadIn` seconds later. The
+ * Ember flies to its branch as the way in begins and becomes a leaf on its second bar; the lanterns
+ * rise on the downbeat; the end of the night comes with the finale's coda.
  */
 
 function rng(seed: number) {
@@ -77,6 +84,12 @@ const inTreeRoom = (x: number, z: number, margin: number) => {
   return Math.abs(u) < 6.5 + margin && v > -1.5 - margin && v < 6.5 + margin;
 };
 const GUITAR = new Vector3(5.8, 0, -3);
+/** Where the Marigold's afterglow (in G) begins: from there on, the finale's way in is finale-in-g (pieces/music/marigold.py LIGHT). */
+const AFTERGLOW_BAR = 44;
+/** Where the way in's second bar begins (s): one bar of the Marigold's quarter = 72. */
+const WAY_IN_BAR2 = 10 / 3;
+/** The music of the finale: the ways in from the Marigold, and the finale itself. */
+const FINALE_CUES = ['finale-in', 'finale-in-g', 'finale'];
 
 type Wish = {
   text: string;
@@ -612,9 +625,31 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   };
   let hung = false;
   let atTree = 0;
-  let finale = -1;
   let candleHint = false;
+  let disposed = false;
+  let cuesLoading = false;
   const tmp = new Vector2();
+
+  /**
+   * The finale, once begun. `t` is seconds from the start of its way in (negative until that bar line):
+   * the music's clock while its music is playing, the frames' otherwise (no sound, or a phone holding the
+   * sound up for a while). Each moment in it happens once.
+   */
+  type Finale = {
+    t: number;
+    /** When the way in starts on the AudioContext clock (null: the frames keep the time). */
+    at: number | null;
+    /** Seconds the sound has been held up (suspended) while the frames went on. */
+    held: number;
+    leadIn: number;
+    coda: number;
+    end: number;
+    done: Set<string>;
+    cues: Cue[];
+  };
+  let finale: Finale | null = null;
+  /** "Stay a while" was chosen at the end of the night. */
+  let stayed = false;
 
   function lightCandle(i: number, mine: boolean) {
     if (lit[i]) return;
@@ -635,14 +670,15 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
   // While the wish is being written there's no offer, and none may appear behind the card.
   let writing = false;
   async function hangWish() {
-    offerOff?.();
-    offerOff = null;
+    if (writing || hung || finale || disposed) return;
+    takeOfferDown();
     writing = true;
     const w = await ctx.ui.askWish();
     writing = false;
+    if (disposed) return;
     if (!w) {
       takeOfferDown();
-      offerOff = ctx.ui.offer('Write a wish', () => void hangWish());
+      if (!finale) offerOff = ctx.ui.offer('Write a wish', () => void hangWish());
       return;
     }
     const used = new Set(wishes.map((x) => x.anchor));
@@ -656,17 +692,99 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     void portal.save.shared.update<Wish[]>('wishes', (list) => [...(list ?? []), wish].slice(-300)).catch(() => undefined);
     hung = true;
     ctx.ui.say('Your wish is on the tree.', 4);
-    setTimeout(() => startFinale(), 2500);
+    // (a moment for the wish, then the finale on the Marigold's next bar line)
+    startFinale(2.4);
   }
 
-  function startFinale() {
-    if (finale >= 0) return;
-    finale = 0;
-    offerOff?.();
-    offerOff = null;
-    ctx.audio.stopAll(4);
-    setTimeout(() => void ctx.audio.cue('finale', 1), 1500);
-    ctx.ui.say('The Ember has found where it belongs.', 6);
+  /**
+   * Begins the finale on the first bar line of the Marigold's music at least `wait` seconds from now: the
+   * way in starts there and the Marigold falls away under it; the finale follows on the way in's downbeat.
+   * If the music isn't ready (or there's no sound), the night goes on without it, the Marigold still playing.
+   */
+  function startFinale(wait: number) {
+    if (finale || disposed) return;
+    takeOfferDown();
+    const f: Finale = { t: -wait, at: null, held: 0, leadIn: 6.494, coda: 120.5, end: 141.5, done: new Set(), cues: [] };
+    finale = f;
+    const audio = ctx.audio;
+    if (!audio.running) return;
+    void (async () => {
+      // Ready long before (fetched as the garden was entered); a slow connection doesn't hold the night up.
+      const ready = await Promise.race([audio.ready(FINALE_CUES), new Promise<boolean>((r) => setTimeout(() => r(false), 4000))]);
+      if (!ready || disposed || finale !== f || !audio.running) return;
+      const bar = audio.nextBar(Math.max(0.15, -f.t));
+      const at = bar?.at ?? audio.ctx.currentTime + Math.max(0.15, -f.t);
+      const way = bar && bar.bar >= AFTERGLOW_BAR ? 'finale-in-g' : 'finale-in';
+      f.leadIn = audio.info(way)?.leadIn ?? f.leadIn;
+      const main = audio.info('finale');
+      f.coda = f.leadIn + (main?.coda ?? f.coda - f.leadIn);
+      f.end = f.leadIn + (main?.seconds ?? f.end - f.leadIn);
+      f.at = at;
+      f.t = audio.ctx.currentTime - at;
+      audio.musicFallAway(at);
+      audio.ambienceLevel(0.45, 4, at);
+      const cues = await Promise.all([audio.cue(way, 1, at), audio.cue('finale', 1, at + f.leadIn)]);
+      for (const c of cues) if (c) f.cues.push(c);
+      if (disposed) for (const c of f.cues) c.stop(0.5);
+    })();
+  }
+
+  /** The garden's own music again, softly from its beginning (after the finale, for those who stay). */
+  function gardenAgain() {
+    void ctx.audio.setScene('marigold', 'marigold', 10);
+  }
+
+  function endOfTheNight() {
+    ctx.ui.ending({
+      onStay: () => {
+        stayed = true;
+        if (finale && finale.t >= finale.end) gardenAgain();
+      },
+      onAgain: () => ctx.restart(),
+    });
+  }
+
+  /** The finale, a frame on: its clock, and whatever's due. */
+  function stepFinale(f: Finale, dt: number) {
+    const audio = ctx.audio;
+    if (f.at === null) f.t += dt;
+    else if (audio.running) {
+      f.t = audio.ctx.currentTime - f.at;
+      f.held = 0;
+    } else if ((f.held += dt) > 3) {
+      // The sound has been held up (a phone's interruption): the frames keep the time from here.
+      f.at = null;
+    }
+    const once = (key: string, when: number, then: () => void) => {
+      if (f.t >= when && !f.done.has(key)) {
+        f.done.add(key);
+        then();
+      }
+    };
+    const e = ctx.ember;
+    if (f.t < 0) return;
+    once('begin', 0, () => ctx.ui.say('The Ember has found where it belongs.', 6));
+    // The Ember settles on a branch, and on the way in's second bar becomes a leaf of light.
+    const a = anchors[Math.floor(anchors.length * 0.62)] ?? TREE.clone().add(new Vector3(0, 3, 0));
+    e.target.copy(a).add(new Vector3(0, 0.15, 0.1));
+    e.agility = 1.4;
+    const there = e.position.distanceTo(e.target) < 0.6;
+    once('leaf', there ? WAY_IN_BAR2 : f.leadIn - 1, () => {
+      addWishLeaf({ text: 'The Ember', color: 'coral', by: '', anchor: anchors.indexOf(a) });
+      void audio.sfx('wish-hang', { at: pointOnGround(a), volume: 0.85 });
+    });
+    if (f.done.has('leaf')) e.presence = Math.max(0, e.presence - dt * 0.6);
+    // On the finale's downbeat, every lantern of the night rises.
+    once('lanterns', f.leadIn, () => {
+      sky.start();
+      ctx.ui.say('And every lantern of the night rises, together.', 7);
+    });
+    once('ending', f.coda, endOfTheNight);
+    once('end', f.end, () => {
+      // The finale is over: the night's sounds come back, and for those staying, the garden's music.
+      audio.ambienceLevel(1, 8);
+      if (stayed) gardenAgain();
+    });
   }
 
   const chapter: Chapter = {
@@ -701,13 +819,18 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       ctx.ember.presence = 1;
       ctx.ember.place(new Vector3(0, 1.8, 6));
       ctx.audio.preload('marigold', ['candle-light', 'butterflies', 'wish-hang']);
-      setTimeout(() => ctx.ui.say('The water drains away. Marigolds, and warm candlelight.', 6), 3000);
+      setTimeout(() => !disposed && ctx.ui.say('The water drains away. Marigolds, and warm candlelight.', 6), 3000);
     },
 
     update(dt) {
       time += dt;
       const w = ctx.walker;
       const e = ctx.ember;
+      // The finale's music, fetched and decoded well before it's wanted.
+      if (!cuesLoading && time > 12) {
+        cuesLoading = true;
+        ctx.audio.preloadCues(FINALE_CUES);
+      }
       butterflies.update(dt, time);
       theGuitar.update(dt, time);
       sky.update(dt);
@@ -718,34 +841,16 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
       }
       const nearTree = Math.hypot(w.position.x - TREE.x, w.position.z - TREE.z) < 9;
       if (nearTree) atTree += dt;
-      if (nearTree && !offerOff && !writing && !hung && finale < 0) {
+      if (nearTree && !offerOff && !writing && !hung && !finale) {
         offerOff = ctx.ui.offer('Write a wish', () => void hangWish());
         ctx.ui.say('Write a wish at the table, and hang it on the tree.', 6);
       }
-      if (!nearTree && offerOff && finale < 0) {
-        offerOff();
-        offerOff = null;
-      }
-      // If you'd rather just stand and look, the night ends gently anyway.
-      if (atTree > 75 && finale < 0) startFinale();
+      if (!nearTree && offerOff && !finale) takeOfferDown();
+      // If you'd rather just stand and look, the night ends gently anyway (not while a wish is being written).
+      if (atTree > 75 && !finale && !writing) startFinale(0.3);
 
-      if (finale >= 0) {
-        finale += dt;
-        // The Ember settles on a branch and becomes a leaf of light.
-        const a = anchors[Math.floor(anchors.length * 0.62)] ?? TREE.clone().add(new Vector3(0, 3, 0));
-        e.target.copy(a).add(new Vector3(0, 0.15, 0.1));
-        e.agility = 1.4;
-        if (finale > 4 && finale < 4.1) {
-          addWishLeaf({ text: 'The Ember', color: 'coral', by: '', anchor: anchors.indexOf(a) });
-          void ctx.audio.sfx('wish-hang', { at: pointOnGround(a), volume: 0.85 });
-        }
-        if (finale > 4) e.presence = Math.max(0, e.presence - dt * 0.6);
-        if (finale > 6 && finale < 6.1) {
-          sky.start();
-          ctx.ui.say('And every lantern of the night rises, together.', 7);
-        }
-        if (finale > 50 && finale < 50.1) ctx.ui.ending(() => ctx.restart());
-      } else {
+      if (finale) stepFinale(finale, dt);
+      if (!finale || finale.t < 0) {
         // The Ember: to the ofrenda first, hovering among the candles, then on to the tree.
         if (w.s < 14) e.target.copy(OFRENDA).add(new Vector3(Math.sin(time * 0.6) * 1.6, 1.4 + Math.sin(time) * 0.2, 1.8));
         else {
@@ -762,7 +867,7 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     pick(ray: Ray): TapAction | null {
       const strum = theGuitar.pick(ray);
       if (strum) return strum;
-      if (!hung && finale < 0 && ray.intersectsBox(tableBox.clone().translate(new Vector3(0, heightAt(TABLE.x, TABLE.z), 0)))) return () => void hangWish();
+      if (!hung && !finale && !writing && ray.intersectsBox(tableBox.clone().translate(new Vector3(0, heightAt(TABLE.x, TABLE.z), 0)))) return () => void hangWish();
       if (ray.intersectsBox(candleBox.clone().translate(new Vector3(0, heightAt(OFRENDA.x, OFRENDA.z), 0)))) {
         // The nearest unlit candle to the ray.
         let best = -1;
@@ -791,6 +896,9 @@ export async function build(ctx: ChapterContext): Promise<Chapter> {
     },
 
     dispose() {
+      disposed = true;
+      for (const c of finale?.cues ?? []) c.stop(1);
+      ctx.ui.closeEnding();
       theGuitar.dispose();
       offSession();
       offCandle();
