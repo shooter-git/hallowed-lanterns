@@ -2,6 +2,8 @@
 
 ![A lane under hundreds of lit jack-o'-lanterns at sunset: Hallowed Lanterns, one October night at the pumpkin patch](docs/banner.jpg)
 
+[![Music composed with HO[LO] Desk](https://img.shields.io/badge/music-composed%20with%20HO%5BLO%5D%20Desk-1f1f1f)](https://github.com/shooter-git/holo-desk)
+
 One October night at the pumpkin patch, as an immersive walk: follow a runaway candle flame — the
 Ember — from a sunset tunnel of jack-o'-lanterns, through a candle-lit grove, a garden of red
 lanterns, a pasture of glowing giants, a hollow full of candy, an impossible October snow and a
@@ -127,6 +129,13 @@ under CC0):
   Sardin ([BigSoundBank](https://bigsoundbank.com)).
 
 Thank you, all of you.
+
+## Music composed with HO[LO] Desk
+
+The soundtrack was composed with [HO[LO] Desk](https://github.com/shooter-git/holo-desk), a studio
+in the browser for writing, playing and mixing music. The round trip still works: any piece can be
+opened in the studio, edited there and sent back, and the game plays the edited notes (see
+[tools/audio/sessions](tools/audio/sessions/README.md)).
 
 ## Privacy
 
